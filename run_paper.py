@@ -551,6 +551,10 @@ class PaperTrader:
 
     def _save_watchlist_json(self):
         """ウォッチリストをJSONで保存（UI用）"""
+        # Proxy & status summary
+        proxy_summary = StrategyRegistry.get_proxy_summary()
+        status_summary = StrategyRegistry.get_status_summary()
+
         data = {
             "date": date.today().isoformat(),
             "regime": self.current_regime.regime if self.current_regime else "unknown",
@@ -563,6 +567,15 @@ class PaperTrader:
             "disabled_strategies": [
                 s.name for s in StrategyRegistry.get_all() if not s.config.is_active
             ],
+            "strategy_status": status_summary,
+            "proxy_summary": {
+                name: {
+                    "status": info["status"],
+                    "proxy_usage_rate": info["proxy_usage_rate"],
+                    "proxy_penalty": info["proxy_penalty"],
+                }
+                for name, info in proxy_summary.items()
+            },
             "positions": {
                 ticker: {
                     "strategy": pos["strategy"].name,
@@ -572,6 +585,10 @@ class PaperTrader:
                 }
                 for ticker, pos in self.positions.items()
             },
+            "data_quality_warnings": [
+                "intraday proxy features are estimated from daily OHLCV",
+                "proxy-dependent strategies have limited evaluation reliability",
+            ],
         }
         Path("knowledge/paper_state.json").write_text(
             json.dumps(data, indent=2, ensure_ascii=False, default=str),

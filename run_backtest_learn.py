@@ -681,6 +681,32 @@ class BacktestLearner:
 
         logger.info("=" * 60)
 
+        # Proxy usage summary
+        proxy_summary = StrategyRegistry.get_proxy_summary()
+        status_summary = StrategyRegistry.get_status_summary()
+
+        logger.info("=" * 60)
+        logger.info("Proxy 依存度 & 戦略 Status")
+        logger.info("=" * 60)
+        for name, info in sorted(proxy_summary.items(), key=lambda x: -x[1]["proxy_usage_rate"]):
+            logger.info(
+                f"  {name}: status={info['status']} "
+                f"proxy_rate={info['proxy_usage_rate']:.0%} "
+                f"penalty={info['proxy_penalty']:.3f} "
+                f"deps={info['proxy_features']}"
+            )
+
+        # Overfitting warning
+        if m_is["total"] >= 5 and m_oos["total"] >= 3:
+            wr_drop = m_is["win_rate"] - m_oos["win_rate"]
+            pf_drop = m_is["pf"] - m_oos["pf"]
+            if wr_drop > 0.10 or pf_drop > 0.5:
+                logger.warning(
+                    f"⚠ OVERFITTING WARNING: IS→OOS 劣化検知 "
+                    f"(WR: {m_is['win_rate']:.0%}→{m_oos['win_rate']:.0%}, "
+                    f"PF: {m_is['pf']:.2f}→{m_oos['pf']:.2f})"
+                )
+
         # JSONにも保存
         summary = {
             "date": datetime.now().isoformat(),
@@ -710,6 +736,20 @@ class BacktestLearner:
                 for (sname, regime), trades in self.strategy_regime_trades.items()
                 if len(trades) >= 2
             },
+            "proxy_summary": {
+                name: {
+                    "status": info["status"],
+                    "proxy_usage_rate": info["proxy_usage_rate"],
+                    "proxy_penalty": info["proxy_penalty"],
+                }
+                for name, info in proxy_summary.items()
+            },
+            "strategy_status": status_summary,
+            "data_quality_warnings": [
+                "intraday proxy features are estimated from daily OHLCV",
+                "proxy-dependent strategies have limited evaluation reliability",
+                "optimization_results rankings should not be taken at face value",
+            ],
         }
         Path("knowledge/backtest_summary.json").write_text(
             json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8"

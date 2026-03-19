@@ -3,6 +3,13 @@
 Provides class-level methods to register, retrieve, and query
 strategies.  ``register_all_defaults`` wires up every built-in
 strategy with its default configuration.
+
+戦略 status 体系:
+- active:     単独エントリー可能。主戦略。
+- filter:     他戦略の発火条件として使用。単独発火しない。
+- supplement: confidence boost 専用。単独発火しない。
+- watch:      将来用に残すが現時点では運用しない。
+- off:        完全停止。proxy 依存が強い / OOS 信頼性不足。
 """
 
 from __future__ import annotations
@@ -18,6 +25,26 @@ class StrategyRegistry:
     """Singleton-style registry for all trading strategies."""
 
     _strategies: dict[str, BaseStrategy] = {}
+
+    # 戦略 status 定義: active/filter/supplement/watch/off
+    STRATEGY_STATUS: dict[str, str] = {
+        "vwap_reclaim":        "active",       # 唯一の主戦略
+        "trend_follow":        "filter",       # is_trending() のみ使用
+        "spread_entry":        "supplement",   # get_spread_boost() のみ使用
+        "orb":                 "watch",        # intraday proxy 信頼性不足
+        "tdnet_event":         "watch",        # イベント時参考
+        "gap_go":              "watch",        # 擬似特徴量依存
+        "vwap_bounce":         "off",          # データ不足
+        "orderbook_imbalance": "off",          # ダミーデータ依存
+        "large_absorption":    "off",          # ダミーデータ依存
+        "open_drive":          "off",          # PF 0.23
+        "gap_fade":            "off",          # 逆張り系リスク高
+        "overextension":       "off",          # 擬似 intraday 依存
+        "rsi_reversal":        "off",          # 擬似 intraday 依存
+        "crash_rebound":       "off",          # 擬似 intraday 依存
+        "earnings_momentum":   "off",          # データ不足
+        "catalyst_initial":    "off",          # データ不足
+    }
 
     @classmethod
     def register(cls, strategy: BaseStrategy) -> None:
@@ -147,6 +174,37 @@ class StrategyRegistry:
             f"[registry] Registered {len(default_strategies)} strategies "
             f"({len(active)} active): {active}"
         )
+
+    @classmethod
+    def get_status(cls, name: str) -> str:
+        """Return the status of a strategy (active/filter/supplement/watch/off)."""
+        return cls.STRATEGY_STATUS.get(name, "off")
+
+    @classmethod
+    def get_status_summary(cls) -> dict[str, list[str]]:
+        """Return strategies grouped by status."""
+        groups: dict[str, list[str]] = {
+            "active": [], "filter": [], "supplement": [], "watch": [], "off": [],
+        }
+        for name, status in cls.STRATEGY_STATUS.items():
+            groups.setdefault(status, []).append(name)
+        return groups
+
+    @classmethod
+    def get_proxy_summary(cls) -> dict[str, dict]:
+        """Return proxy_usage_rate and penalty for all strategies."""
+        from tools.feature_engineering import FeatureEngineer
+        result = {}
+        for name in cls.STRATEGY_STATUS:
+            rate = FeatureEngineer.get_proxy_usage_rate(name)
+            penalty = FeatureEngineer.get_proxy_penalty(name)
+            result[name] = {
+                "status": cls.STRATEGY_STATUS.get(name, "off"),
+                "proxy_usage_rate": rate,
+                "proxy_penalty": penalty,
+                "proxy_features": FeatureEngineer.STRATEGY_PROXY_DEPS.get(name, []),
+            }
+        return result
 
     # 恒久停止リスト（auto_toggleで再開しない）
     _PERMANENTLY_DISABLED = {

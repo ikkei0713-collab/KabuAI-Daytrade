@@ -3,28 +3,36 @@
 AI駆動型の日本株デイトレード学習システム。
 ペーパートレードとバックテストで勝ちパターンを自動発見し、戦略を継続的に改善する。
 
-## v3 保守的チューニング (2026-03-19)
+## v3.1 最適化 (2026-03-20)
 
-**方針: 「増やす」ではなく「削る」「止める」「絞る」**
+**方針: 「増やす」ではなく「削る」「止める」「絞る」+ proxy 依存ペナルティ**
 
-- **戦略を16→1に削減**: vwap_reclaim のみ active (他15は off/watch/filter)
-- **同時保有 5→2**: リスク集中を回避
-- **ポジションサイズ 50万→25万**: 1件あたり損失を半減
-- **日次損失上限 -5万→-1.5万**: 資金の0.5%で停止
-- **MIN_CONFIDENCE 0.3→0.65**: 高確信シグナルのみ通過
-- **スキャン間隔 90秒→300秒**: 無駄打ち抑制
-- **監視銘柄 20→8**: 流動性上位に集中 (売買代金10億円以上)
-- **強制決済 15:20→14:50**: 余裕を持って決済
-- **異常停止 3連敗 / 直近8件で-2万円超**: 早期に止める
-- **vwap_reclaim**: max_distance 2.0→0.8%, target 1.5→1.2 ATR (飛びつき抑制)
-- **trend_follow**: filter専用化 (単独発火せず、vwap_reclaimのゲートに使用)
-- **spread_entry**: 補助専用化 (boost上限 0.15→0.05)
-- **auto_toggle厳格化**: 停止 PF<0.9/WR<40%, 再開 PF>1.2/WR>48%
+- **戦略を16→1に削減**: vwap_reclaim のみ active (他15は off/watch/filter/supplement)
+- **proxy feature フラグ付け**: 擬似特徴量に is_proxy フラグを付与、戦略ごとに proxy_usage_rate を算出
+- **proxy 依存ペナルティ**: proxy_usage_rate に応じて confidence を最大 -0.15 減点
+- **vwap_reclaim 保守化**: time_below 10→15, vol_reclaim 1.0→1.5, target 1.8→1.2 ATR
+- **戦略 status 体系**: active / filter / supplement / watch / off を明示化
+- **UI で proxy 依存度・data quality warning を表示**
+- **backtest_summary に proxy_summary・overfitting warning を出力**
+
+### 運用パラメータ
+
+| 項目 | 値 | 理由 |
+|------|-----|------|
+| MAX_POSITIONS | 2 | リスク集中回避 |
+| POSITION_SIZE | 25万円 | 1件あたり損失半減 |
+| MAX_LOSS_PER_DAY | -1.5万円 | 資金の0.5%で停止 |
+| MIN_CONFIDENCE | 0.65 | 高確信シグナルのみ |
+| SCAN_INTERVAL | 300秒 | 無駄打ち抑制 |
+| TOP_UNIVERSE | 8 | 流動性上位に集中 |
+| FORCE_CLOSE_TIME | 14:50 | 余裕を持って決済 |
 
 **重要な制約事項:**
 - 本システムは intraday proxy (日足 + 擬似特徴量) で動作している
-- ORB / spread / orderbook 系の評価信頼度は限定的
-- 当面は vwap_reclaim 主軸で保守的に運用する
+- proxy feature 依存が高い戦略は評価信頼度が低い
+- 当面の主戦略は vwap_reclaim (proxy_usage_rate=1.0 だが他戦略より相対的に最良)
+- optimization_results の順位を鵜呑みにしないこと (proxy 由来の見かけの強さがある)
+- ORB / spread / orderbook 系は proxy 依存が高く off/watch に降格済み
 
 ## 仕組み
 
@@ -65,15 +73,17 @@ AI駆動型の日本株デイトレード学習システム。
      戦略on/off・異常停止・トレード履歴 / 30秒自動更新
 ```
 
-## 戦略構成 (v3)
+## 戦略構成 (v3.1)
 
-| 状態 | 戦略 | 説明 |
-|------|------|------|
-| **Active** | **vwap_reclaim** | 唯一の主戦略。イベント重み + regime + trend filter |
-| Filter | trend_follow | is_trending() で vwap_reclaim のゲートに使用 |
-| Supplement | spread_entry | get_spread_boost() で微小ブースト (max 0.05) |
-| Watch | orb, tdnet_event, gap_go | 将来再開用。現在は off |
-| **Off** | 他10戦略 | 擬似intraday依存 / データ不足 / PF低下 |
+| Status | 戦略 | Proxy率 | 説明 |
+|--------|------|---------|------|
+| **Active** | **vwap_reclaim** | 100% | 唯一の主戦略。proxy 依存だが他戦略より相対的に最良 |
+| Filter | trend_follow | 0% | is_trending() で vwap_reclaim のゲートに使用。EMA/VWAP は real |
+| Supplement | spread_entry | 100% | get_spread_boost() で微小ブースト (max 0.05)。単独発火しない |
+| Watch | orb | 100% | intraday proxy 信頼性不足。将来再開用 |
+| Watch | tdnet_event | 0% | イベント時参考。TDnet は real データ |
+| Watch | gap_go | 0% | 擬似特徴量依存 |
+| **Off** | 他10戦略 | 50-100% | 擬似intraday依存 / データ不足 / PF低下 |
 
 ## セットアップ
 

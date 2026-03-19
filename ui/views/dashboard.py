@@ -270,17 +270,56 @@ def render():
                 else:
                     st.success("正常稼働")
 
-            # Strategy on/off details
-            with st.expander("戦略 ON/OFF 詳細"):
-                sc1, sc2 = st.columns(2)
-                with sc1:
-                    st.caption("ON (稼働中)")
-                    for s in paper_state.get("active_strategies", []):
-                        st.text(f"  {s}")
-                with sc2:
-                    st.caption("OFF (停止中)")
-                    for s in paper_state.get("disabled_strategies", []):
-                        st.text(f"  {s}")
+            # Strategy status details (active/filter/supplement/watch/off)
+            with st.expander("戦略 Status 詳細"):
+                status_groups = paper_state.get("strategy_status", {})
+                if status_groups:
+                    for status_label in ["active", "filter", "supplement", "watch", "off"]:
+                        names = status_groups.get(status_label, [])
+                        if names:
+                            color = {"active": "green", "filter": "blue", "supplement": "orange",
+                                     "watch": "gray", "off": "red"}.get(status_label, "gray")
+                            st.markdown(f"**:{color}[{status_label.upper()}]** ({len(names)})")
+                            for s in names:
+                                st.text(f"  {s}")
+                else:
+                    # Fallback to old on/off display
+                    sc1, sc2 = st.columns(2)
+                    with sc1:
+                        st.caption("ON (稼働中)")
+                        for s in paper_state.get("active_strategies", []):
+                            st.text(f"  {s}")
+                    with sc2:
+                        st.caption("OFF (停止中)")
+                        for s in paper_state.get("disabled_strategies", []):
+                            st.text(f"  {s}")
+
+            # Proxy usage rate
+            proxy_info = paper_state.get("proxy_summary", {})
+            if proxy_info:
+                with st.expander("Proxy 依存度 (データ品質)"):
+                    proxy_data = []
+                    for name, info in sorted(proxy_info.items(), key=lambda x: -x[1].get("proxy_usage_rate", 0)):
+                        rate = info.get("proxy_usage_rate", 0)
+                        quality = "HIGH" if rate < 0.3 else "MEDIUM" if rate < 0.7 else "LOW"
+                        proxy_data.append({
+                            "戦略": name,
+                            "Status": info.get("status", "off"),
+                            "Proxy率": f"{rate:.0%}",
+                            "ペナルティ": f"{info.get('proxy_penalty', 0):.3f}",
+                            "信頼度": quality,
+                        })
+                    st.dataframe(pd.DataFrame(proxy_data), hide_index=True, use_container_width=True)
+                    st.caption(
+                        "Proxy率 = 擬似特徴量への依存度。"
+                        "HIGH信頼度 = real data 中心。LOW = 日足推定値が多く評価信頼度が低い。"
+                    )
+
+            # Data quality warnings
+            warnings = paper_state.get("data_quality_warnings", [])
+            if warnings:
+                for w in warnings:
+                    st.warning(f"Data Quality: {w}")
 
             # Sector Bias
             sb = paper_state.get("sector_bias")

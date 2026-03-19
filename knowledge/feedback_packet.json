@@ -1,0 +1,370 @@
+{
+  "generated_at": "2026-03-20T01:31:58.544159",
+  "data_quality": {
+    "total_feature_observations": 1476,
+    "proxy_feature_observations": 216,
+    "proxy_feature_rate": 0.146,
+    "proxy_features_used": [
+      "bid_ask_ratio",
+      "depth_imbalance",
+      "opening_range_high",
+      "opening_range_low",
+      "price_compression",
+      "spread",
+      "spread_percentile",
+      "tick_direction",
+      "time_below_vwap",
+      "volume_at_reclaim",
+      "volume_building",
+      "volume_first_5min"
+    ],
+    "warning": null
+  },
+  "overall_metrics": {
+    "total": 18,
+    "wins": 12,
+    "win_rate": 0.667,
+    "pf": 2.08,
+    "pnl": 88567.0,
+    "avg": 4920.0,
+    "max_win": 89518.0,
+    "max_loss": -33181.0,
+    "max_drawdown": 60587.0,
+    "max_drawdown_pct": 25.493
+  },
+  "in_sample_metrics": {
+    "total": 13,
+    "wins": 10,
+    "win_rate": 0.769,
+    "pf": 3.54,
+    "pnl": 54126.0,
+    "avg": 4164.0,
+    "max_win": 21637.0,
+    "max_loss": -9050.0
+  },
+  "out_of_sample_metrics": {
+    "total": 5,
+    "wins": 2,
+    "win_rate": 0.4,
+    "pf": 1.57,
+    "pnl": 34441.0,
+    "avg": 6888.0,
+    "max_win": 89518.0,
+    "max_loss": -33181.0
+  },
+  "strategy_metrics": [
+    {
+      "name": "vwap_reclaim",
+      "all": {
+        "total": 18,
+        "wins": 12,
+        "win_rate": 0.667,
+        "pf": 2.08,
+        "pnl": 88567.0,
+        "avg": 4920.0,
+        "max_win": 89518.0,
+        "max_loss": -33181.0
+      },
+      "is": {
+        "total": 13,
+        "wins": 10,
+        "win_rate": 0.769,
+        "pf": 3.54,
+        "pnl": 54126.0,
+        "avg": 4164.0,
+        "max_win": 21637.0,
+        "max_loss": -9050.0
+      },
+      "oos": {
+        "total": 5,
+        "wins": 2,
+        "win_rate": 0.4,
+        "pf": 1.57,
+        "pnl": 34441.0,
+        "avg": 6888.0,
+        "max_win": 89518.0,
+        "max_loss": -33181.0
+      },
+      "avg_holding_min": 360.0,
+      "is_oos_pf_gap": 1.97
+    }
+  ],
+  "regime_metrics": [
+    {
+      "strategy": "vwap_reclaim",
+      "regime": "range",
+      "total": 13,
+      "wins": 9,
+      "win_rate": 0.692,
+      "pf": 5.21,
+      "pnl": 111536.0,
+      "avg": 8580.0,
+      "max_win": 89518.0,
+      "max_loss": -9050.0
+    },
+    {
+      "strategy": "vwap_reclaim",
+      "regime": "trend_down",
+      "total": 4,
+      "wins": 2,
+      "win_rate": 0.5,
+      "pf": 0.49,
+      "pnl": -28208.0,
+      "avg": -7052.0,
+      "max_win": 21637.0,
+      "max_loss": -33181.0
+    }
+  ],
+  "symbol_metrics": [
+    {
+      "ticker": "69200",
+      "total": 1,
+      "wins": 1,
+      "win_rate": 1.0,
+      "pf": 0,
+      "pnl": 89518.0,
+      "avg": 89518.0,
+      "max_win": 89518.0,
+      "max_loss": 89518.0
+    },
+    {
+      "ticker": "69810",
+      "total": 1,
+      "wins": 1,
+      "win_rate": 1.0,
+      "pf": 0,
+      "pnl": 21637.0,
+      "avg": 21637.0,
+      "max_win": 21637.0,
+      "max_loss": 21637.0
+    },
+    {
+      "ticker": "75320",
+      "total": 1,
+      "wins": 1,
+      "win_rate": 1.0,
+      "pf": 0,
+      "pnl": 10381.0,
+      "avg": 10381.0,
+      "max_win": 10381.0,
+      "max_loss": 10381.0
+    },
+    {
+      "ticker": "92020",
+      "total": 1,
+      "wins": 1,
+      "win_rate": 1.0,
+      "pf": 0,
+      "pnl": 9775.0,
+      "avg": 9775.0,
+      "max_win": 9775.0,
+      "max_loss": 9775.0
+    },
+    {
+      "ticker": "66450",
+      "total": 1,
+      "wins": 1,
+      "win_rate": 1.0,
+      "pf": 0,
+      "pnl": 7961.0,
+      "avg": 7961.0,
+      "max_win": 7961.0,
+      "max_loss": 7961.0
+    },
+    {
+      "ticker": "63260",
+      "total": 1,
+      "wins": 1,
+      "win_rate": 1.0,
+      "pf": 0,
+      "pnl": 7686.0,
+      "avg": 7686.0,
+      "max_win": 7686.0,
+      "max_loss": 7686.0
+    },
+    {
+      "ticker": "86010",
+      "total": 1,
+      "wins": 1,
+      "win_rate": 1.0,
+      "pf": 0,
+      "pnl": 5510.0,
+      "avg": 5510.0,
+      "max_win": 5510.0,
+      "max_loss": 5510.0
+    },
+    {
+      "ticker": "25020",
+      "total": 1,
+      "wins": 1,
+      "win_rate": 1.0,
+      "pf": 0,
+      "pnl": 5239.0,
+      "avg": 5239.0,
+      "max_win": 5239.0,
+      "max_loss": 5239.0
+    },
+    {
+      "ticker": "28020",
+      "total": 1,
+      "wins": 1,
+      "win_rate": 1.0,
+      "pf": 0,
+      "pnl": 4826.0,
+      "avg": 4826.0,
+      "max_win": 4826.0,
+      "max_loss": 4826.0
+    },
+    {
+      "ticker": "91010",
+      "total": 1,
+      "wins": 1,
+      "win_rate": 1.0,
+      "pf": 0,
+      "pnl": 4340.0,
+      "avg": 4340.0,
+      "max_win": 4340.0,
+      "max_loss": 4340.0
+    },
+    {
+      "ticker": "33820",
+      "total": 1,
+      "wins": 1,
+      "win_rate": 1.0,
+      "pf": 0,
+      "pnl": 3217.0,
+      "avg": 3217.0,
+      "max_win": 3217.0,
+      "max_loss": 3217.0
+    },
+    {
+      "ticker": "47680",
+      "total": 2,
+      "wins": 1,
+      "win_rate": 0.5,
+      "pf": 0.07,
+      "pnl": -4877.0,
+      "avg": -2438.0,
+      "max_win": 355.0,
+      "max_loss": -5232.0
+    },
+    {
+      "ticker": "63670",
+      "total": 1,
+      "wins": 0,
+      "win_rate": 0.0,
+      "pf": 0.0,
+      "pnl": -5690.0,
+      "avg": -5690.0,
+      "max_win": -5690.0,
+      "max_loss": -5690.0
+    },
+    {
+      "ticker": "78320",
+      "total": 1,
+      "wins": 0,
+      "win_rate": 0.0,
+      "pf": 0.0,
+      "pnl": -6551.0,
+      "avg": -6551.0,
+      "max_win": -6551.0,
+      "max_loss": -6551.0
+    },
+    {
+      "ticker": "87660",
+      "total": 1,
+      "wins": 0,
+      "win_rate": 0.0,
+      "pf": 0.0,
+      "pnl": -9050.0,
+      "avg": -9050.0,
+      "max_win": -9050.0,
+      "max_loss": -9050.0
+    },
+    {
+      "ticker": "39230",
+      "total": 1,
+      "wins": 0,
+      "win_rate": 0.0,
+      "pf": 0.0,
+      "pnl": -22174.0,
+      "avg": -22174.0,
+      "max_win": -22174.0,
+      "max_loss": -22174.0
+    },
+    {
+      "ticker": "83160",
+      "total": 1,
+      "wins": 0,
+      "win_rate": 0.0,
+      "pf": 0.0,
+      "pnl": -33181.0,
+      "avg": -33181.0,
+      "max_win": -33181.0,
+      "max_loss": -33181.0
+    }
+  ],
+  "feature_diagnostics": {
+    "total_feature_observations": 1476,
+    "proxy_feature_observations": 216,
+    "proxy_feature_rate": 0.146,
+    "proxy_features_used": [
+      "bid_ask_ratio",
+      "depth_imbalance",
+      "opening_range_high",
+      "opening_range_low",
+      "price_compression",
+      "spread",
+      "spread_percentile",
+      "tick_direction",
+      "time_below_vwap",
+      "volume_at_reclaim",
+      "volume_building",
+      "volume_first_5min"
+    ],
+    "warning": null
+  },
+  "anomaly_summary": {
+    "exit_reason_breakdown": {
+      "翌日決済": 11,
+      "含み損決済": 3,
+      "ストップロス(intraday)": 2,
+      "利確(intraday)": 2
+    },
+    "stop_loss_rate": 0.111,
+    "max_consecutive_losses": 3,
+    "high_confidence_losses": 0
+  },
+  "recommendation_hints": {
+    "weakest_strategies": [],
+    "strongest_strategies": [
+      {
+        "strategy": "vwap_reclaim",
+        "oos_pf": 1.57,
+        "oos_trades": 5
+      }
+    ],
+    "overfitting_signals": [
+      {
+        "strategy": "vwap_reclaim",
+        "is_pf": 3.54,
+        "oos_pf": 1.57,
+        "gap": 1.97
+      }
+    ],
+    "data_quality_warning": null,
+    "system_notes": [
+      "本システムはintraday proxy (日足+擬似特徴量) で動作",
+      "ORB/spread/orderbook系の評価信頼度は限定的",
+      "OOS PF > IS PF の場合はサンプルサイズ不足の可能性"
+    ]
+  },
+  "plot_paths": {
+    "equity_curve": "knowledge/plots/equity_curve.png",
+    "drawdown_curve": "knowledge/plots/drawdown_curve.png",
+    "strategy_oos": "knowledge/plots/strategy_oos.png",
+    "regime_heatmap": "knowledge/plots/regime_heatmap.png",
+    "confidence_vs_pnl": "knowledge/plots/confidence_vs_pnl.png",
+    "feature_win_loss": "knowledge/plots/feature_win_loss_compare.png"
+  }
+}

@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     FORCE_CLOSE_TIME: str = "14:50"  # 強制決済 15:20→14:50 余裕を持って決済
 
     # Strategy
-    MIN_CONFIDENCE: float = 0.6
+    MIN_CONFIDENCE: float = 0.65   # 0.6→0.65: 高確信シグナルのみ通過
     STRATEGY_SCORE_THRESHOLD: float = 0.5
 
     # Tachibana (future)

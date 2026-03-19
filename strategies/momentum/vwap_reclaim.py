@@ -2,7 +2,13 @@
 
 Fires when a stock drops below VWAP, stays below for at least 15 minutes,
 then reclaims VWAP with strong volume.  Entry is on the close above VWAP;
-stop is below the recent low; target is the day's high or 1.5x ATR.
+stop is below the recent low; target is the day's high or 1.2x ATR.
+
+NOTE: 擬似特徴量の限界
+- time_below_vwap: 日足ベースでは正確な intraday 滞在時間を計測できない (固定値30)
+- volume_at_reclaim: 日足出来高 * 1.2 で推定しており、reclaim 時点の出来高ではない
+- proxy_usage_rate ≈ 1.0 → 評価信頼度は限定的
+- 本戦略が主力なのは他戦略がより proxy 依存が高いため (相対的に最良)
 """
 
 from typing import Optional
@@ -35,11 +41,11 @@ class VWAPReclaimStrategy(BaseStrategy):
             feature_requirements=self.REQUIRED_FEATURES,
             expected_market_condition="bull",
             parameter_set={
-                "min_time_below_vwap_min": 10,        # 最適化R2: 15→10 (OOS PF 2.60)
-                "min_volume_at_reclaim": 1.0,          # 最適化R2: 1.5→1.0 (条件緩和→件数確保)
-                "target_atr_multiple": 1.8,            # 最適化R2: 1.2→1.8 (利を伸ばす)
-                "reclaim_buffer_pct": 0.15,            # 維持
-                "max_distance_from_vwap_pct": 0.5,     # 最適化R2: 0.8→0.5 (VWAP直近のみ)
+                "min_time_below_vwap_min": 15,         # 保守化: 10→15 (飛びつき抑制)
+                "min_volume_at_reclaim": 1.5,           # 保守化: 1.0→1.5 (出来高確認を厳格化)
+                "target_atr_multiple": 1.2,             # 保守化: 1.8→1.2 (利確を手前に)
+                "reclaim_buffer_pct": 0.15,             # 維持
+                "max_distance_from_vwap_pct": 0.8,      # 緩和: 0.5→0.8 (件数確保)
             },
         )
 
@@ -164,6 +170,13 @@ class VWAPReclaimStrategy(BaseStrategy):
                 confidence += sector_bias_score * 0.5
             else:
                 confidence += sector_bias_score
+
+        # Proxy penalty: time_below_vwap, volume_at_reclaim は擬似値
+        # proxy 依存度に応じて confidence を減点
+        from tools.feature_engineering import FeatureEngineer
+        proxy_penalty = FeatureEngineer.get_proxy_penalty(self.name)
+        if proxy_penalty > 0:
+            confidence -= proxy_penalty
 
         confidence = min(confidence, 0.90)
 

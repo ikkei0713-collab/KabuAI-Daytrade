@@ -87,6 +87,9 @@ class FeatureEngineer:
             out["vwap_distance"] = out["distance_from_vwap"]
 
         # Simulated features for paper trading (日足ベース推定)
+        # NOTE: これらは intraday proxy (擬似特徴量) であり、
+        #       日足データから推定した値で実際のイントラデーデータではない。
+        #       proxy 依存が高い戦略の評価信頼度は限定的。
         close = df["close"].iloc[-1] if not df.empty else 0
         high = df["high"].iloc[-1] if not df.empty else 0
         low = df["low"].iloc[-1] if not df.empty else 0
@@ -133,7 +136,131 @@ class FeatureEngineer:
         out.setdefault("price_acceleration", 0.0)
         out.setdefault("historical_catalyst_response", 0.0)
 
+        # Proxy feature metadata: 各特徴量が proxy (擬似) か real かを記録
+        out["_proxy_features"] = self.get_proxy_features()
+        out["_proxy_usage_rate"] = self._calc_proxy_usage_rate(out)
+
         return out
+
+    # ------------------------------------------------------------------
+    # Proxy feature tracking
+    # ------------------------------------------------------------------
+
+    # 擬似 intraday 特徴量リスト
+    # これらは日足データから推定しており、実際の intraday データではない
+    PROXY_FEATURES: set[str] = {
+        # Orderbook 系 (完全ダミー)
+        "spread_percentile",    # 固定値 0.5
+        "bid_ask_ratio",        # close-open から推定
+        "spread",               # ATR * 0.05 で推定
+        "depth_imbalance",      # bid_ask_ratio - 1.0
+        "large_trade_detection",  # volume から推定
+        # Intraday timing 系 (日足では不可能)
+        "time_below_vwap",      # 固定値 30
+        "volume_at_reclaim",    # volume * 1.2 で推定
+        "vwap_touches_today",   # 固定値 2
+        "volume_first_5min",    # volume * 0.05 で推定
+        "pre_market_volume",    # volume * 0.1 で推定
+        "tick_direction",       # close vs open で推定
+        # Opening range 系 (日足 high/low で代替)
+        "opening_range_size",   # high - low (日足レンジ = intraday OR ではない)
+        "opening_range_high",   # high (日足高値 ≠ 始値5分高値)
+        "opening_range_low",    # low (日足安値 ≠ 始値5分安値)
+        # Intraday dynamics 系
+        "intraday_drop_pct",    # (low-high)/high で推定
+        "selling_exhaustion",   # 固定値 0
+        "volume_price_divergence",  # 固定値 0
+        "price_acceleration",   # 固定値 0
+        # Event 系 (外部データなしの場合)
+        "earnings_surprise_pct",  # 固定値 0
+        "revenue_growth",         # 固定値 0
+        "guidance_change",        # 固定値 0
+        "news_sentiment",         # 固定値 0
+        "historical_catalyst_response",  # 固定値 0
+        "historical_event_response",     # 固定値 0 (TDnet注入時は real)
+        "market_cap",            # 固定値 0
+    }
+
+    # 戦略が依存する特徴量マッピング
+    STRATEGY_PROXY_DEPS: dict[str, list[str]] = {
+        "vwap_reclaim": ["time_below_vwap", "volume_at_reclaim"],
+        "orb": ["opening_range_high", "opening_range_low"],
+        "trend_follow": [],  # EMA/VWAP は real
+        "spread_entry": ["spread_percentile", "volume_building", "price_compression"],
+        "gap_go": [],
+        "gap_fade": [],
+        "open_drive": ["opening_range_high", "opening_range_low"],
+        "orderbook_imbalance": ["bid_ask_ratio", "depth_imbalance", "spread"],
+        "large_absorption": ["large_trade_detection", "bid_ask_ratio"],
+        "overextension": ["intraday_drop_pct"],
+        "rsi_reversal": ["selling_exhaustion"],
+        "crash_rebound": ["intraday_drop_pct", "selling_exhaustion"],
+        "tdnet_event": [],  # TDnet は real データ
+        "earnings_momentum": ["earnings_surprise_pct", "revenue_growth"],
+        "catalyst_initial": ["news_sentiment", "historical_catalyst_response"],
+        "vwap_bounce": ["time_below_vwap", "volume_at_reclaim"],
+    }
+
+    @classmethod
+    def get_proxy_features(cls) -> list[str]:
+        """Return the list of proxy (simulated) feature names."""
+        return sorted(cls.PROXY_FEATURES)
+
+    @classmethod
+    def get_proxy_usage_rate(cls, strategy_name: str) -> float:
+        """Return the proxy dependency rate (0-1) for a strategy.
+
+        Higher values indicate greater reliance on simulated features,
+        meaning lower evaluation reliability.
+        """
+        deps = cls.STRATEGY_PROXY_DEPS.get(strategy_name, [])
+        if not deps:
+            return 0.0
+        proxy_count = sum(1 for d in deps if d in cls.PROXY_FEATURES)
+        return proxy_count / max(len(deps), 1)
+
+    @classmethod
+    def get_all_proxy_usage_rates(cls) -> dict[str, float]:
+        """Return proxy_usage_rate for all known strategies."""
+        return {
+            name: cls.get_proxy_usage_rate(name)
+            for name in cls.STRATEGY_PROXY_DEPS
+        }
+
+    @classmethod
+    def get_proxy_penalty(cls, strategy_name: str) -> float:
+        """Return a confidence penalty (0 to 0.15) based on proxy dependency.
+
+        Strategies that rely heavily on proxy features get a larger penalty
+        to prevent overconfidence in their signals.
+
+        Active 戦略 (vwap_reclaim) は主力なのでペナルティ上限を 0.05 に抑える。
+        他戦略は rate * 0.15 (最大 0.15)。
+        """
+        from strategies.registry import StrategyRegistry
+        rate = cls.get_proxy_usage_rate(strategy_name)
+        status = StrategyRegistry.STRATEGY_STATUS.get(strategy_name, "off")
+        if status == "active":
+            # 主戦略は proxy ペナルティを軽減 (最大 0.05)
+            return round(rate * 0.05, 3)
+        # 0.0 → no penalty, 1.0 → -0.15
+        return round(rate * 0.15, 3)
+
+    def _calc_proxy_usage_rate(self, features: dict) -> float:
+        """Calculate what fraction of non-None features are proxy."""
+        if not features:
+            return 0.0
+        total = 0
+        proxy_count = 0
+        for k, v in features.items():
+            if k.startswith("_"):
+                continue
+            if v is None:
+                continue
+            total += 1
+            if k in self.PROXY_FEATURES:
+                proxy_count += 1
+        return round(proxy_count / max(total, 1), 3)
 
     # ------------------------------------------------------------------
     # Column normalisation

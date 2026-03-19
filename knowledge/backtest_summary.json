@@ -1,24 +1,151 @@
 {
-  "date": "2026-03-19T16:19:18.463817",
-  "total_trades": 54,
-  "wins": 31,
-  "losses": 23,
-  "win_rate": 0.574,
-  "profit_factor": 1.96,
-  "total_pnl_cost_adjusted": 218631.0,
-  "total_pnl_raw": 254460.0,
-  "total_cost": 21048.0,
-  "avg_pnl": 4049.0,
+  "date": "2026-03-20T01:31:58.542143",
+  "total_trades": 18,
+  "wins": 12,
+  "losses": 6,
+  "win_rate": 0.667,
+  "profit_factor": 2.08,
+  "total_pnl_cost_adjusted": 88567.0,
+  "total_pnl_raw": 104000.0,
+  "total_cost": 9472.0,
+  "avg_pnl": 4920.0,
   "in_sample": {
-    "trades": 43,
-    "win_rate": 0.581,
-    "pf": 2.11,
-    "pnl": 158171.0
+    "trades": 13,
+    "win_rate": 0.769,
+    "pf": 3.54,
+    "pnl": 54126.0
   },
   "out_of_sample": {
-    "trades": 11,
-    "win_rate": 0.545,
-    "pf": 1.71,
-    "pnl": 60460.0
-  }
+    "trades": 5,
+    "win_rate": 0.4,
+    "pf": 1.57,
+    "pnl": 34441.0
+  },
+  "strategy_regime": {
+    "vwap_reclaim_range": {
+      "trades": 13,
+      "win_rate": 0.692,
+      "pf": 5.21
+    },
+    "vwap_reclaim_trend_down": {
+      "trades": 4,
+      "win_rate": 0.5,
+      "pf": 0.49
+    }
+  },
+  "proxy_summary": {
+    "vwap_reclaim": {
+      "status": "active",
+      "proxy_usage_rate": 1.0,
+      "proxy_penalty": 0.05
+    },
+    "trend_follow": {
+      "status": "filter",
+      "proxy_usage_rate": 0.0,
+      "proxy_penalty": 0.0
+    },
+    "spread_entry": {
+      "status": "supplement",
+      "proxy_usage_rate": 0.3333333333333333,
+      "proxy_penalty": 0.05
+    },
+    "orb": {
+      "status": "watch",
+      "proxy_usage_rate": 1.0,
+      "proxy_penalty": 0.15
+    },
+    "tdnet_event": {
+      "status": "watch",
+      "proxy_usage_rate": 0.0,
+      "proxy_penalty": 0.0
+    },
+    "gap_go": {
+      "status": "watch",
+      "proxy_usage_rate": 0.0,
+      "proxy_penalty": 0.0
+    },
+    "vwap_bounce": {
+      "status": "off",
+      "proxy_usage_rate": 1.0,
+      "proxy_penalty": 0.15
+    },
+    "orderbook_imbalance": {
+      "status": "off",
+      "proxy_usage_rate": 1.0,
+      "proxy_penalty": 0.15
+    },
+    "large_absorption": {
+      "status": "off",
+      "proxy_usage_rate": 1.0,
+      "proxy_penalty": 0.15
+    },
+    "open_drive": {
+      "status": "off",
+      "proxy_usage_rate": 1.0,
+      "proxy_penalty": 0.15
+    },
+    "gap_fade": {
+      "status": "off",
+      "proxy_usage_rate": 0.0,
+      "proxy_penalty": 0.0
+    },
+    "overextension": {
+      "status": "off",
+      "proxy_usage_rate": 1.0,
+      "proxy_penalty": 0.15
+    },
+    "rsi_reversal": {
+      "status": "off",
+      "proxy_usage_rate": 1.0,
+      "proxy_penalty": 0.15
+    },
+    "crash_rebound": {
+      "status": "off",
+      "proxy_usage_rate": 1.0,
+      "proxy_penalty": 0.15
+    },
+    "earnings_momentum": {
+      "status": "off",
+      "proxy_usage_rate": 1.0,
+      "proxy_penalty": 0.15
+    },
+    "catalyst_initial": {
+      "status": "off",
+      "proxy_usage_rate": 1.0,
+      "proxy_penalty": 0.15
+    }
+  },
+  "strategy_status": {
+    "active": [
+      "vwap_reclaim"
+    ],
+    "filter": [
+      "trend_follow"
+    ],
+    "supplement": [
+      "spread_entry"
+    ],
+    "watch": [
+      "orb",
+      "tdnet_event",
+      "gap_go"
+    ],
+    "off": [
+      "vwap_bounce",
+      "orderbook_imbalance",
+      "large_absorption",
+      "open_drive",
+      "gap_fade",
+      "overextension",
+      "rsi_reversal",
+      "crash_rebound",
+      "earnings_momentum",
+      "catalyst_initial"
+    ]
+  },
+  "data_quality_warnings": [
+    "intraday proxy features are estimated from daily OHLCV",
+    "proxy-dependent strategies have limited evaluation reliability",
+    "optimization_results rankings should not be taken at face value"
+  ]
 }

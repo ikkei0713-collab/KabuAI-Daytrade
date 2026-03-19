@@ -439,26 +439,30 @@ class PaperTrader:
                             logger.warning(f"TDnet取得失敗: {e}")
 
                     wait_sec = (market_open - now).total_seconds()
-                    logger.info(f"市場開場まで {wait_sec/60:.0f}分 待機中...")
+                    if not hasattr(self, '_pre_market_logged') or self._pre_market_logged != today_str:
+                        logger.info(f"市場開場まで {wait_sec/60:.0f}分 待機中...")
+                        self._pre_market_logged = today_str
                     await asyncio.sleep(min(wait_sec, 60))
                     continue
 
-                # ── 市場閉場後: EOD処理 → 翌営業日まで待機 ──
+                # ── 市場閉場後: EOD処理 → 翌営業日まで長時間スリープ ──
                 if now >= market_close:
                     if self.trades and not self._eod_done:
                         await self.extract_knowledge()
                         self._print_daily_summary()
                         self._eod_done = True
 
-                    # 翌営業日 08:55 まで待機
-                    tomorrow_pre = (now + timedelta(days=1)).replace(hour=8, minute=55, second=0, microsecond=0)
+                    # 翌営業日 08:50 まで一括スリープ（無駄なログを出さない）
+                    tomorrow_pre = (now + timedelta(days=1)).replace(hour=8, minute=50, second=0, microsecond=0)
                     if now.weekday() == 4:  # 金曜 → 月曜
                         tomorrow_pre += timedelta(days=2)
                     elif now.weekday() == 5:  # 土曜 → 月曜
                         tomorrow_pre += timedelta(days=1)
                     wait_sec = (tomorrow_pre - now).total_seconds()
-                    logger.info(f"市場閉場。次の開場まで {wait_sec/3600:.1f}時間 待機...")
-                    await asyncio.sleep(min(wait_sec, 300))
+                    if not hasattr(self, '_post_market_logged') or self._post_market_logged != today_str:
+                        logger.info(f"市場閉場。次回 {tomorrow_pre.strftime('%m/%d %H:%M')} まで停止")
+                        self._post_market_logged = today_str
+                    await asyncio.sleep(max(wait_sec, 60))
                     continue
 
                 # ── 市場時間中 ──

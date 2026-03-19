@@ -1,14 +1,10 @@
 """
-J-Quants API client for Japanese stock market data.
+J-Quants API V2 client for Japanese stock market data.
 
-Provides access to:
-- Listed stock information (上場銘柄一覧)
-- Daily OHLCV prices (日足)
-- Intraday minute-level prices (分足)
-- Financial statements (財務情報)
-- Trading calendar (営業日カレンダー)
+Uses API-key authentication (x-api-key header).
+Base URL: https://api.jquants.com/v2
 
-API Documentation: https://jpx.gitbook.io/j-quants-api
+API Documentation: https://jpx.gitbook.io/j-quants-pro
 """
 
 from __future__ import annotations
@@ -18,60 +14,50 @@ import hashlib
 import json
 import os
 import time
-from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional
 
 import aiohttp
 from loguru import logger
 
-BASE_URL = "https://api.jquants.com/v1"
+BASE_URL = "https://api.jquants.com/v2"
 
-# Rate limit: 12 requests per second as documented
 _DEFAULT_MAX_CONCURRENT = 10
 _DEFAULT_RETRY_COUNT = 3
-_DEFAULT_RETRY_DELAY = 1.0  # seconds
+_DEFAULT_RETRY_DELAY = 1.0
 _CACHE_DIR = Path("data/cache")
-
-
-@dataclass
-class TokenInfo:
-    """Stores authentication token state."""
-
-    id_token: str = ""
-    refresh_token: str = ""
-    id_token_expires_at: float = 0.0  # unix timestamp
 
 
 class JQuantsClient:
     """
-    Async client for the J-Quants API.
+    Async client for the J-Quants V2 API (API-key auth).
 
     Usage:
-        async with JQuantsClient(refresh_token="...") as client:
-            prices = await client.get_prices_daily("7203", "2024-01-01", "2024-01-31")
+        async with JQuantsClient() as client:
+            prices = await client.get_prices_daily("72030", "2024-01-01", "2024-01-31")
     """
 
     def __init__(
         self,
-        refresh_token: Optional[str] = None,
-        mail_address: Optional[str] = None,
-        password: Optional[str] = None,
+        api_key: Optional[str] = None,
         max_concurrent: int = _DEFAULT_MAX_CONCURRENT,
         cache_dir: Optional[Path] = None,
         cache_ttl_seconds: int = 3600,
     ) -> None:
-        self._refresh_token = refresh_token or os.getenv("KABUAI_JQUANTS_REFRESH_TOKEN", "") or os.getenv("JQUANTS_REFRESH_TOKEN", "")
-        self._mail_address = mail_address or os.getenv("KABUAI_JQUANTS_MAIL", "") or os.getenv("JQUANTS_MAIL_ADDRESS", "")
-        self._password = password or os.getenv("KABUAI_JQUANTS_PASSWORD", "") or os.getenv("JQUANTS_PASSWORD", "")
-        self._token = TokenInfo(refresh_token=self._refresh_token)
+        self._api_key = (
+            api_key
+            or os.getenv("KABUAI_JQUANTS_API_KEY", "")
+            or os.getenv("JQUANTS_API_KEY", "")
+        )
+        if not self._api_key:
+            raise RuntimeError(
+                "J-Quants API key not configured. "
+                "Set KABUAI_JQUANTS_API_KEY in .env"
+            )
         self._semaphore = asyncio.Semaphore(max_concurrent)
         self._session: Optional[aiohttp.ClientSession] = None
         self._cache_dir = cache_dir or _CACHE_DIR
         self._cache_ttl = cache_ttl_seconds
-
-        # Ensure cache directory exists
         self._cache_dir.mkdir(parents=True, exist_ok=True)
 
     # ------------------------------------------------------------------
@@ -80,85 +66,32 @@ class JQuantsClient:
 
     async def __aenter__(self) -> JQuantsClient:
         self._session = aiohttp.ClientSession(
-            headers={"Accept": "application/json"},
+            headers={
+                "Accept": "application/json",
+                "x-api-key": self._api_key,
+            },
             timeout=aiohttp.ClientTimeout(total=30),
         )
-        await self.authenticate()
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:  # noqa: ANN001
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         if self._session:
             await self._session.close()
             self._session = None
 
     # ------------------------------------------------------------------
-    # Authentication
-    # ------------------------------------------------------------------
-
-    async def authenticate(self) -> str:
-        """
-        Obtain or refresh the ID token.
-
-        Flow:
-        1. If a valid (non-expired) ID token exists, return it.
-        2. If a refresh token is available, call /token/auth_refresh.
-        3. Otherwise, call /token/auth_user with email/password to get a
-           refresh token first, then obtain an ID token.
-
-        Returns:
-            The current ID token string.
-        """
-        # Still valid?
-        if self._token.id_token and time.time() < self._token.id_token_expires_at - 60:
-            return self._token.id_token
-
-        if not self._session:
-            self._session = aiohttp.ClientSession(
-                headers={"Accept": "application/json"},
-                timeout=aiohttp.ClientTimeout(total=30),
-            )
-
-        # If we don't have a refresh token, get one via email/password
-        if not self._token.refresh_token:
-            if not self._mail_address or not self._password:
-                raise RuntimeError(
-                    "J-Quants: No refresh token and no email/password configured. "
-                    "Set JQUANTS_REFRESH_TOKEN or JQUANTS_MAIL_ADDRESS + JQUANTS_PASSWORD."
-                )
-            logger.info("J-Quants: Authenticating with email/password")
-            async with self._session.post(
-                f"{BASE_URL}/token/auth_user",
-                json={
-                    "mailaddress": self._mail_address,
-                    "password": self._password,
-                },
-            ) as resp:
-                resp.raise_for_status()
-                body = await resp.json()
-                self._token.refresh_token = body["refreshToken"]
-                logger.info("J-Quants: Obtained refresh token")
-
-        # Exchange refresh token for ID token
-        logger.info("J-Quants: Refreshing ID token")
-        async with self._session.post(
-            f"{BASE_URL}/token/auth_refresh",
-            params={"refreshtoken": self._token.refresh_token},
-        ) as resp:
-            resp.raise_for_status()
-            body = await resp.json()
-            self._token.id_token = body["idToken"]
-            # ID tokens are typically valid for 24 hours
-            self._token.id_token_expires_at = time.time() + 86400
-            logger.info("J-Quants: ID token refreshed successfully")
-
-        return self._token.id_token
-
-    # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _auth_headers(self) -> dict[str, str]:
-        return {"Authorization": f"Bearer {self._token.id_token}"}
+    def _ensure_session(self) -> None:
+        if not self._session:
+            self._session = aiohttp.ClientSession(
+                headers={
+                    "Accept": "application/json",
+                    "x-api-key": self._api_key,
+                },
+                timeout=aiohttp.ClientTimeout(total=30),
+            )
 
     def _cache_key(self, endpoint: str, params: dict[str, Any]) -> str:
         raw = f"{endpoint}:{json.dumps(params, sort_keys=True)}"
@@ -196,12 +129,10 @@ class JQuantsClient:
         use_cache: bool = True,
         retries: int = _DEFAULT_RETRY_COUNT,
     ) -> Any:
-        """
-        Make an authenticated, rate-limited request with retries and caching.
-        """
+        """Make an authenticated, rate-limited request with retries and caching."""
         params = params or {}
+        self._ensure_session()
 
-        # Check cache
         if use_cache and method.upper() == "GET":
             cache_key = self._cache_key(endpoint, params)
             cached = self._read_cache(cache_key)
@@ -214,44 +145,41 @@ class JQuantsClient:
         for attempt in range(1, retries + 1):
             async with self._semaphore:
                 try:
-                    # Ensure token is valid
-                    await self.authenticate()
-
                     async with self._session.request(
-                        method,
-                        url,
-                        params=params,
-                        headers=self._auth_headers(),
+                        method, url, params=params,
                     ) as resp:
                         if resp.status == 429:
-                            retry_after = float(resp.headers.get("Retry-After", _DEFAULT_RETRY_DELAY * attempt))
+                            retry_after = float(
+                                resp.headers.get("Retry-After", _DEFAULT_RETRY_DELAY * attempt)
+                            )
                             logger.warning(
-                                "J-Quants rate limited on {} (attempt {}/{}), waiting {:.1f}s",
+                                "Rate limited on {} (attempt {}/{}), waiting {:.1f}s",
                                 endpoint, attempt, retries, retry_after,
                             )
                             await asyncio.sleep(retry_after)
                             continue
 
+                        if resp.status in (500, 502, 503, 504):
+                            logger.warning(
+                                "Server error {} on {} (attempt {}/{})",
+                                resp.status, endpoint, attempt, retries,
+                            )
+                            if attempt < retries:
+                                await asyncio.sleep(_DEFAULT_RETRY_DELAY * attempt)
+                                continue
+
                         resp.raise_for_status()
                         data = await resp.json()
 
-                        # Cache successful GET responses
                         if use_cache and method.upper() == "GET":
                             self._write_cache(cache_key, data)
 
                         return data
 
                 except aiohttp.ClientResponseError as e:
-                    if e.status in (401, 403):
-                        logger.warning("J-Quants auth error on {}, re-authenticating", endpoint)
-                        self._token.id_token = ""
-                        self._token.id_token_expires_at = 0.0
-                        if attempt < retries:
-                            await asyncio.sleep(_DEFAULT_RETRY_DELAY)
-                            continue
                     logger.error(
-                        "J-Quants API error on {} (attempt {}/{}): {}",
-                        endpoint, attempt, retries, e,
+                        "J-Quants API error on {} (attempt {}/{}): {} {}",
+                        endpoint, attempt, retries, e.status, e.message,
                     )
                     if attempt == retries:
                         raise
@@ -269,7 +197,7 @@ class JQuantsClient:
         raise RuntimeError(f"J-Quants request failed after {retries} retries: {endpoint}")
 
     # ------------------------------------------------------------------
-    # Public API methods
+    # Public API methods (V2 endpoints)
     # ------------------------------------------------------------------
 
     async def get_listed_info(
@@ -277,16 +205,7 @@ class JQuantsClient:
         ticker: Optional[str] = None,
         report_date: Optional[str] = None,
     ) -> list[dict[str, Any]]:
-        """
-        上場銘柄一覧を取得する。
-
-        Args:
-            ticker: Filter by specific ticker code (e.g. "7203").
-            report_date: Date string "YYYY-MM-DD". Defaults to today.
-
-        Returns:
-            List of dicts with keys like Code, CompanyName, Sector33Code, etc.
-        """
+        """上場銘柄一覧を取得する。 V2: /equities/master"""
         params: dict[str, Any] = {}
         if ticker:
             params["code"] = ticker
@@ -294,8 +213,8 @@ class JQuantsClient:
             params["date"] = report_date
 
         logger.info("Fetching listed info (ticker={}, date={})", ticker, report_date)
-        data = await self._request("GET", "/listed/info", params=params)
-        results = data.get("info", [])
+        data = await self._request("GET", "/equities/master", params=params)
+        results = data.get("data", data.get("master", data.get("info", [])))
         logger.info("Retrieved {} listed stock entries", len(results))
         return results
 
@@ -305,27 +224,15 @@ class JQuantsClient:
         from_date: str,
         to_date: str,
     ) -> list[dict[str, Any]]:
-        """
-        日足の株価データを取得する。
-
-        Args:
-            ticker: Stock code (e.g. "7203").
-            from_date: Start date "YYYY-MM-DD".
-            to_date: End date "YYYY-MM-DD".
-
-        Returns:
-            List of dicts with keys: Date, Code, Open, High, Low, Close,
-            Volume, TurnoverValue, AdjustmentOpen, AdjustmentHigh,
-            AdjustmentLow, AdjustmentClose, AdjustmentVolume.
-        """
+        """日足の株価データを取得する。 V2: /equities/bars/daily"""
         params = {
             "code": ticker,
             "from": from_date,
             "to": to_date,
         }
         logger.info("Fetching daily prices: {} from {} to {}", ticker, from_date, to_date)
-        data = await self._request("GET", "/prices/daily_quotes", params=params)
-        results = data.get("daily_quotes", [])
+        data = await self._request("GET", "/equities/bars/daily", params=params)
+        results = data.get("data", data.get("bars_daily", data.get("daily_quotes", [])))
         logger.info("Retrieved {} daily price records for {}", len(results), ticker)
         return results
 
@@ -334,55 +241,30 @@ class JQuantsClient:
         ticker: str,
         date_str: str,
     ) -> list[dict[str, Any]]:
-        """
-        分足（1分足）の株価データを取得する。
-
-        Note: J-Quants API availability of intraday data depends on
-        the subscription plan. This method uses the morning/afternoon
-        session endpoints.
-
-        Args:
-            ticker: Stock code (e.g. "7203").
-            date_str: Date "YYYY-MM-DD".
-
-        Returns:
-            List of dicts with minute-level OHLCV data.
-        """
+        """分足の株価データを取得する。 V2: /equities/bars/daily/am, /pm"""
         params = {
             "code": ticker,
             "date": date_str,
         }
         logger.info("Fetching intraday prices: {} on {}", ticker, date_str)
 
-        # Intraday data may not be available on all plans; attempt the request
-        # and return an empty list on 400/404 errors
+        am_quotes: list = []
         try:
-            data = await self._request(
-                "GET",
-                "/prices/prices_am",
-                params=params,
-                use_cache=True,
-            )
-            am_quotes = data.get("prices_am", [])
+            data = await self._request("GET", "/equities/bars/daily/am", params=params, use_cache=True)
+            am_quotes = data.get("data", data.get("bars_daily_am", data.get("prices_am", [])))
         except aiohttp.ClientResponseError as e:
-            if e.status in (400, 404):
+            if e.status in (400, 403, 404):
                 logger.warning("AM intraday data not available for {} on {}", ticker, date_str)
-                am_quotes = []
             else:
                 raise
 
+        pm_quotes: list = []
         try:
-            data = await self._request(
-                "GET",
-                "/prices/prices_pm",
-                params=params,
-                use_cache=True,
-            )
-            pm_quotes = data.get("prices_pm", [])
+            data = await self._request("GET", "/equities/bars/daily/pm", params=params, use_cache=True)
+            pm_quotes = data.get("data", data.get("bars_daily_pm", data.get("prices_pm", [])))
         except aiohttp.ClientResponseError as e:
-            if e.status in (400, 404):
+            if e.status in (400, 403, 404):
                 logger.warning("PM intraday data not available for {} on {}", ticker, date_str)
-                pm_quotes = []
             else:
                 raise
 
@@ -395,24 +277,15 @@ class JQuantsClient:
         ticker: str,
         report_date: Optional[str] = None,
     ) -> list[dict[str, Any]]:
-        """
-        財務情報を取得する。
-
-        Args:
-            ticker: Stock code (e.g. "7203").
-            report_date: Optional date filter "YYYY-MM-DD".
-
-        Returns:
-            List of financial statement dicts.
-        """
+        """財務情報を取得する。 V2: /fins/summary"""
         params: dict[str, Any] = {"code": ticker}
         if report_date:
             params["date"] = report_date
 
         logger.info("Fetching financial statements for {}", ticker)
-        data = await self._request("GET", "/fins/statements", params=params)
-        results = data.get("statements", [])
-        logger.info("Retrieved {} financial statement records for {}", len(results), ticker)
+        data = await self._request("GET", "/fins/summary", params=params)
+        results = data.get("data", data.get("summary", data.get("statements", [])))
+        logger.info("Retrieved {} financial records for {}", len(results), ticker)
         return results
 
     async def get_trading_calendar(
@@ -420,17 +293,7 @@ class JQuantsClient:
         from_date: Optional[str] = None,
         to_date: Optional[str] = None,
     ) -> list[dict[str, Any]]:
-        """
-        営業日カレンダーを取得する。
-
-        Args:
-            from_date: Start date "YYYY-MM-DD".
-            to_date: End date "YYYY-MM-DD".
-
-        Returns:
-            List of dicts with Date and HolidayDivision keys.
-            HolidayDivision: "1" = business day, "0" = holiday.
-        """
+        """営業日カレンダーを取得する。 V2: /markets/trading_calendar"""
         params: dict[str, Any] = {}
         if from_date:
             params["from"] = from_date
@@ -438,7 +301,14 @@ class JQuantsClient:
             params["to"] = to_date
 
         logger.info("Fetching trading calendar (from={}, to={})", from_date, to_date)
-        data = await self._request("GET", "/markets/trading_calendar", params=params)
-        results = data.get("trading_calendar", [])
+        try:
+            data = await self._request("GET", "/markets/trading_calendar", params=params)
+            results = data.get("data", data.get("trading_calendar", []))
+        except aiohttp.ClientResponseError as e:
+            if e.status in (403, 404):
+                logger.warning("Trading calendar not available (plan restriction). Using empty list.")
+                results = []
+            else:
+                raise
         logger.info("Retrieved {} calendar entries", len(results))
         return results

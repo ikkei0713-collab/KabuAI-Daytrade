@@ -31,34 +31,34 @@ def trades_table(trades: list[dict], max_rows: int = 20) -> None:
         pnl, pnl_pct, holding_minutes, entry_time, exit_time, market_condition
     """
     if not trades:
-        st.info("No trades to display.")
+        st.info("表示するトレードがありません。")
         return
 
     df = pd.DataFrame(trades[:max_rows])
 
     display_cols = {
-        "ticker": "Ticker",
-        "strategy_name": "Strategy",
-        "direction": "Dir",
-        "entry_price": "Entry",
-        "exit_price": "Exit",
-        "pnl": "P&L",
-        "pnl_pct": "P&L %",
-        "holding_minutes": "Hold (min)",
-        "market_condition": "Condition",
+        "ticker": "銘柄",
+        "strategy_name": "戦略",
+        "direction": "方向",
+        "entry_price": "エントリー",
+        "exit_price": "エグジット",
+        "pnl": "損益",
+        "pnl_pct": "損益 %",
+        "holding_minutes": "保有 (分)",
+        "market_condition": "市場状況",
     }
     available = [c for c in display_cols if c in df.columns]
     df_display = df[available].rename(columns=display_cols)
 
     column_config = {}
-    if "P&L" in df_display.columns:
-        column_config["P&L"] = NumberColumn("P&L", format="¥%,.0f")
-    if "P&L %" in df_display.columns:
-        column_config["P&L %"] = NumberColumn("P&L %", format="%.2f%%")
-    if "Entry" in df_display.columns:
-        column_config["Entry"] = NumberColumn("Entry", format="¥%,.1f")
-    if "Exit" in df_display.columns:
-        column_config["Exit"] = NumberColumn("Exit", format="¥%,.1f")
+    if "損益" in df_display.columns:
+        column_config["損益"] = NumberColumn("損益", format="¥%,.0f")
+    if "損益 %" in df_display.columns:
+        column_config["損益 %"] = NumberColumn("損益 %", format="%.2f%%")
+    if "エントリー" in df_display.columns:
+        column_config["エントリー"] = NumberColumn("エントリー", format="¥%,.1f")
+    if "エグジット" in df_display.columns:
+        column_config["エグジット"] = NumberColumn("エグジット", format="¥%,.1f")
 
     st.dataframe(
         df_display,
@@ -77,19 +77,19 @@ def positions_table(positions: list[dict]) -> None:
         unrealized_pnl, holding_minutes, stop_loss, take_profit
     """
     if not positions:
-        st.info("No active positions.")
+        st.info("アクティブなポジションがありません。")
         return
 
     df = pd.DataFrame(positions)
 
     display_cols = {
-        "ticker": "Ticker",
-        "strategy_name": "Strategy",
-        "direction": "Dir",
-        "entry_price": "Entry",
-        "current_price": "Current",
-        "unrealized_pnl": "Unrealized P&L",
-        "holding_minutes": "Hold (min)",
+        "ticker": "銘柄",
+        "strategy_name": "戦略",
+        "direction": "方向",
+        "entry_price": "エントリー",
+        "current_price": "現在値",
+        "unrealized_pnl": "未実現損益",
+        "holding_minutes": "保有 (分)",
         "stop_loss": "SL",
         "take_profit": "TP",
     }
@@ -97,18 +97,18 @@ def positions_table(positions: list[dict]) -> None:
     df_display = df[available].rename(columns=display_cols)
 
     # Compute P&L% if possible
-    if "Unrealized P&L" in df_display.columns and "Entry" in df_display.columns:
-        df_display["P&L %"] = (df_display["Unrealized P&L"] / (df_display["Entry"] * 100)) * 100
+    if "未実現損益" in df_display.columns and "エントリー" in df_display.columns:
+        df_display["損益 %"] = (df_display["未実現損益"] / (df_display["エントリー"] * 100)) * 100
 
     column_config = {
-        "Unrealized P&L": NumberColumn("Unrealized P&L", format="¥%,.0f"),
-        "Entry": NumberColumn("Entry", format="¥%,.1f"),
-        "Current": NumberColumn("Current", format="¥%,.1f"),
+        "未実現損益": NumberColumn("未実現損益", format="¥%,.0f"),
+        "エントリー": NumberColumn("エントリー", format="¥%,.1f"),
+        "現在値": NumberColumn("現在値", format="¥%,.1f"),
         "SL": NumberColumn("SL", format="¥%,.1f"),
         "TP": NumberColumn("TP", format="¥%,.1f"),
     }
-    if "P&L %" in df_display.columns:
-        column_config["P&L %"] = NumberColumn("P&L %", format="%.2f%%")
+    if "損益 %" in df_display.columns:
+        column_config["損益 %"] = NumberColumn("損益 %", format="%.2f%%")
 
     st.dataframe(
         df_display,
@@ -126,30 +126,30 @@ def orders_table(orders: list[dict]) -> None:
         status, strategy_name, timestamp
     """
     if not orders:
-        st.info("No orders to display.")
+        st.info("表示する注文がありません。")
         return
 
     df = pd.DataFrame(orders)
 
     display_cols = {
-        "id": "Order ID",
-        "ticker": "Ticker",
-        "direction": "Dir",
-        "order_type": "Type",
-        "price": "Price",
-        "quantity": "Qty",
-        "status": "Status",
-        "strategy_name": "Strategy",
-        "timestamp": "Time",
+        "id": "注文ID",
+        "ticker": "銘柄",
+        "direction": "方向",
+        "order_type": "種別",
+        "price": "価格",
+        "quantity": "数量",
+        "status": "ステータス",
+        "strategy_name": "戦略",
+        "timestamp": "時刻",
     }
     available = [c for c in display_cols if c in df.columns]
     df_display = df[available].rename(columns=display_cols)
 
     column_config = {}
-    if "Price" in df_display.columns:
-        column_config["Price"] = NumberColumn("Price", format="¥%,.1f")
-    if "Time" in df_display.columns:
-        column_config["Time"] = DatetimeColumn("Time", format="YYYY-MM-DD HH:mm")
+    if "価格" in df_display.columns:
+        column_config["価格"] = NumberColumn("価格", format="¥%,.1f")
+    if "時刻" in df_display.columns:
+        column_config["時刻"] = DatetimeColumn("時刻", format="YYYY-MM-DD HH:mm")
 
     st.dataframe(
         df_display,

@@ -78,7 +78,62 @@ class FeatureEngineer:
             pattern=self._pattern(df),
             momentum=self._momentum(df),
         )
-        return fs.to_flat_dict()
+        out = fs.to_flat_dict()
+
+        # Aliases: strategies expect short names
+        if "atr_14" in out:
+            out["atr"] = out["atr_14"]
+        if "distance_from_vwap" in out:
+            out["vwap_distance"] = out["distance_from_vwap"]
+
+        # Simulated features for paper trading (日足ベース推定)
+        close = df["close"].iloc[-1] if not df.empty else 0
+        high = df["high"].iloc[-1] if not df.empty else 0
+        low = df["low"].iloc[-1] if not df.empty else 0
+        vol = df["volume"].iloc[-1] if not df.empty else 0
+        vol_avg = df["volume"].tail(20).mean() if len(df) >= 20 else vol
+
+        out.setdefault("pre_market_volume", vol * 0.1)
+        out.setdefault("sector_momentum", 0.0)
+        out.setdefault("opening_range_size", high - low)
+        out.setdefault("opening_range_high", high)
+        out.setdefault("opening_range_low", low)
+        out.setdefault("volume_first_5min", vol * 0.05)
+        out.setdefault("tick_direction", 1 if close > df["open"].iloc[-1] else -1)
+        out.setdefault("time_below_vwap", 30)
+        out.setdefault("volume_at_reclaim", vol * 1.2)
+        out.setdefault("vwap_touches_today", 2)
+        out.setdefault("trend_direction", 1 if out.get("ema_9", 0) and out.get("ema_21", 0) and out["ema_9"] > out["ema_21"] else -1)
+        out.setdefault("trend_strength", abs(out.get("rsi_14", 50) - 50) / 50)
+        out.setdefault("volume_trend", vol / vol_avg if vol_avg > 0 else 1.0)
+        out.setdefault("atr_distance_from_vwap", abs(out.get("vwap_distance", 0)) / out.get("atr", 1) if out.get("atr") else 0)
+        out.setdefault("volume_climax", 1 if vol > vol_avg * 2.5 else 0)
+        out.setdefault("volume_spike", 1 if vol > vol_avg * 2 else 0)
+        out.setdefault("price_vs_bollinger", (close - out.get("bb_lower", close)) / max(out.get("bb_upper", close) - out.get("bb_lower", close), 0.01))
+        out.setdefault("intraday_drop_pct", (low - high) / high * 100 if high > 0 else 0)
+        out.setdefault("volume_surge", vol / vol_avg if vol_avg > 0 else 1.0)
+        out.setdefault("selling_exhaustion", 0)
+        out.setdefault("support_level", low)
+        out.setdefault("bid_ask_ratio", 1.0 + (close - df["open"].iloc[-1]) / max(out.get("atr", 1), 0.01))
+        out.setdefault("spread", out.get("atr", 1) * 0.05)
+        out.setdefault("depth_imbalance", out.get("bid_ask_ratio", 1.0) - 1.0)
+        out.setdefault("volume_price_divergence", 0.0)
+        out.setdefault("large_trade_detection", 1 if vol > vol_avg * 3 else 0)
+        out.setdefault("spread_percentile", 0.5)
+        out.setdefault("volume_building", vol / vol_avg if vol_avg > 0 else 1.0)
+        out.setdefault("price_compression", out.get("bb_pct", 0.5))
+        out.setdefault("event_type", "")
+        out.setdefault("event_magnitude", 0.0)
+        out.setdefault("market_cap", 0.0)
+        out.setdefault("historical_event_response", 0.0)
+        out.setdefault("earnings_surprise_pct", 0.0)
+        out.setdefault("revenue_growth", 0.0)
+        out.setdefault("guidance_change", 0.0)
+        out.setdefault("news_sentiment", 0.0)
+        out.setdefault("price_acceleration", 0.0)
+        out.setdefault("historical_catalyst_response", 0.0)
+
+        return out
 
     # ------------------------------------------------------------------
     # Column normalisation
@@ -89,6 +144,8 @@ class FeatureEngineer:
         """Lower-case column names and validate required columns."""
         df = df.copy()
         df.columns = [c.lower() for c in df.columns]
+        # Drop duplicate columns (keep first)
+        df = df.loc[:, ~df.columns.duplicated()]
         required = {"open", "high", "low", "close", "volume"}
         if not required.issubset(set(df.columns)):
             missing = required - set(df.columns)

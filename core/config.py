@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     LOG_DIR: Path = Path.home() / "dev" / "KabuAI-Daytrade" / "logs"
 
     # J-Quants
+    JQUANTS_API_KEY: str = ""
     JQUANTS_MAIL: str = ""
     JQUANTS_PASSWORD: str = ""
     JQUANTS_REFRESH_TOKEN: str = ""

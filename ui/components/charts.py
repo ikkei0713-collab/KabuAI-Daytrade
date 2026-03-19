@@ -84,7 +84,7 @@ def create_equity_curve(
             line=dict(color=last_color, width=2.5),
             fill="tozeroy",
             fillcolor=f"rgba({','.join(str(int(last_color.lstrip('#')[i:i+2], 16)) for i in (0,2,4))}, 0.08)",
-            hovertemplate="Date: %{x}<br>Cumulative P&L: %{y:,.0f}<extra></extra>",
+            hovertemplate="日付: %{x}<br>累積損益: %{y:,.0f}<extra></extra>",
         )
     )
     fig.add_hline(y=0, line_dash="dot", line_color="#64748b", line_width=1)
@@ -157,7 +157,7 @@ def create_pnl_heatmap(
                 [0.5, "#1a1a2e"],
                 [1.0, PROFIT_COLOR],
             ],
-            hovertemplate="Date: %{x}<br>%{y}: %{z:,.0f}<extra></extra>",
+            hovertemplate="日付: %{x}<br>%{y}: %{z:,.0f}<extra></extra>",
         )
     )
     return _apply_defaults(fig, title, height)
@@ -205,18 +205,18 @@ def create_win_loss_distribution(
     if losses:
         fig.add_trace(
             go.Histogram(
-                x=losses, name="Losses", marker_color=LOSS_COLOR,
+                x=losses, name="負け", marker_color=LOSS_COLOR,
                 opacity=0.8, nbinsx=20,
             )
         )
     if wins:
         fig.add_trace(
             go.Histogram(
-                x=wins, name="Wins", marker_color=PROFIT_COLOR,
+                x=wins, name="勝ち", marker_color=PROFIT_COLOR,
                 opacity=0.8, nbinsx=20,
             )
         )
-    fig.update_layout(barmode="overlay", xaxis_title="P&L (JPY)", yaxis_title="Count")
+    fig.update_layout(barmode="overlay", xaxis_title="損益 (JPY)", yaxis_title="件数")
     return _apply_defaults(fig, title, height)
 
 
@@ -236,7 +236,7 @@ def create_holding_time_distribution(
             nbinsx=25,
         )
     )
-    fig.update_layout(xaxis_title="Minutes", yaxis_title="Count")
+    fig.update_layout(xaxis_title="分", yaxis_title="件数")
     return _apply_defaults(fig, title, height)
 
 
@@ -257,7 +257,7 @@ def create_win_rate_trend(
             mode="lines+markers",
             line=dict(color=ACCENT_COLOR, width=2),
             marker=dict(size=5),
-            hovertemplate="Date: %{x}<br>Win Rate: %{y:.1%}<extra></extra>",
+            hovertemplate="日付: %{x}<br>勝率: %{y:.1%}<extra></extra>",
         )
     )
     fig.add_hline(y=0.5, line_dash="dot", line_color="#64748b", line_width=1)
@@ -280,8 +280,8 @@ def create_trade_time_distribution(
             y=list(counts),
             marker_color=INFO_COLOR,
             opacity=0.85,
-            hovertemplate="Hour: %{x}:00<br>Trades: %{y}<extra></extra>",
+            hovertemplate="時間: %{x}:00<br>トレード数: %{y}<extra></extra>",
         )
     )
-    fig.update_layout(xaxis_title="Hour (JST)", yaxis_title="Trade Count")
+    fig.update_layout(xaxis_title="時間 (JST)", yaxis_title="トレード数")
     return _apply_defaults(fig, title, height)

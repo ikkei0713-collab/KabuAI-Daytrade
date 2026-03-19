@@ -40,9 +40,9 @@ def strategy_card(
 ) -> None:
     """Render a strategy summary card using markdown + container."""
     status_badge = (
-        '<span class="badge badge-active">Active</span>'
+        '<span class="badge badge-active">有効</span>'
         if is_active
-        else '<span class="badge badge-inactive">Inactive</span>'
+        else '<span class="badge badge-inactive">無効</span>'
     )
     pnl_class = "profit" if avg_pnl >= 0 else "loss"
     pnl_sign = "+" if avg_pnl >= 0 else ""
@@ -55,24 +55,24 @@ def strategy_card(
         </div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:0.88rem;">
             <div>
-                <span style="color:#94a3b8;">Win Rate</span><br>
+                <span style="color:#94a3b8;">勝率</span><br>
                 <strong>{win_rate:.1%}</strong>
             </div>
             <div>
-                <span style="color:#94a3b8;">Profit Factor</span><br>
+                <span style="color:#94a3b8;">プロフィットファクター</span><br>
                 <strong>{profit_factor:.2f}</strong>
             </div>
             <div>
-                <span style="color:#94a3b8;">Total Trades</span><br>
+                <span style="color:#94a3b8;">総トレード数</span><br>
                 <strong>{total_trades}</strong>
             </div>
             <div>
-                <span style="color:#94a3b8;">Avg P&L</span><br>
+                <span style="color:#94a3b8;">平均損益</span><br>
                 <strong class="{pnl_class}">{pnl_sign}{avg_pnl:,.0f}</strong>
             </div>
         </div>
         <div style="margin-top:10px; font-size:0.8rem; color:#64748b;">
-            Best condition: <strong style="color:#e2e8f0;">{best_condition}</strong>
+            最適条件: <strong style="color:#e2e8f0;">{best_condition}</strong>
         </div>
     </div>
     """
@@ -112,7 +112,7 @@ def trade_card(
             </div>
         </div>
         <div style="font-size:0.78rem; color:#64748b; margin-top:4px;">
-            {f"Reason: {entry_reason} | " if entry_reason else ""}Held {holding_minutes} min
+            {f"理由: {entry_reason} | " if entry_reason else ""}保有 {holding_minutes} 分
         </div>
     </div>
     """
@@ -128,10 +128,10 @@ def knowledge_card(
 ) -> None:
     """Render a knowledge / insight card."""
     cat_colors = {
-        "win_pattern": ("#00d4aa", "Win Pattern"),
-        "loss_pattern": ("#ff4757", "Loss Pattern"),
-        "strategy_insight": ("#6366f1", "Strategy Insight"),
-        "market_insight": ("#3b82f6", "Market Insight"),
+        "win_pattern": ("#00d4aa", "勝ちパターン"),
+        "loss_pattern": ("#ff4757", "負けパターン"),
+        "strategy_insight": ("#6366f1", "戦略インサイト"),
+        "market_insight": ("#3b82f6", "市場インサイト"),
     }
     color, label = cat_colors.get(category, ("#94a3b8", category))
 
@@ -147,8 +147,8 @@ def knowledge_card(
         </div>
         <p style="margin:0 0 10px 0; font-size:0.92rem; line-height:1.5;">{content}</p>
         <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.78rem; color:#64748b;">
-            <span>Confidence</span>
-            <span>{supporting_count} supporting trade{"s" if supporting_count != 1 else ""}</span>
+            <span>確信度</span>
+            <span>{supporting_count} 件の裏付けトレード</span>
         </div>
         <div style="background:#2a2a4a; border-radius:4px; height:4px; margin-top:4px;">
             <div style="background:{color}; width:{conf_bar_width}%; height:100%; border-radius:4px;"></div>

@@ -340,6 +340,34 @@ def render():
                     })
                 st.dataframe(pd.DataFrame(pos_data), hide_index=True, use_container_width=True)
 
+        # --- Feedback Summary ---
+        feedback_md_path = Path.home() / "dev" / "KabuAI-Daytrade" / "knowledge" / "feedback_summary.md"
+        feedback_plots_dir = Path.home() / "dev" / "KabuAI-Daytrade" / "knowledge" / "plots"
+        if feedback_md_path.exists():
+            st.markdown("---")
+            st.markdown("#### 改善フィードバック")
+            with st.expander("feedback_summary.md (Claude Code 向け)", expanded=False):
+                st.markdown(feedback_md_path.read_text(encoding="utf-8"))
+            # Show key plots if available
+            plot_cols = st.columns(2)
+            equity_plot = feedback_plots_dir / "equity_curve.png"
+            dd_plot = feedback_plots_dir / "drawdown_curve.png"
+            if equity_plot.exists():
+                with plot_cols[0]:
+                    st.image(str(equity_plot), caption="Equity Curve", use_container_width=True)
+            if dd_plot.exists():
+                with plot_cols[1]:
+                    st.image(str(dd_plot), caption="Drawdown", use_container_width=True)
+            plot_cols2 = st.columns(2)
+            oos_plot = feedback_plots_dir / "strategy_oos.png"
+            regime_plot = feedback_plots_dir / "regime_heatmap.png"
+            if oos_plot.exists():
+                with plot_cols2[0]:
+                    st.image(str(oos_plot), caption="Strategy OOS PF", use_container_width=True)
+            if regime_plot.exists():
+                with plot_cols2[1]:
+                    st.image(str(regime_plot), caption="Regime Heatmap", use_container_width=True)
+
         # --- Live Log ---
         st.markdown("#### ペーパートレードログ")
         log_lines = _tail_log(15)

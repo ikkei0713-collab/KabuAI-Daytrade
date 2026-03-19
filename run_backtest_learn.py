@@ -715,6 +715,19 @@ class BacktestLearner:
             json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8"
         )
 
+        # Claude Code 向けフィードバックパッケージ生成
+        try:
+            from analytics.feedback_packet import FeedbackPacketGenerator
+            fbg = FeedbackPacketGenerator(
+                all_trades=self.all_trades,
+                is_trades=self.is_trades,
+                oos_trades=self.oos_trades,
+                strategy_regime_trades=self.strategy_regime_trades,
+            )
+            fbg.generate()
+        except Exception as e:
+            logger.warning(f"フィードバックパッケージ生成失敗: {e}")
+
 
 if __name__ == "__main__":
     learner = BacktestLearner()

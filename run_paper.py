@@ -53,6 +53,7 @@ class PaperTrader:
         self.daily_pnl = 0.0
         self.trade_count = 0
         self.win_count = 0
+        self._eod_done = False
 
     async def init(self):
         await self.db.init_db()
@@ -364,6 +365,27 @@ class PaperTrader:
 
         logger.info(f"ナレッジ更新: {len(self.trades)}件のトレードから抽出完了")
 
+    def _print_daily_summary(self):
+        """日次サマリーをログ出力"""
+        logger.info("=" * 60)
+        logger.info("📊 日次サマリー")
+        logger.info(f"  トレード数: {self.trade_count}")
+        win_rate = self.win_count / self.trade_count * 100 if self.trade_count > 0 else 0
+        logger.info(f"  勝率: {self.win_count}/{self.trade_count} ({win_rate:.1f}%)")
+        logger.info(f"  累計損益: ¥{self.daily_pnl:+,.0f}")
+
+        if self.trades:
+            by_strategy: dict[str, list] = {}
+            for t in self.trades:
+                by_strategy.setdefault(t.strategy_name, []).append(t)
+            logger.info("  ── 戦略別 ──")
+            for sname, strades in sorted(by_strategy.items()):
+                s_pnl = sum(t.pnl for t in strades)
+                s_wins = sum(1 for t in strades if t.pnl > 0)
+                logger.info(f"    {sname}: {len(strades)}件 {s_wins}勝 損益¥{s_pnl:+,.0f}")
+
+        logger.info("=" * 60)
+
     async def run(self):
         """メインループ"""
         await self.init()
@@ -379,24 +401,96 @@ class PaperTrader:
         logger.info(f"  スキャン間隔: {SCAN_INTERVAL}秒")
         logger.info("=" * 60)
 
-        # TDnet本日のイベント取得
         tdnet_events: dict[str, str] = {}
-        try:
-            async with TDnetClient() as tdnet:
-                disclosures = await tdnet.fetch_today_disclosures()
-                material = tdnet.filter_material_events(disclosures)
-                for d in material:
-                    tdnet_events[d.ticker + "0"] = d.disclosure_type.value
-                logger.info(f"TDnet: {len(disclosures)}件の開示, {len(material)}件の重要イベント")
-        except Exception as e:
-            logger.warning(f"TDnet取得失敗: {e}")
-
         cycle = 0
+        tdnet_fetched_today: str = ""
+
         async with JQuantsClient() as client:
             while True:
+                now = datetime.now()
+                today_str = now.strftime("%Y-%m-%d")
+                market_open = now.replace(hour=9, minute=0, second=0, microsecond=0)
+                market_close = now.replace(hour=15, minute=0, second=0, microsecond=0)
+                force_close_time = now.replace(hour=14, minute=50, second=0, microsecond=0)
+
+                # ── 市場開場前: 待機 ──
+                if now < market_open:
+                    # 08:55以降ならTDnetを事前取得
+                    pre_open = now.replace(hour=8, minute=55, second=0, microsecond=0)
+                    if now >= pre_open and tdnet_fetched_today != today_str:
+                        try:
+                            async with TDnetClient() as tdnet:
+                                disclosures = await tdnet.fetch_today_disclosures()
+                                material = tdnet.filter_material_events(disclosures)
+                                tdnet_events.clear()
+                                for d in material:
+                                    tdnet_events[d.ticker + "0"] = d.disclosure_type.value
+                                logger.info(f"TDnet: {len(disclosures)}件の開示, {len(material)}件の重要イベント")
+                            tdnet_fetched_today = today_str
+                        except Exception as e:
+                            logger.warning(f"TDnet取得失敗: {e}")
+
+                    wait_sec = (market_open - now).total_seconds()
+                    logger.info(f"市場開場まで {wait_sec/60:.0f}分 待機中...")
+                    await asyncio.sleep(min(wait_sec, 60))
+                    continue
+
+                # ── 市場閉場後: EOD処理 → 翌営業日まで待機 ──
+                if now >= market_close:
+                    if self.trades and not self._eod_done:
+                        await self.extract_knowledge()
+                        self._print_daily_summary()
+                        self._eod_done = True
+
+                    # 翌営業日 08:55 まで待機
+                    tomorrow_pre = (now + timedelta(days=1)).replace(hour=8, minute=55, second=0, microsecond=0)
+                    if now.weekday() == 4:  # 金曜 → 月曜
+                        tomorrow_pre += timedelta(days=2)
+                    elif now.weekday() == 5:  # 土曜 → 月曜
+                        tomorrow_pre += timedelta(days=1)
+                    wait_sec = (tomorrow_pre - now).total_seconds()
+                    logger.info(f"市場閉場。次の開場まで {wait_sec/3600:.1f}時間 待機...")
+                    await asyncio.sleep(min(wait_sec, 300))
+                    continue
+
+                # ── 市場時間中 ──
+                self._eod_done = False
+
+                # 14:50 以降: 全ポジション強制決済
+                if now >= force_close_time and self.positions:
+                    logger.info("14:50 全ポジション強制決済")
+                    for ticker in list(self.positions.keys()):
+                        try:
+                            df = await self.fetch_ohlcv(client, ticker, days=30)
+                            if df.empty:
+                                continue
+                            current = self.simulate_current_price(df)
+                            features = self.fe.calculate_all_features(df)
+                            features["current_price"] = current
+                            await self.close_position(ticker, current, "大引け強制決済", features)
+                        except Exception as e:
+                            logger.error(f"強制決済失敗 {ticker}: {e}")
+                        await asyncio.sleep(0.3)
+                    continue
+
+                # 通常トレードサイクル
                 cycle += 1
                 try:
-                    logger.info(f"--- サイクル {cycle} ({datetime.now().strftime('%H:%M:%S')}) ---")
+                    logger.info(f"--- サイクル {cycle} ({now.strftime('%H:%M:%S')}) ---")
+
+                    # TDnet未取得なら取得
+                    if tdnet_fetched_today != today_str:
+                        try:
+                            async with TDnetClient() as tdnet:
+                                disclosures = await tdnet.fetch_today_disclosures()
+                                material = tdnet.filter_material_events(disclosures)
+                                tdnet_events.clear()
+                                for d in material:
+                                    tdnet_events[d.ticker + "0"] = d.disclosure_type.value
+                                logger.info(f"TDnet: {len(disclosures)}件の開示, {len(material)}件の重要イベント")
+                            tdnet_fetched_today = today_str
+                        except Exception as e:
+                            logger.warning(f"TDnet取得失敗: {e}")
 
                     # 新規エントリースキャン
                     await self.scan_and_trade(client)

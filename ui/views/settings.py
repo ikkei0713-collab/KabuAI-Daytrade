@@ -26,5 +26,6 @@ def render():
 
     st.divider()
     st.markdown("#### データソース")
-    st.success("J-Quants API: 接続済み (V2 APIキー認証)")
-    st.warning("立花証券API: 未接続 (将来実装)")
+    st.success("J-Quants API V2: 接続済み (APIキー認証)")
+    st.success("TDnet 適時開示: 接続済み (スクレイピング)")
+    st.warning("立花証券API: 未接続 (本番執行用・将来実装)")

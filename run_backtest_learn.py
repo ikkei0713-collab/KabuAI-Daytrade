@@ -72,6 +72,26 @@ CANDIDATE_CODES = [
 DEFAULT_CAPITAL = 10_000_000  # 1000万円
 
 
+def _clean_features(features: dict) -> dict:
+    """NaN/inf/非シリアライズ可能な値を除去"""
+    clean = {}
+    for k, v in features.items():
+        if isinstance(v, float):
+            if np.isnan(v) or np.isinf(v):
+                clean[k] = 0.0
+            else:
+                clean[k] = round(v, 6)
+        elif isinstance(v, (int, str, bool, type(None))):
+            clean[k] = v
+        else:
+            try:
+                json.dumps(v)
+                clean[k] = v
+            except (TypeError, ValueError):
+                clean[k] = str(v)
+    return clean
+
+
 class BacktestLearner:
     def __init__(self, capital: float = DEFAULT_CAPITAL):
         self.db = DatabaseManager()
@@ -343,19 +363,23 @@ class BacktestLearner:
                         holding_minutes=360,
                         entry_reason=signal.entry_reason,
                         exit_reason=exit_reason,
-                        features_at_entry={
+                        features_at_entry=_clean_features({
                             **features,
                             "_quantity": quantity,
                             "_raw_pnl": round(raw_pnl, 0),
                             "_cost_total": round(cost.total, 0),
                             "_regime": regime,
-                        },
+                        }),
                         market_condition=regime,
                     )
                     trades.append(trade)
-                    await self.db.save_trade(trade)
+                    try:
+                        await self.db.save_trade(trade)
+                    except Exception as e:
+                        logger.debug(f"DB保存スキップ {code}/{strategy.name}: {e}")
 
-                except Exception:
+                except Exception as e:
+                    logger.debug(f"シミュレーションエラー {code}/{strategy.name}: {e}")
                     continue
 
         return trades

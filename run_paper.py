@@ -31,6 +31,7 @@ from data_sources.tdnet import TDnetClient
 from strategies.registry import StrategyRegistry
 from strategies.base import BaseStrategy
 from tools.feature_engineering import FeatureEngineer
+from core.ticker_map import update_from_jquants, format_ticker
 
 # ── 設定 ──────────────────────────────────────────────────────────────────────
 SCAN_INTERVAL = 90   # 秒ごとにスキャン（レート制限対策）
@@ -186,7 +187,7 @@ class PaperTrader:
         }
 
         logger.info(
-            f"▶ エントリー {signal.ticker} {signal.direction} "
+            f"▶ エントリー {format_ticker(signal.ticker)} {signal.direction} "
             f"@{fill_price:,.0f} x{quantity} [{strategy.name}] "
             f"理由: {signal.entry_reason}"
         )
@@ -291,7 +292,7 @@ class PaperTrader:
 
         icon = "✅" if pnl > 0 else "❌"
         logger.info(
-            f"{icon} 決済 {ticker} {pos['direction']} "
+            f"{icon} 決済 {format_ticker(ticker)} {pos['direction']} "
             f"@{fill_price:,.0f} 損益={pnl:+,.0f}円 ({pnl_pct:+.1f}%) "
             f"[{pos['strategy'].name}] 理由: {reason} "
             f"| 累計: {self.daily_pnl:+,.0f}円 勝率{win_rate:.0%} ({self.trade_count}件)"
@@ -406,6 +407,13 @@ class PaperTrader:
         tdnet_fetched_today: str = ""
 
         async with JQuantsClient() as client:
+            # 銘柄名マスタ更新
+            try:
+                master = await client.get_listed_info()
+                update_from_jquants(master)
+            except Exception as e:
+                logger.warning(f"銘柄名マスタ取得失敗: {e}")
+
             while True:
                 now = datetime.now()
                 today_str = now.strftime("%Y-%m-%d")

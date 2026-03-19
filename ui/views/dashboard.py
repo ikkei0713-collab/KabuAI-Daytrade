@@ -10,6 +10,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from core.ticker_map import format_ticker
+
 DB_PATH = Path.home() / "dev" / "KabuAI-Daytrade" / "db" / "kabuai.db"
 SUMMARY_PATH = Path.home() / "dev" / "KabuAI-Daytrade" / "knowledge" / "backtest_summary.json"
 LOG_PATH = Path.home() / "dev" / "KabuAI-Daytrade" / "logs" / "paper_stdout.log"
@@ -194,7 +196,8 @@ def render():
         with col1:
             st.markdown("#### 直近トレード")
             if not trades_df.empty:
-                display_df = trades_df[["ticker", "strategy_name", "direction", "pnl", "pnl_pct", "exit_reason", "market_condition"]].head(20)
+                display_df = trades_df[["ticker", "strategy_name", "direction", "pnl", "pnl_pct", "exit_reason", "market_condition"]].head(20).copy()
+                display_df["ticker"] = display_df["ticker"].apply(format_ticker)
                 display_df.columns = ["銘柄", "戦略", "方向", "損益", "損益%", "決済理由", "レジーム"]
                 st.dataframe(display_df, hide_index=True, use_container_width=True)
             else:

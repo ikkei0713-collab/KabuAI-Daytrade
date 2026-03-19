@@ -30,6 +30,7 @@ from tools.feature_engineering import FeatureEngineer
 from tools.cost_model import CostModel
 from tools.market_regime import RegimeDetector
 from scanners.stock_selector import StockSelector
+from core.ticker_map import update_from_jquants, format_ticker
 
 logger.remove()
 logger.add(sys.stderr, level="INFO", format="{time:HH:mm:ss} | {level:<7} | {message}")
@@ -141,6 +142,13 @@ class BacktestLearner:
         logger.info(f"TDnetイベント: {sum(len(v) for v in tdnet_events.values())}件取得")
 
         async with JQuantsClient() as client:
+            # 銘柄名マスタ更新
+            try:
+                master = await client.get_listed_info()
+                update_from_jquants(master)
+            except Exception as e:
+                logger.warning(f"銘柄名マスタ取得失敗: {e}")
+
             # 全銘柄のデータを一括取得
             stock_data: dict[str, pd.DataFrame] = {}
             for code in CANDIDATE_CODES:

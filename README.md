@@ -32,10 +32,14 @@ AI駆動型の日本株デイトレード学習システム。
 市場開場中 (09:00-15:30 JST)
   └─ run_paper.py が常時稼働
        ├─ 08:55 TDnet適時開示を事前取得
-       ├─ 09:00 ウォッチリスト構築 (PreMarketScanner + StockSelector)
-       │        レジーム判定 / 戦略auto on/off / 日次リセット
-       ├─ 09:00~ vwap_reclaim 主軸トレード（300秒間隔、上位8銘柄）
+       ├─ 09:00 ウォッチリスト構築
+       │    ├─ PreMarketScanner + StockSelector (流動性10億円+、上位8銘柄)
+       │    ├─ 米国セクターバイアス計算 (前日ETF 11本 → 日本33業種へ伝播)
+       │    ├─ レジーム判定 / 戦略auto on/off / 日次リセット
+       │    └─ セクターバイアスで watchlist スコアに +/-0.10 加点
+       ├─ 09:00~ vwap_reclaim 主軸トレード（300秒間隔）
        │    ├─ trend_follow フィルタ通過時のみ発火許可
+       │    ├─ セクターバイアスで confidence に +/-0.05 補助
        │    ├─ 同時保有2件 / 1件25万円 / MIN_CONFIDENCE 0.65
        │    └─ 異常検知: 3連敗 or 直近8件-2万円超で停止
        ├─ 14:50 全ポジション強制決済
@@ -44,19 +48,17 @@ AI駆動型の日本株デイトレード学習システム。
 バックグラウンド
   ├─ run_backtest_learn.py
   │    ├─ 過去3ヶ月 x 60銘柄で全戦略をシミュレーション
-  │    ├─ intraday S/L・TP判定 + 含み損決済 (改善済)
+  │    ├─ intraday S/L・TP判定 + 含み損決済
   │    ├─ In-Sample / Out-of-Sample 分離で過学習を検出
-  │    ├─ レジーム x 戦略 マトリクスで評価
-  │    └─ 勝ち/負けパターンを自動抽出してDBに蓄積
+  │    └─ レジーム x 戦略 マトリクスで評価
   │
   └─ run_optimize.py
-       ├─ パラメータ空間をランダムサーチ
-       ├─ OOS PFで評価（過学習回避）
+       ├─ パラメータ空間をランダムサーチ (OOS PFで評価)
        └─ 最適パラメータをJSON保存
 
 ダッシュボード (http://localhost:8502)
-  └─ ウォッチリスト・レジーム・戦略on/off・異常停止・トレード履歴
-     リアルDB表示 / 30秒自動更新
+  └─ SPY前日・セクターバイアス・ウォッチリスト・レジーム
+     戦略on/off・異常停止・トレード履歴 / 30秒自動更新
 ```
 
 ## 戦略構成 (v3)
@@ -105,17 +107,19 @@ tail -f logs/paper_trade.log                      # ペーパートレード
 tail -f logs/optimize_stdout.log                 # 最適化進捗
 cat knowledge/backtest_summary.json              # バックテスト結果
 cat knowledge/paper_state.json                   # 稼働状態（UI用）
+cat knowledge/sector_bias.json                   # 米国→日本セクターバイアス
 ```
 
 ## 自動化機能
 
 | 機能 | 説明 |
 |------|------|
-| **銘柄選定** | PreMarketScanner(ギャップ・出来高・イベント) + StockSelector(スコアリング) |
+| **銘柄選定** | PreMarketScanner(ギャップ・出来高・イベント) + StockSelector(売買代金10億+/出来高50万株+) |
+| **米国セクターバイアス** | 前日の米国ETF11本の騰落率→日本33業種に伝播。watchlistに+/-0.10、confidenceに+/-0.05 |
 | **レジーム判定** | trend_up/down, range, volatile, low_vol を日足SMA/ATR/BBから判定 |
-| **戦略auto on/off** | ローリングPF < 0.7 or 勝率 < 30% で停止、回復で再開 |
+| **戦略auto on/off** | ローリングPF < 0.9 or 勝率 < 40% で停止、PF > 1.2 and 勝率 > 48% で再開 |
 | **銘柄相性学習** | strategy x ticker の勝率をDB蓄積、確信度に反映 |
-| **異常検知** | 4連敗 / 直近10件で-3%超ドローダウン → 自動停止 |
+| **異常検知** | 3連敗 / 直近8件で-2万円超ドローダウン → 自動停止 |
 | **ナレッジ抽出** | 勝ち/負けパターンを自動マイニング |
 
 ## アーキテクチャ
@@ -126,12 +130,12 @@ cat knowledge/paper_state.json                   # 稼働状態（UI用）
 ├── data_sources/   J-Quants API V2 + TDnet適時開示
 ├── brokers/        ペーパーブローカー / 立花証券API（将来）
 ├── scanners/       PreMarketScanner + StockSelector + ScoreEngine
-├── strategies/     16戦略（階層化: 主/補/フィルタ/補助）
+├── strategies/     16戦略（vwap_reclaim主軸、他はfilter/supplement/off）
 ├── execution/      実行エンジン・リスク管理
 ├── analytics/      ナレッジ抽出・学習ループ・日次レポート
-├── tools/          特徴量計算・レジーム判定・コスト計算・バックテスト
-├── ui/             Streamlitダッシュボード（ウォッチリスト・レジーム・戦略on/off）
-├── knowledge/      backtest_summary.json / paper_state.json
+├── tools/          特徴量計算・レジーム判定・セクターバイアス・コスト計算・バックテスト
+├── ui/             Streamlitダッシュボード（セクターバイアス・ウォッチリスト・レジーム）
+├── knowledge/      backtest_summary.json / paper_state.json / sector_bias.json
 └── tests/          ユニットテスト（73件全通過）
 ```
 
@@ -139,17 +143,19 @@ cat knowledge/paper_state.json                   # 稼働状態（UI用）
 
 | ソース | 状態 | 用途 |
 |--------|------|------|
-| J-Quants API V2 | 接続済み | 上場銘柄・日足・財務データ |
+| J-Quants API V2 | 接続済み | 上場銘柄・日足・財務データ・33業種コード |
 | TDnet | 接続済み | 適時開示（上方修正・自社株買い等の重要イベント） |
+| Yahoo Finance Chart API | 接続済み | 米国セクターETF前日騰落率 (XLK/XLF/XLE等11本 + SPY) |
 | 立花証券API | 将来実装 | 本番執行（リアルタイム板・約定・発注） |
 
 ## 安全設計
 
 - `ALLOW_LIVE_TRADING=false` 固定（本番取引禁止）
-- 日次損失上限 -5万円で自動停止
-- 4連敗 / 急速ドローダウンで異常停止
-- 戦略auto on/off（PF劣化で自動停止）
-- 15:20に全ポジション強制決済
+- 日次損失上限 **-1.5万円** (資金の0.5%) で自動停止
+- **3連敗** / 直近8件で **-2万円超** ドローダウンで異常停止
+- 戦略auto on/off（PF < 0.9 / 勝率 < 40% で停止）
+- **14:50** に全ポジション強制決済
+- 同時保有 **最大2件** / 1件あたり **25万円**
 - 市場時間外は自動待機（週末・祝日スキップ）
 - 重複注文防止 / コスト込み評価
 

@@ -21,8 +21,8 @@ def render():
         st.toggle("本番取引禁止", value=True, disabled=True)
         st.toggle("ペーパートレード", value=True, disabled=True)
         st.text_input("マーケット開場", value="09:00", disabled=True)
-        st.text_input("強制決済時刻", value="14:50", disabled=True)
-        st.text_input("マーケット閉場", value="15:00", disabled=True)
+        st.text_input("強制決済時刻", value="15:20", disabled=True)
+        st.text_input("マーケット閉場", value="15:30", disabled=True)
 
     st.divider()
     st.markdown("#### データソース")

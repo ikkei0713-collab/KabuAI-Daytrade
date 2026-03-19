@@ -30,9 +30,9 @@ class Settings(BaseSettings):
 
     # Market hours (JST)
     MARKET_OPEN: str = "09:00"
-    MARKET_CLOSE: str = "15:00"
+    MARKET_CLOSE: str = "15:30"
     PRE_MARKET_SCAN: str = "08:30"
-    FORCE_CLOSE_TIME: str = "14:50"  # 強制決済
+    FORCE_CLOSE_TIME: str = "15:20"  # 強制決済（クロージングオークション前）
 
     # Strategy
     MIN_CONFIDENCE: float = 0.6

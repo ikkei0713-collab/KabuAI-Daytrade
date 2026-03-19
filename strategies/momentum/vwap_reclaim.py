@@ -35,11 +35,11 @@ class VWAPReclaimStrategy(BaseStrategy):
             feature_requirements=self.REQUIRED_FEATURES,
             expected_market_condition="bull",
             parameter_set={
-                "min_time_below_vwap_min": 15,
-                "min_volume_at_reclaim": 1.5,
-                "target_atr_multiple": 1.5,
-                "reclaim_buffer_pct": 0.1,
-                "max_distance_from_vwap_pct": 2.0,
+                "min_time_below_vwap_min": 15,       # NOTE: 擬似特徴量 (日足推定=30固定)
+                "min_volume_at_reclaim": 1.5,         # NOTE: 擬似特徴量 (vol*1.2)
+                "target_atr_multiple": 1.2,           # 1.5→1.2: 利確を手前に寄せる (保守的)
+                "reclaim_buffer_pct": 0.15,           # 0.1→0.15: 飛びつき抑制
+                "max_distance_from_vwap_pct": 0.8,    # 2.0→0.8: VWAP近傍のみ許可
             },
         )
 
@@ -132,6 +132,26 @@ class VWAPReclaimStrategy(BaseStrategy):
                 confidence += 0.05
             elif vwap_weight < 0.3:
                 confidence -= 0.10
+
+        # Trend follow filter gate (保守的チューニング)
+        # EMA9>EMA21, close>VWAP, strength>0.45, vol_trend>1.2 で加点
+        # 不通過時は大幅減点 → MIN_CONFIDENCE 0.65 で実質ブロック
+        is_trending = features.get("_is_trending", False)
+        trend_dir = features.get("_trend_direction", "none")
+        if is_trending and trend_dir == "up":
+            trend_str = features.get("trend_strength", 0)
+            vol_trend = features.get("volume_trend", 1.0)
+            if trend_str > 0.45 and vol_trend > 1.2:
+                confidence += 0.10  # trend filter 完全通過
+            else:
+                confidence += 0.03  # 部分通過
+        else:
+            confidence -= 0.15  # trend 不通過 → 厳しく減点
+
+        # selector_score フィルタ: 上位銘柄のみ許可
+        selector_score = features.get("selector_score", 0)
+        if selector_score < 0.25:
+            confidence -= 0.10
 
         confidence = min(confidence, 0.90)
 

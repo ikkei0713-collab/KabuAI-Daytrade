@@ -39,15 +39,17 @@ class SpreadEntryStrategy(BaseStrategy):
         vol_build = features.get("volume_building", 1.0)
         price_comp = features.get("price_compression", 0.0)
 
+        # 保守的チューニング: max boost 0.15→0.05
+        # spread_percentile は擬似値 (0.5固定) なので過信しない
         boost = 0.0
         if spread_pct < 20:
-            boost += 0.05
+            boost += 0.02
         if vol_build > 2.0:
-            boost += 0.05
+            boost += 0.02
         if price_comp > 0.5:
-            boost += 0.05
+            boost += 0.01
 
-        return min(boost, 0.15)
+        return min(boost, 0.05)
 
     def get_default_config(self) -> StrategyConfig:
         return StrategyConfig(

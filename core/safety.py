@@ -220,11 +220,19 @@ class SafetyGuard:
         recent_trades: list,
         capital: float = 3_000_000,
     ) -> tuple[bool, str]:
-        """Run all anomaly checks. Returns (should_halt, reason)."""
-        if check_consecutive_losses(recent_trades, max_consecutive=4):
-            return True, "4連敗検知 — 一時停止"
-        if check_drawdown_speed(recent_trades, window=10, max_loss_pct=3.0, capital=capital):
-            return True, "急速ドローダウン検知 (直近10件で-3%超) — 一時停止"
+        """Run all anomaly checks. Returns (should_halt, reason).
+
+        保守的チューニング (2026-03-19):
+        - 3連敗で停止 (4→3)
+        - 直近8件で-20K超で停止 (金額ベース)
+        """
+        if check_consecutive_losses(recent_trades, max_consecutive=3):
+            return True, "3連敗検知 — 一時停止"
+        if len(recent_trades) >= 2:
+            window_trades = recent_trades[-8:]
+            window_pnl = sum(t.pnl for t in window_trades)
+            if window_pnl < -20000:
+                return True, f"急速ドローダウン検知 (直近{len(window_trades)}件で{window_pnl:+,.0f}円) — 一時停止"
         return False, ""
 
     @staticmethod

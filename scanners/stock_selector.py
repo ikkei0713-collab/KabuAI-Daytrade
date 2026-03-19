@@ -46,11 +46,11 @@ class StockSelector:
     6. 値幅率 (range_pct) — 直近の日中レンジ
     """
 
-    # 除外条件
-    MIN_PRICE = 200          # 200円未満は除外
-    MAX_PRICE = 50000        # 5万円超は除外（100株単位で500万円超）
-    MIN_TURNOVER = 500_000_000  # 売買代金5億円未満は流動性不足
-    MIN_VOLUME_SHARES = 200_000  # 出来高20万株未満は除外
+    # 除外条件 – 保守的チューニング (2026-03-19)
+    MIN_PRICE = 200            # 200円未満は除外
+    MAX_PRICE = 50000          # 5万円超は除外
+    MIN_TURNOVER = 1_000_000_000   # 5億→10億: 高流動性のみ
+    MIN_VOLUME_SHARES = 500_000    # 20万→50万株: 板が薄い銘柄を除外
 
     # スコアリング重み
     WEIGHTS = {
@@ -170,8 +170,8 @@ class StockSelector:
     def select_top(
         self,
         scores: list[StockScore],
-        max_stocks: int = 10,
-        min_score: float = 0.15,
+        max_stocks: int = 8,       # 10→8: 上位8銘柄に集中
+        min_score: float = 0.30,   # 0.15→0.30: スコア下位を切る
     ) -> list[StockScore]:
         """スコア上位の銘柄を返す"""
         eligible = [s for s in scores if not s.excluded and s.total_score >= min_score]

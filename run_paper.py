@@ -42,28 +42,22 @@ from scanners.premarket import PreMarketScanner
 from scanners.stock_selector import StockSelector
 from core.ticker_map import update_from_jquants, format_ticker
 
-# ── 設定 ──────────────────────────────────────────────────────────────────────
-SCAN_INTERVAL = 90   # 秒ごとにスキャン（レート制限対策）
-TOP_UNIVERSE = 20    # 上位N銘柄をスキャン（レート制限対策）
-MAX_POSITIONS = 5
-POSITION_SIZE = 500_000  # 円
-MIN_CONFIDENCE = 0.3  # シグナル閾値（日足ベースなので緩めに）
+# ── 設定 ── 保守的チューニング (2026-03-19) ─────────────────────────────────
+SCAN_INTERVAL = 300       # 90→300秒: API負荷軽減 + 無駄打ち抑制
+TOP_UNIVERSE = 8          # 20→8: 流動性上位に集中
+MAX_POSITIONS = 2         # 5→2: config.MAX_POSITIONS と同期
+POSITION_SIZE = 250_000   # 50万→25万: config.MAX_POSITION_SIZE と同期
+MIN_CONFIDENCE = 0.65     # 0.3→0.65: 高確信シグナルのみ通過
 
-# 戦略階層: 主戦略に高い優先度
+# 戦略階層: vwap_reclaim 一本に集中
+# NOTE: 他戦略は registry で off にするが、priority は残す（将来用）
 STRATEGY_PRIORITY = {
-    "vwap_reclaim": 1.20,   # 主戦略: 最優先
-    "orb": 1.05,            # 継続型: 準優先
-    "gap_go": 1.00,
-    "gap_fade": 1.00,
-    "tdnet_event": 1.10,    # イベント: 高優先
-    "earnings_momentum": 1.10,
-    "catalyst_initial": 1.05,
-    "vwap_bounce": 0.95,
-    "trend_follow": 0.90,   # フィルタ兼用: 抑制
-    "spread_entry": 0.85,   # 補助シグナル: 抑制
-    "overextension": 0.90,
-    "rsi_reversal": 0.90,
-    "crash_rebound": 0.90,
+    "vwap_reclaim": 1.20,   # 唯一の active 主戦略
+    "tdnet_event": 1.10,    # watch: イベント時のみ参考
+    "orb": 1.00,            # watch: 将来再開用
+    "gap_go": 0.90,         # watch
+    "trend_follow": 0.00,   # filter only: 単独発火しない
+    "spread_entry": 0.00,   # supplement only: 単独発火しない
 }
 
 logger.remove()
@@ -585,7 +579,7 @@ class PaperTrader:
                 today_str = now.strftime("%Y-%m-%d")
                 market_open = now.replace(hour=9, minute=0, second=0, microsecond=0)
                 market_close = now.replace(hour=15, minute=30, second=0, microsecond=0)
-                force_close_time = now.replace(hour=15, minute=20, second=0, microsecond=0)
+                force_close_time = now.replace(hour=14, minute=50, second=0, microsecond=0)
 
                 # ── 市場開場前: 待機 ──
                 if now < market_open:
@@ -662,7 +656,7 @@ class PaperTrader:
 
                 # 15:20 以降: 全ポジション強制決済
                 if now >= force_close_time and self.positions:
-                    logger.info("15:20 全ポジション強制決済")
+                    logger.info("14:50 全ポジション強制決済")
                     for ticker in list(self.positions.keys()):
                         try:
                             df = await self.fetch_ohlcv(client, ticker, days=30)

@@ -115,10 +115,27 @@ class StrategyRegistry:
             CatalystInitialStrategy(),
         ]
 
-        # バックテスト実績に基づく無効化リスト
-        # orderbook系: ダミーデータ依存で信頼性ゼロ
-        # open_drive: 勝率35%, PF 0.23
-        disabled = {"orderbook_imbalance", "large_absorption", "open_drive"}
+        # 保守的チューニング (2026-03-19): vwap_reclaim 主軸運用
+        # 擬似intraday依存が強い戦略、OOS信頼性が低い戦略を全面停止
+        # trend_follow: filter専用 (is_trending() のみ使用、単独発火しない)
+        # spread_entry: supplement専用 (get_spread_boost() のみ使用)
+        disabled = {
+            "orderbook_imbalance",  # ダミーデータ依存
+            "large_absorption",     # ダミーデータ依存
+            "open_drive",           # PF 0.23
+            "orb",                  # watch降格: intraday proxy信頼性不足
+            "gap_go",              # watch降格: 擬似特徴量依存
+            "gap_fade",            # off: 逆張り系リスク高
+            "vwap_bounce",         # off: データ不足 (3件)
+            "overextension",       # off: 擬似intraday依存
+            "rsi_reversal",        # off: 擬似intraday依存
+            "crash_rebound",       # off: 擬似intraday依存
+            "trend_follow",        # off (filter専用: is_trending() は static で呼べる)
+            "spread_entry",        # off (supplement専用: get_spread_boost() は static)
+            "earnings_momentum",   # off: データ不足
+            "catalyst_initial",    # off: データ不足
+            "tdnet_event",         # watch: 単独発火しない (イベント情報はfeatures経由で供給)
+        }
 
         for strategy in default_strategies:
             if strategy.name in disabled:
@@ -131,45 +148,51 @@ class StrategyRegistry:
             f"({len(active)} active): {active}"
         )
 
+    # 恒久停止リスト（auto_toggleで再開しない）
+    _PERMANENTLY_DISABLED = {
+        "orderbook_imbalance", "large_absorption", "open_drive",
+        "gap_fade", "overextension", "rsi_reversal", "crash_rebound",
+        "vwap_bounce", "earnings_momentum", "catalyst_initial",
+        "trend_follow", "spread_entry",  # filter/supplement専用
+    }
+
     @classmethod
-    def auto_toggle(cls, recent_trades: list, min_trades: int = 8) -> list[str]:
+    def auto_toggle(cls, recent_trades: list, min_trades: int = 12) -> list[str]:
         """Auto-disable strategies with poor rolling performance.
 
-        Returns list of strategy names that were toggled off.
-        Strategies are re-enabled if they were disabled by auto_toggle
-        and their performance has recovered.
+        閾値 (保守的チューニング 2026-03-19):
+        - off: PF < 0.90 or WR < 40% or avg_pnl < 0
+        - on:  PF > 1.20 and WR > 48% (再開は15件以上)
         """
-        from core.safety import check_strategy_degradation
-
         toggled: list[str] = []
         for name, strategy in cls._strategies.items():
-            if name in {"orderbook_imbalance", "large_absorption", "open_drive"}:
-                continue  # permanently disabled
+            if name in cls._PERMANENTLY_DISABLED:
+                continue
 
             strades = [t for t in recent_trades if t.strategy_name == name]
 
             if len(strades) < min_trades:
                 continue
 
-            # Calculate rolling PF
             gp = sum(t.pnl for t in strades if t.pnl > 0)
             gl = abs(sum(t.pnl for t in strades if t.pnl <= 0))
             pf = gp / gl if gl > 0 else 99.0
             wr = sum(1 for t in strades if t.pnl > 0) / len(strades)
+            avg_pnl = sum(t.pnl for t in strades) / len(strades)
 
             was_active = strategy.config.is_active
 
-            # Disable if PF < 0.7 or win rate < 30%
-            if pf < 0.7 or wr < 0.30:
+            # 停止条件: PF < 0.90 or WR < 40% or 平均損益マイナス
+            if pf < 0.90 or wr < 0.40 or avg_pnl < 0:
                 if was_active:
                     strategy.config.is_active = False
                     toggled.append(name)
                     logger.info(
                         f"[auto_toggle] {name} 停止: PF={pf:.2f} 勝率={wr:.0%} "
-                        f"({len(strades)}件)"
+                        f"avg={avg_pnl:+,.0f} ({len(strades)}件)"
                     )
-            # Re-enable if PF > 1.0 and win rate > 45%
-            elif not was_active and pf > 1.0 and wr > 0.45:
+            # 再開条件: PF > 1.20 and WR > 48% (厳しめ、15件以上)
+            elif not was_active and pf > 1.20 and wr > 0.48 and len(strades) >= 15:
                 strategy.config.is_active = True
                 toggled.append(name)
                 logger.info(

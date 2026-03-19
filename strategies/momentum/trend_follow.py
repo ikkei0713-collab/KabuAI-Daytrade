@@ -61,7 +61,7 @@ class TrendFollowStrategy(BaseStrategy):
             feature_requirements=self.REQUIRED_FEATURES,
             expected_market_condition="bull",
             parameter_set={
-                "min_trend_strength": 0.4,
+                "min_trend_strength": 0.2,   # 最適化結果: 0.4→0.2 (OOS PF 1.83)
                 "min_volume_trend": 1.0,
                 "trailing_atr_multiple": 1.5,
                 "pullback_ema": "ema_9",

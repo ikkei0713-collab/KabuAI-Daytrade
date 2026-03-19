@@ -57,11 +57,11 @@ class SpreadEntryStrategy(BaseStrategy):
             expected_market_condition="range",
             parameter_set={
                 "spread_percentile_max": 20,
-                "min_volume_building": 2.0,  # 最適化結果: 1.3→2.0 (OOS PF 1.63)
+                "min_volume_building": 1.8,  # 最適化結果: 2.0→1.8 (OOS PF 1.68)
                 "min_price_compression": 0.5,
-                "target_atr_multiple": 1.0,
-                "stop_atr_multiple": 0.7,
-                "breakout_threshold_pct": 0.15,
+                "target_atr_multiple": 1.5,  # 最適化結果: 1.0→1.5
+                "stop_atr_multiple": 0.5,    # 最適化結果: 0.7→0.5
+                "breakout_threshold_pct": 0.3,  # 最適化結果: 0.15→0.3
             },
         )
 

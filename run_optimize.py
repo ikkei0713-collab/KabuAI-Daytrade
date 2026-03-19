@@ -51,7 +51,7 @@ logger.add("logs/optimize.log", rotation="10 MB", level="DEBUG")
 # 候補銘柄（run_backtest_learn.pyと同じ）
 from run_backtest_learn import CANDIDATE_CODES, _clean_features
 
-DURATION_MINUTES = 30  # 最適化実行時間
+DURATION_MINUTES = 20  # 最適化実行時間
 
 
 def _calc_metrics(trades: list[TradeResult]) -> dict:

@@ -1,155 +1,157 @@
 {
-  "timestamp": "2026-03-19T16:02:46.876296",
-  "total_iterations": 513,
-  "duration_minutes": 60,
-  "best_oos_pf": 1.504,
+  "timestamp": "2026-03-19T17:24:16.445150",
+  "total_iterations": 239,
+  "duration_minutes": 20,
+  "best_oos_pf": 1.835,
   "best_params": {
-    "spread_entry": {
-      "min_volume_building": 2.5,
-      "atr_stop_multiple": 0.5,
-      "atr_target_multiple": 1.0
+    "trend_follow": {
+      "min_trend_strength": 0.2,
+      "min_volume_trend": 1.0,
+      "trailing_atr_multiple": 1.5
     }
   },
   "top_10": [
     {
-      "strategy": "spread_entry",
+      "strategy": "trend_follow",
       "params": {
-        "min_volume_building": 2.5,
-        "atr_stop_multiple": 0.5,
-        "atr_target_multiple": 1.0
+        "min_trend_strength": 0.2,
+        "min_volume_trend": 1.0,
+        "trailing_atr_multiple": 1.5
       },
-      "oos_pf": 1.504,
-      "oos_wr": 0.571,
-      "oos_pnl": 50292.0,
-      "oos_trades": 14,
-      "is_pf": 1.012,
-      "is_trades": 47
+      "oos_pf": 1.835,
+      "oos_wr": 0.6,
+      "oos_pnl": 90644.0,
+      "oos_trades": 20,
+      "is_pf": 1.589,
+      "is_trades": 74
     },
     {
-      "strategy": "spread_entry",
+      "strategy": "trend_follow",
       "params": {
-        "min_volume_building": 2.5,
-        "atr_stop_multiple": 0.7,
-        "atr_target_multiple": 0.8
+        "min_trend_strength": 0.2,
+        "min_volume_trend": 1.0,
+        "trailing_atr_multiple": 1.5
       },
-      "oos_pf": 1.504,
-      "oos_wr": 0.571,
-      "oos_pnl": 50292.0,
-      "oos_trades": 14,
-      "is_pf": 1.012,
-      "is_trades": 47
+      "oos_pf": 1.835,
+      "oos_wr": 0.6,
+      "oos_pnl": 90644.0,
+      "oos_trades": 20,
+      "is_pf": 1.589,
+      "is_trades": 74
     },
     {
-      "strategy": "spread_entry",
+      "strategy": "trend_follow",
       "params": {
-        "min_volume_building": 2.0,
-        "atr_stop_multiple": 0.7,
-        "atr_target_multiple": 0.8
+        "min_trend_strength": 0.2,
+        "min_volume_trend": 1.0,
+        "trailing_atr_multiple": 2.0
       },
-      "oos_pf": 1.504,
-      "oos_wr": 0.571,
-      "oos_pnl": 50292.0,
-      "oos_trades": 14,
-      "is_pf": 0.796,
-      "is_trades": 49
+      "oos_pf": 1.835,
+      "oos_wr": 0.6,
+      "oos_pnl": 90644.0,
+      "oos_trades": 20,
+      "is_pf": 1.892,
+      "is_trades": 74
     },
     {
-      "strategy": "spread_entry",
+      "strategy": "trend_follow",
       "params": {
-        "min_volume_building": 2.0,
-        "atr_stop_multiple": 0.7,
-        "atr_target_multiple": 1.0
+        "min_trend_strength": 0.2,
+        "min_volume_trend": 1.0,
+        "trailing_atr_multiple": 2.0
       },
-      "oos_pf": 1.504,
-      "oos_wr": 0.571,
-      "oos_pnl": 50292.0,
-      "oos_trades": 14,
-      "is_pf": 0.796,
-      "is_trades": 49
+      "oos_pf": 1.835,
+      "oos_wr": 0.6,
+      "oos_pnl": 90644.0,
+      "oos_trades": 20,
+      "is_pf": 1.892,
+      "is_trades": 74
     },
     {
-      "strategy": "spread_entry",
+      "strategy": "trend_follow",
       "params": {
-        "min_volume_building": 2.5,
-        "atr_stop_multiple": 0.7,
-        "atr_target_multiple": 1.0
+        "min_trend_strength": 0.2,
+        "min_volume_trend": 0.8,
+        "trailing_atr_multiple": 1.0
       },
-      "oos_pf": 1.504,
-      "oos_wr": 0.571,
-      "oos_pnl": 50292.0,
-      "oos_trades": 14,
-      "is_pf": 1.012,
-      "is_trades": 47
+      "oos_pf": 1.74,
+      "oos_wr": 0.667,
+      "oos_pnl": 105782.0,
+      "oos_trades": 27,
+      "is_pf": 1.524,
+      "is_trades": 86
     },
     {
-      "strategy": "spread_entry",
+      "strategy": "trend_follow",
       "params": {
-        "min_volume_building": 2.5,
-        "atr_stop_multiple": 0.7,
-        "atr_target_multiple": 1.0
+        "min_trend_strength": 0.2,
+        "min_volume_trend": 0.8,
+        "trailing_atr_multiple": 1.5
       },
-      "oos_pf": 1.504,
-      "oos_wr": 0.571,
-      "oos_pnl": 50292.0,
-      "oos_trades": 14,
-      "is_pf": 1.012,
-      "is_trades": 47
+      "oos_pf": 1.74,
+      "oos_wr": 0.667,
+      "oos_pnl": 105782.0,
+      "oos_trades": 27,
+      "is_pf": 1.795,
+      "is_trades": 86
     },
     {
-      "strategy": "spread_entry",
+      "strategy": "trend_follow",
       "params": {
-        "min_volume_building": 2.0,
-        "atr_stop_multiple": 0.7,
-        "atr_target_multiple": 0.8
+        "min_trend_strength": 0.2,
+        "min_volume_trend": 0.8,
+        "trailing_atr_multiple": 2.0
       },
-      "oos_pf": 1.504,
-      "oos_wr": 0.571,
-      "oos_pnl": 50292.0,
-      "oos_trades": 14,
-      "is_pf": 0.796,
-      "is_trades": 49
-    },
-    {
-      "strategy": "spread_entry",
-      "params": {
-        "min_volume_building": 1.8,
-        "atr_stop_multiple": 0.7,
-        "atr_target_multiple": 1.5
-      },
-      "oos_pf": 1.504,
-      "oos_wr": 0.571,
-      "oos_pnl": 50292.0,
-      "oos_trades": 14,
-      "is_pf": 0.776,
-      "is_trades": 51
+      "oos_pf": 1.74,
+      "oos_wr": 0.667,
+      "oos_pnl": 105782.0,
+      "oos_trades": 27,
+      "is_pf": 2.078,
+      "is_trades": 86
     },
     {
       "strategy": "spread_entry",
       "params": {
         "min_volume_building": 1.8,
-        "atr_stop_multiple": 0.7,
-        "atr_target_multiple": 1.0
+        "stop_atr_multiple": 0.5,
+        "target_atr_multiple": 1.5,
+        "breakout_threshold_pct": 0.3
       },
-      "oos_pf": 1.504,
-      "oos_wr": 0.571,
-      "oos_pnl": 50292.0,
-      "oos_trades": 14,
-      "is_pf": 0.776,
-      "is_trades": 51
+      "oos_pf": 1.678,
+      "oos_wr": 0.6,
+      "oos_pnl": 67644.0,
+      "oos_trades": 15,
+      "is_pf": 0.719,
+      "is_trades": 54
     },
     {
       "strategy": "spread_entry",
       "params": {
-        "min_volume_building": 2.5,
-        "atr_stop_multiple": 0.7,
-        "atr_target_multiple": 0.8
+        "min_volume_building": 1.8,
+        "stop_atr_multiple": 0.7,
+        "target_atr_multiple": 1.5,
+        "breakout_threshold_pct": 0.3
       },
-      "oos_pf": 1.504,
-      "oos_wr": 0.571,
-      "oos_pnl": 50292.0,
-      "oos_trades": 14,
-      "is_pf": 1.012,
-      "is_trades": 47
+      "oos_pf": 1.678,
+      "oos_wr": 0.6,
+      "oos_pnl": 67644.0,
+      "oos_trades": 15,
+      "is_pf": 0.719,
+      "is_trades": 54
+    },
+    {
+      "strategy": "trend_follow",
+      "params": {
+        "min_trend_strength": 0.2,
+        "min_volume_trend": 1.2,
+        "trailing_atr_multiple": 1.5
+      },
+      "oos_pf": 1.619,
+      "oos_wr": 0.625,
+      "oos_pnl": 61712.0,
+      "oos_trades": 16,
+      "is_pf": 2.661,
+      "is_trades": 58
     }
   ]
 }

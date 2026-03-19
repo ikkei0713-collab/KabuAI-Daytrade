@@ -115,10 +115,18 @@ class StrategyRegistry:
             CatalystInitialStrategy(),
         ]
 
+        # バックテスト実績に基づく無効化リスト
+        # orderbook系: ダミーデータ依存で信頼性ゼロ
+        # open_drive: 勝率35%, PF 0.23
+        disabled = {"orderbook_imbalance", "large_absorption", "open_drive"}
+
         for strategy in default_strategies:
+            if strategy.name in disabled:
+                strategy.config.is_active = False
             cls.register(strategy)
 
+        active = [s.name for s in default_strategies if s.config.is_active]
         logger.info(
-            f"[registry] Registered {len(default_strategies)} default strategies: "
-            f"{[s.name for s in default_strategies]}"
+            f"[registry] Registered {len(default_strategies)} strategies "
+            f"({len(active)} active): {active}"
         )

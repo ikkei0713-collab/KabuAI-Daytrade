@@ -20,20 +20,14 @@ import aiohttp
 from loguru import logger
 
 TDNET_BASE_URL = "https://www.release.tdnet.info/inbs/"
-TDNET_LISTING_URL = f"{TDNET_BASE_URL}I_list_001_0.html"
 
 # Patterns for extracting disclosure rows from TDnet HTML
-_ROW_PATTERN = re.compile(
-    r'<tr[^>]*>.*?</tr>',
-    re.DOTALL,
-)
-_LINK_PATTERN = re.compile(
-    r'<a\s+href="([^"]+)"[^>]*>([^<]+)</a>',
-    re.DOTALL,
-)
-_TICKER_PATTERN = re.compile(r'(\d{4})')
-_TIME_PATTERN = re.compile(r'(\d{1,2}:\d{2})')
-_TD_PATTERN = re.compile(r'<td[^>]*>(.*?)</td>', re.DOTALL)
+_ROW_PATTERN = re.compile(r'<tr>\s*<td[^>]*kjTime.*?</tr>', re.DOTALL)
+_TIME_RE = re.compile(r'kjTime[^>]*>(\d{1,2}:\d{2})')
+_CODE_RE = re.compile(r'kjCode[^>]*>(\w{4,5})')
+_NAME_RE = re.compile(r'kjName[^>]*>([^<]+)')
+_TITLE_LINK_RE = re.compile(r'kjTitle[^>]*>.*?<a\s+href="([^"]+)"[^>]*>([^<]+)</a>', re.DOTALL)
+_TITLE_TEXT_RE = re.compile(r'kjTitle[^>]*>(.*?)</td>', re.DOTALL)
 
 
 class DisclosureType(str, Enum):
@@ -146,98 +140,73 @@ class TDnetClient:
     # Public methods
     # ------------------------------------------------------------------
 
-    async def fetch_today_disclosures(self) -> list[DisclosureInfo]:
-        """
-        本日の適時開示一覧を取得する。
-
-        Fetches the TDnet disclosure listing page and parses all entries
-        for the current trading day.
-
-        Returns:
-            List of DisclosureInfo objects.
-        """
+    async def fetch_today_disclosures(self, target_date: Optional[date] = None) -> list[DisclosureInfo]:
+        """本日（または指定日）の適時開示一覧を取得する。"""
         if not self._session:
             raise RuntimeError("TDnetClient must be used as async context manager")
 
-        logger.info("Fetching today's TDnet disclosures from {}", TDNET_LISTING_URL)
+        d = target_date or date.today()
+        date_str = d.strftime("%Y%m%d")
+        url = f"{TDNET_BASE_URL}I_list_001_{date_str}.html"
+        logger.info("Fetching TDnet disclosures from {}", url)
 
         try:
-            async with self._session.get(TDNET_LISTING_URL) as resp:
+            async with self._session.get(url) as resp:
+                if resp.status == 404:
+                    logger.info("No TDnet page for {} (holiday?)", d)
+                    return []
                 resp.raise_for_status()
                 html = await resp.text(encoding="utf-8", errors="replace")
         except aiohttp.ClientError as e:
             logger.error("Failed to fetch TDnet listing page: {}", e)
             return []
 
-        disclosures = self.parse_disclosure(html)
-        logger.info("Parsed {} disclosures from TDnet", len(disclosures))
+        disclosures = self.parse_disclosure(html, d)
+        logger.info("Parsed {} disclosures from TDnet for {}", len(disclosures), d)
         return disclosures
 
-    def parse_disclosure(self, html: str) -> list[DisclosureInfo]:
-        """
-        Parse the TDnet disclosure listing HTML page.
-
-        Extracts disclosure entries from the HTML table, parsing out
-        ticker codes, titles, timestamps, and PDF/XBRL links.
-
-        Args:
-            html: Raw HTML string from TDnet listing page.
-
-        Returns:
-            List of DisclosureInfo objects.
-        """
+    def parse_disclosure(self, html: str, target_date: Optional[date] = None) -> list[DisclosureInfo]:
+        """TDnet HTMLページをパースして開示一覧を返す。"""
         disclosures: list[DisclosureInfo] = []
-        today = date.today()
+        d = target_date or date.today()
 
-        # TDnet pages use a table-based layout; each disclosure is a <tr>
         rows = _ROW_PATTERN.findall(html)
+        if not rows:
+            # フォールバック: 全trを取得
+            rows = re.findall(r'<tr>(.*?)</tr>', html, re.DOTALL)
 
         for row in rows:
             try:
-                cells = _TD_PATTERN.findall(row)
-                if len(cells) < 4:
+                time_m = _TIME_RE.search(row)
+                code_m = _CODE_RE.search(row)
+                name_m = _NAME_RE.search(row)
+                title_link_m = _TITLE_LINK_RE.search(row)
+
+                if not code_m:
                     continue
 
-                # Extract time from the first cell
-                time_match = _TIME_PATTERN.search(cells[0])
-                if not time_match:
-                    continue
-                time_str = time_match.group(1)
+                ticker = code_m.group(1).strip()
+                company_name = name_m.group(1).strip() if name_m else ""
 
-                # Extract ticker from the second cell
-                ticker_match = _TICKER_PATTERN.search(cells[1])
-                if not ticker_match:
-                    continue
-                ticker = ticker_match.group(1)
-
-                # Extract company name (clean HTML tags)
-                company_name = re.sub(r'<[^>]+>', '', cells[1]).strip()
-                company_name = company_name.replace(ticker, '').strip()
-
-                # Extract title and link from the third cell
-                link_match = _LINK_PATTERN.search(cells[2])
-                if link_match:
-                    relative_url = link_match.group(1)
-                    title = link_match.group(2).strip()
+                if title_link_m:
+                    relative_url = title_link_m.group(1).strip()
+                    title = title_link_m.group(2).strip()
                     url = f"{TDNET_BASE_URL}{relative_url}" if not relative_url.startswith("http") else relative_url
                 else:
-                    title = re.sub(r'<[^>]+>', '', cells[2]).strip()
+                    title_text_m = _TITLE_TEXT_RE.search(row)
+                    title = re.sub(r'<[^>]+>', '', title_text_m.group(1)).strip() if title_text_m else ""
                     url = ""
 
                 if not title:
                     continue
 
-                # Parse timestamp
-                try:
-                    hour, minute = time_str.split(":")
-                    timestamp = datetime(
-                        today.year, today.month, today.day,
-                        int(hour), int(minute),
-                    )
-                except (ValueError, IndexError):
-                    timestamp = datetime.now()
+                # Timestamp
+                if time_m:
+                    h, m = time_m.group(1).split(":")
+                    timestamp = datetime(d.year, d.month, d.day, int(h), int(m))
+                else:
+                    timestamp = datetime(d.year, d.month, d.day, 15, 0)
 
-                # Classify
                 disclosure_type = self.classify_disclosure(title)
 
                 disclosure = DisclosureInfo(
@@ -249,8 +218,6 @@ class TDnetClient:
                     company_name=company_name,
                     raw_text=row,
                 )
-
-                # Determine materiality
                 disclosure.is_material = self._is_material(disclosure)
                 disclosures.append(disclosure)
 

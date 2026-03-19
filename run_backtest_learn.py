@@ -24,6 +24,7 @@ load_dotenv()
 from core.models import TradeResult, StrategyPerformance, KnowledgeEntry, CandidateUpdate
 from db.database import DatabaseManager
 from data_sources.jquants import JQuantsClient
+from data_sources.tdnet import TDnetClient
 from strategies.registry import StrategyRegistry
 from tools.feature_engineering import FeatureEngineer
 
@@ -83,6 +84,28 @@ class BacktestLearner:
         logger.info(f"  戦略数: {len(strategies)}")
         logger.info("=" * 60)
 
+        # TDnetイベントを日付別に取得
+        tdnet_events: dict[date, dict[str, str]] = {}  # date -> {ticker: event_type}
+        logger.info("TDnetイベント取得中...")
+        async with TDnetClient() as tdnet:
+            # 過去3ヶ月の営業日をスキャン
+            d = date(2026, 1, 1)
+            end = date(2026, 3, 18)
+            while d <= end:
+                if d.weekday() < 5:  # 平日のみ
+                    try:
+                        disclosures = await tdnet.fetch_today_disclosures(d)
+                        material = tdnet.filter_material_events(disclosures)
+                        for disc in material:
+                            tdnet_events.setdefault(d, {})[disc.ticker + "0"] = disc.disclosure_type.value
+                        if material:
+                            logger.info(f"  {d}: {len(material)}件の重要開示")
+                    except Exception as e:
+                        logger.debug(f"  {d}: TDnet取得失敗 {e}")
+                    await asyncio.sleep(0.5)
+                d += timedelta(days=1)
+        logger.info(f"TDnetイベント: {sum(len(v) for v in tdnet_events.values())}件取得")
+
         async with JQuantsClient() as client:
             # 全銘柄のデータを一括取得
             stock_data: dict[str, pd.DataFrame] = {}
@@ -126,7 +149,7 @@ class BacktestLearner:
         logger.info(f"シミュレーション期間: {sim_dates[0]} ~ {sim_dates[-1]} ({len(sim_dates)}日)")
 
         for sim_date in sim_dates:
-            day_trades = await self._simulate_day(sim_date, stock_data, strategies)
+            day_trades = await self._simulate_day(sim_date, stock_data, strategies, tdnet_events)
             self.all_trades.extend(day_trades)
 
             if day_trades:
@@ -148,7 +171,8 @@ class BacktestLearner:
         self._print_summary()
 
     async def _simulate_day(
-        self, sim_date: date, stock_data: dict[str, pd.DataFrame], strategies
+        self, sim_date: date, stock_data: dict[str, pd.DataFrame], strategies,
+        tdnet_events: dict[date, dict[str, str]] = None,
     ) -> list[TradeResult]:
         """1日分のシミュレーション"""
         trades = []
@@ -167,6 +191,14 @@ class BacktestLearner:
             features = self.fe.calculate_all_features(df)
             current_close = float(df["close"].iloc[-1])
             features["current_price"] = current_close
+
+            # TDnetイベント注入
+            if tdnet_events and sim_date in tdnet_events:
+                event_type = tdnet_events[sim_date].get(code, "")
+                if event_type:
+                    features["event_type"] = event_type
+                    features["event_magnitude"] = 1.0
+                    features["historical_event_response"] = 0.5
 
             for strategy in strategies:
                 try:

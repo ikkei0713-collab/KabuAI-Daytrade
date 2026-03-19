@@ -27,6 +27,7 @@ from core.config import settings
 from core.models import TradeSignal, TradeResult, StrategyPerformance, KnowledgeEntry
 from db.database import DatabaseManager
 from data_sources.jquants import JQuantsClient
+from data_sources.tdnet import TDnetClient
 from strategies.registry import StrategyRegistry
 from strategies.base import BaseStrategy
 from tools.feature_engineering import FeatureEngineer
@@ -129,6 +130,12 @@ class PaperTrader:
                 features = self.fe.calculate_all_features(df)
                 current_price = self.simulate_current_price(df)
                 features["current_price"] = current_price
+
+                # TDnetイベント注入
+                if code in tdnet_events:
+                    features["event_type"] = tdnet_events[code]
+                    features["event_magnitude"] = 1.0
+                    features["historical_event_response"] = 0.5
 
                 for strategy in strategies:
                     try:
@@ -371,6 +378,18 @@ class PaperTrader:
         logger.info(f"  最大ポジション: {MAX_POSITIONS}")
         logger.info(f"  スキャン間隔: {SCAN_INTERVAL}秒")
         logger.info("=" * 60)
+
+        # TDnet本日のイベント取得
+        tdnet_events: dict[str, str] = {}
+        try:
+            async with TDnetClient() as tdnet:
+                disclosures = await tdnet.fetch_today_disclosures()
+                material = tdnet.filter_material_events(disclosures)
+                for d in material:
+                    tdnet_events[d.ticker + "0"] = d.disclosure_type.value
+                logger.info(f"TDnet: {len(disclosures)}件の開示, {len(material)}件の重要イベント")
+        except Exception as e:
+            logger.warning(f"TDnet取得失敗: {e}")
 
         cycle = 0
         async with JQuantsClient() as client:

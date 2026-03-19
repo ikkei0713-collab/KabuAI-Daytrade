@@ -51,7 +51,7 @@ logger.add("logs/optimize.log", rotation="10 MB", level="DEBUG")
 # 候補銘柄（run_backtest_learn.pyと同じ）
 from run_backtest_learn import CANDIDATE_CODES, _clean_features
 
-DURATION_MINUTES = 20  # 最適化実行時間
+DURATION_MINUTES = 10  # 最適化実行時間
 
 
 def _calc_metrics(trades: list[TradeResult]) -> dict:
@@ -73,39 +73,14 @@ def _calc_metrics(trades: list[TradeResult]) -> dict:
 
 
 # パラメータ空間の定義
-# 実際のparameter_set キー名に正確に合わせる
+# v3: vwap_reclaim のみ active なので vwap_reclaim に集中探索
 PARAM_SPACE = {
     "vwap_reclaim": {
-        "min_time_below_vwap_min": [5, 10, 15, 20, 30],
-        "min_volume_at_reclaim": [1.0, 1.2, 1.5, 2.0, 2.5],
-        "target_atr_multiple": [1.0, 1.5, 2.0, 2.5, 3.0],
-        "reclaim_buffer_pct": [0.05, 0.1, 0.15, 0.2],
-        "max_distance_from_vwap_pct": [1.0, 1.5, 2.0, 3.0],
-    },
-    "spread_entry": {
-        "min_volume_building": [1.0, 1.3, 1.5, 1.8, 2.0, 2.5],
-        "stop_atr_multiple": [0.3, 0.5, 0.7, 1.0],
-        "target_atr_multiple": [0.5, 0.8, 1.0, 1.5, 2.0],
-        "breakout_threshold_pct": [0.05, 0.1, 0.15, 0.2, 0.3],
-    },
-    "vwap_bounce": {
-        "min_volume_ratio": [0.8, 1.0, 1.2, 1.5],
-        "stop_atr_below_vwap": [0.3, 0.5, 0.7, 1.0],
-        "target_atr_multiple": [0.5, 0.8, 1.0, 1.5],
-        "bounce_proximity_pct": [0.1, 0.2, 0.3, 0.5],
-    },
-    "orb": {
-        "min_volume_ratio": [1.0, 1.5, 2.0, 2.5],
-        "breakout_buffer_yen": [0.5, 1.0, 2.0, 3.0],
-        "target_range_multiple": [1.0, 1.5, 2.0, 2.5],
-        "max_holding_minutes": [15, 30, 45, 60],
-        "atr_stop_multiple": [1.0, 1.5, 2.0],
-        "atr_target_multiple": [1.5, 2.0, 2.5, 3.0],
-    },
-    "trend_follow": {
-        "min_trend_strength": [0.2, 0.3, 0.4, 0.5, 0.6],
-        "min_volume_trend": [0.8, 1.0, 1.2, 1.5],
-        "trailing_atr_multiple": [1.0, 1.5, 2.0, 2.5],
+        "min_time_below_vwap_min": [5, 10, 15, 20, 25, 30],
+        "min_volume_at_reclaim": [1.0, 1.2, 1.3, 1.5, 1.8, 2.0],
+        "target_atr_multiple": [0.8, 1.0, 1.2, 1.5, 1.8, 2.0],
+        "reclaim_buffer_pct": [0.05, 0.10, 0.15, 0.20, 0.25],
+        "max_distance_from_vwap_pct": [0.5, 0.8, 1.0, 1.2, 1.5, 2.0],
     },
 }
 

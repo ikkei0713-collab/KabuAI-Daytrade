@@ -35,11 +35,11 @@ class VWAPReclaimStrategy(BaseStrategy):
             feature_requirements=self.REQUIRED_FEATURES,
             expected_market_condition="bull",
             parameter_set={
-                "min_time_below_vwap_min": 15,       # NOTE: 擬似特徴量 (日足推定=30固定)
-                "min_volume_at_reclaim": 1.5,         # NOTE: 擬似特徴量 (vol*1.2)
-                "target_atr_multiple": 1.2,           # 1.5→1.2: 利確を手前に寄せる (保守的)
-                "reclaim_buffer_pct": 0.15,           # 0.1→0.15: 飛びつき抑制
-                "max_distance_from_vwap_pct": 0.8,    # 2.0→0.8: VWAP近傍のみ許可
+                "min_time_below_vwap_min": 10,        # 最適化R2: 15→10 (OOS PF 2.60)
+                "min_volume_at_reclaim": 1.0,          # 最適化R2: 1.5→1.0 (条件緩和→件数確保)
+                "target_atr_multiple": 1.8,            # 最適化R2: 1.2→1.8 (利を伸ばす)
+                "reclaim_buffer_pct": 0.15,            # 維持
+                "max_distance_from_vwap_pct": 0.5,     # 最適化R2: 0.8→0.5 (VWAP直近のみ)
             },
         )
 

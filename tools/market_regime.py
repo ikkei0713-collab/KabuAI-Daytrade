@@ -1,238 +1,219 @@
-"""Market regime detection for KabuAI-Daytrade.
-
-Classifies the current market environment as bull / bear / range / volatile
-by analysing index trends, volatility, and breadth.  Also provides sector
-momentum and a simple risk-on / risk-off flag.
 """
+相場レジーム判定
 
-from __future__ import annotations
-
-from typing import Any, Literal
+日足データからその日の相場状態を推定する。
+戦略選択・ロット調整・見送り判断に使用。
+"""
 
 import numpy as np
 import pandas as pd
+from dataclasses import dataclass
+from typing import Literal
 from loguru import logger
 
 
-# Nikkei 225 sector mapping (simplified - sector code to readable name)
-_SECTOR_NAMES: dict[str, str] = {
-    "0050": "水産・農林業",
-    "1050": "鉱業",
-    "2050": "建設業",
-    "3050": "食料品",
-    "3100": "繊維製品",
-    "3150": "パルプ・紙",
-    "3200": "化学",
-    "3250": "医薬品",
-    "3300": "石油・石炭製品",
-    "3350": "ゴム製品",
-    "3400": "ガラス・土石製品",
-    "3450": "鉄鋼",
-    "3500": "非鉄金属",
-    "3550": "金属製品",
-    "3600": "機械",
-    "3650": "電気機器",
-    "3700": "輸送用機器",
-    "3750": "精密機器",
-    "3800": "その他製品",
-    "4050": "電気・ガス業",
-    "5050": "陸運業",
-    "5100": "海運業",
-    "5150": "空運業",
-    "5200": "倉庫・運輸関連業",
-    "5250": "情報・通信業",
-    "6050": "卸売業",
-    "6100": "小売業",
-    "7050": "銀行業",
-    "7100": "証券、商品先物取引業",
-    "7150": "保険業",
-    "7200": "その他金融業",
-    "8050": "不動産業",
-    "9050": "サービス業",
-}
-
-MarketRegime = Literal["bull", "bear", "range", "volatile"]
+RegimeType = Literal["trend_up", "trend_down", "range", "volatile", "low_vol"]
 
 
-class MarketRegimeDetector:
-    """Detect the prevailing market regime.
+@dataclass
+class RegimeResult:
+    """レジーム判定結果"""
+    regime: RegimeType
+    confidence: float          # 0-1
+    metrics: dict              # 判定に使った指標
+    strategy_weights: dict     # 戦略別の推奨ウェイト
+    position_scale: float      # ロット倍率 (0.0-1.5)
 
-    The detector analyses an index DataFrame (Nikkei 225 daily OHLCV)
-    and computes trend, volatility, and breadth metrics to classify the
-    market into one of four regimes.
 
-    Usage::
+class RegimeDetector:
+    """
+    日足データから相場レジームを判定する。
 
-        detector = MarketRegimeDetector()
-        regime = detector.detect_regime(nikkei_df)
+    判定ロジック:
+    1. トレンド方向: 5日/20日SMA関係 + 5日間の方向性
+    2. ボラティリティ: ATR%の過去20日での位置
+    3. レンジ判定: ボリンジャーバンド幅の収縮
+    4. 出来高特性: 相対出来高
     """
 
-    # Thresholds (configurable via constructor)
-    def __init__(
-        self,
-        trend_sma_short: int = 20,
-        trend_sma_long: int = 50,
-        volatility_window: int = 20,
-        high_volatility_pct: float = 0.02,
-        range_band_pct: float = 0.03,
-    ) -> None:
-        self.trend_sma_short = trend_sma_short
-        self.trend_sma_long = trend_sma_long
-        self.volatility_window = volatility_window
-        self.high_volatility_pct = high_volatility_pct
-        self.range_band_pct = range_band_pct
-
-    # ------------------------------------------------------------------
-    # Regime detection
-    # ------------------------------------------------------------------
-
-    def detect_regime(self, market_data: pd.DataFrame) -> MarketRegime:
-        """Classify the current market regime.
+    def detect(self, df: pd.DataFrame) -> RegimeResult:
+        """
+        日足DataFrameからレジームを判定
 
         Args:
-            market_data: OHLCV DataFrame for the market index (e.g.
-                Nikkei 225).  Must contain ``close``, ``high``, ``low``
-                columns.
+            df: OHLCV DataFrame (最低20行必要)
 
         Returns:
-            One of ``"bull"``, ``"bear"``, ``"range"``, ``"volatile"``.
+            RegimeResult
         """
-        df = self._normalise(market_data)
-        if df.empty or len(df) < self.trend_sma_long:
-            logger.warning(
-                "Not enough data for regime detection ({} rows, need {})",
-                len(df),
-                self.trend_sma_long,
+        if len(df) < 20:
+            return RegimeResult(
+                regime="range",
+                confidence=0.3,
+                metrics={},
+                strategy_weights=self._default_weights(),
+                position_scale=0.5,
             )
-            return "range"
 
-        close = df["close"]
+        # カラム名の正規化
+        close_col = "close" if "close" in df.columns else "Close"
+        high_col = "high" if "high" in df.columns else "High"
+        low_col = "low" if "low" in df.columns else "Low"
+        vol_col = "volume" if "volume" in df.columns else "Volume"
 
-        # --- Trend signals ---
-        sma_short = close.rolling(self.trend_sma_short).mean()
-        sma_long = close.rolling(self.trend_sma_long).mean()
-        trend_bull = sma_short.iloc[-1] > sma_long.iloc[-1]
-        trend_bear = sma_short.iloc[-1] < sma_long.iloc[-1]
+        close = df[close_col].astype(float)
+        high = df[high_col].astype(float)
+        low = df[low_col].astype(float)
+        volume = df[vol_col].astype(float)
 
-        # Slope of the short SMA over last 5 bars
-        slope = (sma_short.iloc[-1] - sma_short.iloc[-6]) / sma_short.iloc[-6] if len(sma_short) > 5 else 0.0
+        # 指標計算
+        sma5 = close.rolling(5).mean()
+        sma20 = close.rolling(20).mean()
 
-        # --- Volatility ---
-        daily_returns = close.pct_change().dropna()
-        volatility = daily_returns.tail(self.volatility_window).std()
-        is_volatile = volatility > self.high_volatility_pct
+        # ATR%
+        prev_close = close.shift(1)
+        tr = pd.concat([
+            high - low,
+            (high - prev_close).abs(),
+            (low - prev_close).abs(),
+        ], axis=1).max(axis=1)
+        atr_14 = tr.rolling(14).mean()
+        atr_pct = (atr_14 / close * 100).iloc[-1]
 
-        # --- Range detection ---
-        recent_high = close.tail(self.volatility_window).max()
-        recent_low = close.tail(self.volatility_window).min()
-        midpoint = (recent_high + recent_low) / 2.0
-        band = (recent_high - recent_low) / midpoint if midpoint > 0 else 0.0
-        is_range = band < self.range_band_pct
+        # ATR%の過去20日でのパーセンタイル
+        atr_pct_series = atr_14 / close * 100
+        atr_percentile = (atr_pct_series.rank(pct=True)).iloc[-1]
 
-        # --- Classification ---
-        if is_volatile and abs(slope) > 0.02:
-            regime: MarketRegime = "volatile"
-        elif trend_bull and slope > 0.005 and not is_range:
-            regime = "bull"
-        elif trend_bear and slope < -0.005 and not is_range:
-            regime = "bear"
-        else:
-            regime = "range"
+        # トレンド強度: 5日リターンの方向性
+        ret_5d = (close.iloc[-1] / close.iloc[-6] - 1) * 100 if len(close) >= 6 else 0
 
-        logger.info(
-            "Market regime: {} (slope={:.4f}, vol={:.4f}, band={:.4f})",
-            regime,
-            slope,
-            volatility,
-            band,
+        # SMA関係
+        sma5_last = sma5.iloc[-1]
+        sma20_last = sma20.iloc[-1]
+        sma_trend = (sma5_last / sma20_last - 1) * 100  # SMA5がSMA20より何%上か
+
+        # ボリンジャーバンド幅（20日）
+        bb_std = close.rolling(20).std()
+        bb_width = (bb_std.iloc[-1] / close.iloc[-1] * 100) if close.iloc[-1] > 0 else 0
+        bb_width_percentile = (bb_std / close * 100).tail(60).rank(pct=True).iloc[-1] if len(close) >= 60 else 0.5
+
+        # 相対出来高
+        vol_ratio = volume.iloc[-1] / volume.tail(20).mean() if volume.tail(20).mean() > 0 else 1.0
+
+        # 日足の方向一貫性（5日中何日が陽線か）
+        daily_returns = close.diff().tail(5)
+        up_days = (daily_returns > 0).sum()
+        consistency = up_days / 5  # 1.0=全陽線, 0.0=全陰線
+
+        metrics = {
+            "ret_5d": round(ret_5d, 2),
+            "sma_trend": round(sma_trend, 2),
+            "atr_pct": round(atr_pct, 2),
+            "atr_percentile": round(atr_percentile, 2),
+            "bb_width": round(bb_width, 2),
+            "bb_width_percentile": round(bb_width_percentile, 2),
+            "vol_ratio": round(vol_ratio, 2),
+            "consistency": round(consistency, 2),
+        }
+
+        # レジーム判定
+        regime, confidence = self._classify(metrics)
+        strategy_weights = self._get_strategy_weights(regime)
+        position_scale = self._get_position_scale(regime, confidence)
+
+        logger.debug(
+            f"レジーム判定: {regime} (確信度{confidence:.0%}) "
+            f"ret5d={ret_5d:+.1f}% atr={atr_pct:.1f}% vol={vol_ratio:.1f}x"
         )
-        return regime
 
-    # ------------------------------------------------------------------
-    # Sector momentum
-    # ------------------------------------------------------------------
+        return RegimeResult(
+            regime=regime,
+            confidence=confidence,
+            metrics=metrics,
+            strategy_weights=strategy_weights,
+            position_scale=position_scale,
+        )
 
-    def get_sector_momentum(
-        self,
-        sector_data: dict[str, pd.DataFrame] | None = None,
-    ) -> dict[str, float]:
-        """Compute sector momentum scores.
+    def _classify(self, m: dict) -> tuple[RegimeType, float]:
+        """指標からレジーム分類"""
+        ret = m["ret_5d"]
+        sma = m["sma_trend"]
+        atr_p = m["atr_percentile"]
+        bb_p = m["bb_width_percentile"]
+        consistency = m["consistency"]
 
-        Args:
-            sector_data: Mapping of sector code to OHLCV DataFrame.
-                If ``None``, returns an empty dict (data must be
-                supplied by the caller from J-Quants or another source).
+        # 高ボラティリティ（ATRが上位20%）
+        if atr_p > 0.8:
+            if abs(ret) > 3:
+                if ret > 0:
+                    return "trend_up", min(0.9, atr_p)
+                else:
+                    return "trend_down", min(0.9, atr_p)
+            return "volatile", atr_p
 
-        Returns:
-            ``{sector_name: momentum_score}`` where the score is the
-            20-day rate of change as a percentage.
-        """
-        if not sector_data:
-            return {}
+        # 低ボラティリティ（ATRが下位20%）
+        if atr_p < 0.2:
+            return "low_vol", 1.0 - atr_p
 
-        momentum: dict[str, float] = {}
-        for code, df in sector_data.items():
-            df = self._normalise(df)
-            if df.empty or len(df) < 21:
-                continue
-            close = df["close"]
-            roc20 = (close.iloc[-1] - close.iloc[-21]) / close.iloc[-21]
-            name = _SECTOR_NAMES.get(code, code)
-            momentum[name] = round(float(roc20), 4)
+        # トレンド判定
+        if ret > 2 and sma > 0.5 and consistency >= 0.6:
+            return "trend_up", min(0.85, consistency)
+        if ret < -2 and sma < -0.5 and consistency <= 0.4:
+            return "trend_down", min(0.85, 1.0 - consistency)
 
-        # Sort strongest first
-        return dict(sorted(momentum.items(), key=lambda x: x[1], reverse=True))
+        # レンジ（BB幅が収縮 or 方向性なし）
+        if bb_p < 0.3 or (abs(ret) < 1 and abs(sma) < 0.3):
+            return "range", 0.6
 
-    # ------------------------------------------------------------------
-    # Risk on / off
-    # ------------------------------------------------------------------
+        # デフォルト
+        return "range", 0.4
 
-    def is_risk_on(
-        self,
-        market_data: pd.DataFrame,
-        usd_jpy: float | None = None,
-    ) -> bool:
-        """Quick risk-on / risk-off determination.
+    def _get_strategy_weights(self, regime: RegimeType) -> dict:
+        """レジーム別の戦略推奨ウェイト"""
+        weights = {
+            "trend_up": {
+                "orb": 1.0, "gap_go": 0.9, "open_drive": 0.8,
+                "trend_follow": 0.9, "vwap_reclaim": 0.7,
+                "vwap_bounce": 0.5, "rsi_reversal": 0.2,
+                "overextension": 0.1,
+            },
+            "trend_down": {
+                "orb": 0.8, "gap_fade": 0.7,
+                "crash_rebound": 0.6, "overextension": 0.5,
+                "vwap_reclaim": 0.3, "trend_follow": 0.3,
+            },
+            "range": {
+                "vwap_bounce": 0.9, "vwap_reclaim": 0.8,
+                "rsi_reversal": 0.7, "overextension": 0.6,
+                "orb": 0.4, "spread_entry": 0.5,
+            },
+            "volatile": {
+                "orb": 0.8, "crash_rebound": 0.7,
+                "gap_go": 0.6, "trend_follow": 0.5,
+                "vwap_reclaim": 0.3,
+            },
+            "low_vol": {
+                "spread_entry": 0.5, "vwap_bounce": 0.4,
+                "orb": 0.2,
+                # ほぼ全戦略が低推奨 → 見送り推奨
+            },
+        }
+        return weights.get(regime, self._default_weights())
 
-        Risk is considered *on* when:
-        - Market regime is bull or range, AND
-        - Volatility is not extreme, AND
-        - (Optionally) USD/JPY is not weakening sharply.
+    def _default_weights(self) -> dict:
+        return {"orb": 0.5, "vwap_reclaim": 0.5, "vwap_bounce": 0.5}
 
-        Args:
-            market_data: Index OHLCV DataFrame.
-            usd_jpy: Current USD/JPY rate (optional).
-
-        Returns:
-            ``True`` if risk-on conditions are met.
-        """
-        regime = self.detect_regime(market_data)
-
-        if regime in ("bear", "volatile"):
-            return False
-
-        # Additional USD/JPY guard: if yen is strengthening below 140,
-        # foreign sellers may push the market down
-        if usd_jpy is not None and usd_jpy < 140.0:
-            logger.info("Risk-off: USD/JPY={:.2f} below 140 threshold", usd_jpy)
-            return False
-
-        return True
-
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _normalise(df: pd.DataFrame) -> pd.DataFrame:
-        """Lower-case columns, validate presence of 'close'."""
-        if df is None or df.empty:
-            return pd.DataFrame()
-        df = df.copy()
-        df.columns = [c.lower() for c in df.columns]
-        if "close" not in df.columns:
-            logger.error("Market data missing 'close' column")
-            return pd.DataFrame()
-        df["close"] = pd.to_numeric(df["close"], errors="coerce")
-        df.dropna(subset=["close"], inplace=True)
-        return df
+    def _get_position_scale(self, regime: RegimeType, confidence: float) -> float:
+        """レジーム別のロット倍率"""
+        base = {
+            "trend_up": 1.2,
+            "trend_down": 0.8,
+            "range": 0.8,
+            "volatile": 0.6,   # ボラ高い→ロット下げる
+            "low_vol": 0.4,    # 値動き少ない→見送り気味
+        }
+        scale = base.get(regime, 0.8)
+        # 確信度が低ければさらに縮小
+        if confidence < 0.5:
+            scale *= 0.7
+        return round(min(scale, 1.5), 2)

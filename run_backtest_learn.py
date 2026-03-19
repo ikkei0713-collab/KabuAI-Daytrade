@@ -27,13 +27,16 @@ from data_sources.jquants import JQuantsClient
 from data_sources.tdnet import TDnetClient
 from strategies.registry import StrategyRegistry
 from tools.feature_engineering import FeatureEngineer
+from tools.cost_model import CostModel
+from tools.market_regime import RegimeDetector
+from scanners.stock_selector import StockSelector
 
 logger.remove()
 logger.add(sys.stderr, level="INFO", format="{time:HH:mm:ss} | {level:<7} | {message}")
 logger.add("logs/backtest_learn.log", rotation="10 MB", level="DEBUG")
 
-# 対象銘柄（主要大型株 + 値動きの大きい銘柄）
-TARGET_CODES = [
+# 候補銘柄プール（StockSelectorで日次フィルタリングされる）
+CANDIDATE_CODES = [
     "72030",  # トヨタ
     "67580",  # ソニー
     "99840",  # ソフトバンクG
@@ -66,12 +69,22 @@ TARGET_CODES = [
     "66230",  # 愛知機械
 ]
 
+DEFAULT_CAPITAL = 10_000_000  # 1000万円
+
 
 class BacktestLearner:
-    def __init__(self):
+    def __init__(self, capital: float = DEFAULT_CAPITAL):
         self.db = DatabaseManager()
         self.fe = FeatureEngineer()
+        self.cost_model = CostModel(commission_free=True)
+        self.stock_selector = StockSelector()
+        self.regime_detector = RegimeDetector()
+        self.capital = capital
         self.all_trades: list[TradeResult] = []
+        self.is_trades: list[TradeResult] = []   # in-sample
+        self.oos_trades: list[TradeResult] = []  # out-of-sample
+        # Per-strategy, per-regime tracking: {(strategy, regime): [TradeResult]}
+        self.strategy_regime_trades: dict[tuple[str, str], list[TradeResult]] = {}
 
     async def run(self):
         await self.db.init_db()
@@ -80,8 +93,9 @@ class BacktestLearner:
 
         logger.info("=" * 60)
         logger.info("バックテスト型ナレッジ蓄積 開始")
-        logger.info(f"  銘柄数: {len(TARGET_CODES)}")
+        logger.info(f"  候補銘柄数: {len(CANDIDATE_CODES)}")
         logger.info(f"  戦略数: {len(strategies)}")
+        logger.info(f"  初期資金: ¥{self.capital:,.0f}")
         logger.info("=" * 60)
 
         # TDnetイベントを日付別に取得
@@ -109,7 +123,7 @@ class BacktestLearner:
         async with JQuantsClient() as client:
             # 全銘柄のデータを一括取得
             stock_data: dict[str, pd.DataFrame] = {}
-            for code in TARGET_CODES:
+            for code in CANDIDATE_CODES:
                 try:
                     raw = await client.get_prices_daily(code, "2025-12-01", "2026-03-18")
                     if not raw:
@@ -146,17 +160,66 @@ class BacktestLearner:
 
         # 最初の30日はウォームアップ（特徴量計算用）
         sim_dates = sim_dates[30:]
+
+        # In-sample / Out-of-sample split (60% / 40%)
+        split_idx = int(len(sim_dates) * 0.6)
+        is_dates = set(sim_dates[:split_idx])
+        oos_dates = set(sim_dates[split_idx:])
+
         logger.info(f"シミュレーション期間: {sim_dates[0]} ~ {sim_dates[-1]} ({len(sim_dates)}日)")
+        logger.info(f"  In-sample:  {sim_dates[0]} ~ {sim_dates[split_idx-1]} ({len(is_dates)}日)")
+        logger.info(f"  Out-of-sample: {sim_dates[split_idx]} ~ {sim_dates[-1]} ({len(oos_dates)}日)")
+
+        # Build a proxy market DataFrame for regime detection (use largest stock as proxy)
+        market_proxy_code = max(stock_data.keys(), key=lambda c: len(stock_data[c]))
+        market_proxy_df = stock_data[market_proxy_code]
 
         for sim_date in sim_dates:
-            day_trades = await self._simulate_day(sim_date, stock_data, strategies, tdnet_events)
+            # --- Regime detection for this day ---
+            market_mask = market_proxy_df["Date"].dt.date <= sim_date
+            market_slice = market_proxy_df[market_mask]
+            if len(market_slice) >= 50:
+                regime_result = self.regime_detector.detect(market_slice)
+                regime = regime_result.regime
+            else:
+                regime = "range"
+
+            # --- Stock selection for this day ---
+            day_codes = []
+            for code, df in stock_data.items():
+                mask = df["Date"].dt.date <= sim_date
+                df_slice = df[mask]
+                if len(df_slice) < 20:
+                    continue
+                has_event = bool(
+                    tdnet_events and sim_date in tdnet_events and code in tdnet_events[sim_date]
+                )
+                score = self.stock_selector.score_stock(code, df_slice, has_event=has_event)
+                if not score.excluded and score.total_score >= 0.15:
+                    day_codes.append(code)
+
+            day_trades = await self._simulate_day(
+                sim_date, stock_data, strategies, tdnet_events,
+                selected_codes=day_codes, regime=regime,
+            )
             self.all_trades.extend(day_trades)
+
+            # Classify into IS / OOS
+            if sim_date in is_dates:
+                self.is_trades.extend(day_trades)
+            else:
+                self.oos_trades.extend(day_trades)
+
+            # Track per-strategy, per-regime
+            for t in day_trades:
+                key = (t.strategy_name, regime)
+                self.strategy_regime_trades.setdefault(key, []).append(t)
 
             if day_trades:
                 wins = sum(1 for t in day_trades if t.pnl > 0)
                 total_pnl = sum(t.pnl for t in day_trades)
                 logger.info(
-                    f"  {sim_date}: {len(day_trades)}件 "
+                    f"  {sim_date} [{regime}]: {len(day_trades)}件 "
                     f"勝{wins}/負{len(day_trades)-wins} "
                     f"損益={total_pnl:+,.0f}円"
                 )
@@ -173,11 +236,17 @@ class BacktestLearner:
     async def _simulate_day(
         self, sim_date: date, stock_data: dict[str, pd.DataFrame], strategies,
         tdnet_events: dict[date, dict[str, str]] = None,
+        selected_codes: list[str] | None = None,
+        regime: str = "range",
     ) -> list[TradeResult]:
         """1日分のシミュレーション"""
         trades = []
+        codes_to_sim = selected_codes if selected_codes is not None else list(stock_data.keys())
 
-        for code, full_df in stock_data.items():
+        for code in codes_to_sim:
+            full_df = stock_data.get(code)
+            if full_df is None:
+                continue
             # sim_dateまでのデータでスキャン
             mask = full_df["Date"].dt.date <= sim_date
             df = full_df[mask].copy()
@@ -220,6 +289,9 @@ class BacktestLearner:
                     next_low = float(next_row["low"])
                     next_close = float(next_row["close"])
 
+                    # Position sizing (ATR-based via BaseStrategy)
+                    quantity = strategy.calculate_position_size(entry_price, atr, self.capital)
+
                     # ストップ/利確判定
                     if signal.direction == "long":
                         # ストップロスにヒット?
@@ -233,7 +305,7 @@ class BacktestLearner:
                         else:
                             exit_price = next_close
                             exit_reason = "翌日決済"
-                        pnl = (exit_price - entry_price) * 100  # 100株
+                        raw_pnl = (exit_price - entry_price) * quantity
                     else:
                         if next_high >= signal.stop_loss:
                             exit_price = signal.stop_loss
@@ -244,9 +316,19 @@ class BacktestLearner:
                         else:
                             exit_price = next_close
                             exit_reason = "翌日決済"
-                        pnl = (entry_price - exit_price) * 100
+                        raw_pnl = (entry_price - exit_price) * quantity
 
-                    pnl_pct = pnl / (entry_price * 100) * 100
+                    # Cost-adjusted prices and PnL
+                    adj_entry = self.cost_model.adjust_entry_price(entry_price, signal.direction)
+                    adj_exit = self.cost_model.adjust_exit_price(exit_price, signal.direction)
+                    cost = self.cost_model.calculate_trade_cost(entry_price, exit_price, quantity)
+
+                    if signal.direction == "long":
+                        pnl = (adj_exit - adj_entry) * quantity - cost.total
+                    else:
+                        pnl = (adj_entry - adj_exit) * quantity - cost.total
+
+                    pnl_pct = pnl / (entry_price * quantity) * 100 if quantity > 0 else 0.0
 
                     trade = TradeResult(
                         ticker=code,
@@ -261,8 +343,14 @@ class BacktestLearner:
                         holding_minutes=360,
                         entry_reason=signal.entry_reason,
                         exit_reason=exit_reason,
-                        features_at_entry=features,
-                        market_condition="",
+                        features_at_entry={
+                            **features,
+                            "_quantity": quantity,
+                            "_raw_pnl": round(raw_pnl, 0),
+                            "_cost_total": round(cost.total, 0),
+                            "_regime": regime,
+                        },
+                        market_condition=regime,
                     )
                     trades.append(trade)
                     await self.db.save_trade(trade)
@@ -408,43 +496,132 @@ class BacktestLearner:
 
         logger.info("改善候補の生成完了")
 
+    @staticmethod
+    def _calc_metrics(trades: list[TradeResult]) -> dict:
+        """Calculate standard metrics for a list of trades."""
+        if not trades:
+            return {"total": 0, "wins": 0, "win_rate": 0, "pf": 0,
+                    "total_pnl": 0, "avg_pnl": 0, "max_win": 0, "max_loss": 0,
+                    "raw_pnl": 0, "cost_total": 0}
+        total = len(trades)
+        wins = sum(1 for t in trades if t.pnl > 0)
+        total_pnl = sum(t.pnl for t in trades)
+        avg_pnl = total_pnl / total
+        gp = sum(t.pnl for t in trades if t.pnl > 0)
+        gl = abs(sum(t.pnl for t in trades if t.pnl <= 0))
+        pf = gp / gl if gl > 0 else 99.0
+        raw_pnl = sum(t.features_at_entry.get("_raw_pnl", t.pnl) for t in trades)
+        cost_total = sum(t.features_at_entry.get("_cost_total", 0) for t in trades)
+        return {
+            "total": total, "wins": wins,
+            "win_rate": wins / total,
+            "pf": pf,
+            "total_pnl": total_pnl, "avg_pnl": avg_pnl,
+            "max_win": max(t.pnl for t in trades),
+            "max_loss": min(t.pnl for t in trades),
+            "raw_pnl": raw_pnl,
+            "cost_total": cost_total,
+        }
+
+    @staticmethod
+    def _print_metrics_block(label: str, m: dict):
+        """Print a formatted metrics block."""
+        logger.info(f"  [{label}]")
+        logger.info(f"    トレード数: {m['total']}")
+        logger.info(f"    勝ち/負け: {m['wins']} / {m['total'] - m['wins']}")
+        logger.info(f"    勝率: {m['win_rate']:.1%}")
+        logger.info(f"    PF: {m['pf']:.2f}")
+        logger.info(f"    累計損益(コスト調整後): ¥{m['total_pnl']:+,.0f}")
+        logger.info(f"    累計損益(コスト前):      ¥{m['raw_pnl']:+,.0f}")
+        logger.info(f"    総コスト:                ¥{m['cost_total']:+,.0f}")
+        logger.info(f"    平均損益: ¥{m['avg_pnl']:+,.0f}")
+        if m["total"] > 0:
+            logger.info(f"    最大勝ち: ¥{m['max_win']:+,.0f}")
+            logger.info(f"    最大負け: ¥{m['max_loss']:+,.0f}")
+
     def _print_summary(self):
         """最終サマリー"""
         if not self.all_trades:
             logger.info("トレードなし")
             return
 
-        total = len(self.all_trades)
-        wins = sum(1 for t in self.all_trades if t.pnl > 0)
-        total_pnl = sum(t.pnl for t in self.all_trades)
-        avg_pnl = total_pnl / total
-        gross_profit = sum(t.pnl for t in self.all_trades if t.pnl > 0)
-        gross_loss = abs(sum(t.pnl for t in self.all_trades if t.pnl <= 0))
-        pf = gross_profit / gross_loss if gross_loss > 0 else 0
+        m_all = self._calc_metrics(self.all_trades)
+        m_is = self._calc_metrics(self.is_trades)
+        m_oos = self._calc_metrics(self.oos_trades)
 
         logger.info("=" * 60)
         logger.info("バックテスト結果サマリー")
         logger.info("=" * 60)
-        logger.info(f"  総トレード数: {total}")
-        logger.info(f"  勝ち: {wins} / 負け: {total - wins}")
-        logger.info(f"  勝率: {wins/total:.1%}")
-        logger.info(f"  PF: {pf:.2f}")
-        logger.info(f"  累計損益: ¥{total_pnl:+,.0f}")
-        logger.info(f"  平均損益: ¥{avg_pnl:+,.0f}")
-        logger.info(f"  最大勝ち: ¥{max(t.pnl for t in self.all_trades):+,.0f}")
-        logger.info(f"  最大負け: ¥{min(t.pnl for t in self.all_trades):+,.0f}")
+        self._print_metrics_block("全体", m_all)
+        logger.info("-" * 40)
+        self._print_metrics_block("In-Sample (60%)", m_is)
+        logger.info("-" * 40)
+        self._print_metrics_block("Out-of-Sample (40%)", m_oos)
+
+        # --- Per-strategy IS vs OOS comparison ---
+        logger.info("=" * 60)
+        logger.info("戦略別 In-Sample vs Out-of-Sample 比較")
+        logger.info("=" * 60)
+
+        strategy_names = sorted({t.strategy_name for t in self.all_trades})
+        for sname in strategy_names:
+            s_is = [t for t in self.is_trades if t.strategy_name == sname]
+            s_oos = [t for t in self.oos_trades if t.strategy_name == sname]
+            sm_is = self._calc_metrics(s_is)
+            sm_oos = self._calc_metrics(s_oos)
+
+            if sm_is["total"] == 0:
+                continue
+
+            # Flag significant degradation
+            flag = ""
+            if sm_oos["total"] >= 3 and sm_is["total"] >= 3:
+                wr_drop = sm_is["win_rate"] - sm_oos["win_rate"]
+                pf_drop = sm_is["pf"] - sm_oos["pf"]
+                if wr_drop > 0.15 or pf_drop > 0.5:
+                    flag = " *** OOS劣化 ***"
+
+            logger.info(
+                f"  {sname}:{flag}\n"
+                f"    IS:  {sm_is['total']}件 勝率{sm_is['win_rate']:.0%} PF={sm_is['pf']:.2f} 累計¥{sm_is['total_pnl']:+,.0f}\n"
+                f"    OOS: {sm_oos['total']}件 勝率{sm_oos['win_rate']:.0%} PF={sm_oos['pf']:.2f} 累計¥{sm_oos['total_pnl']:+,.0f}"
+            )
+
+        # --- Per-strategy, per-regime breakdown ---
+        logger.info("=" * 60)
+        logger.info("戦略×レジーム別 サマリー")
+        logger.info("=" * 60)
+        for (sname, regime), trades in sorted(self.strategy_regime_trades.items()):
+            if len(trades) < 2:
+                continue
+            rm = self._calc_metrics(trades)
+            logger.info(
+                f"  {sname} [{regime}]: {rm['total']}件 "
+                f"勝率{rm['win_rate']:.0%} PF={rm['pf']:.2f} 累計¥{rm['total_pnl']:+,.0f}"
+            )
+
         logger.info("=" * 60)
 
         # JSONにも保存
         summary = {
             "date": datetime.now().isoformat(),
-            "total_trades": total,
-            "wins": wins,
-            "losses": total - wins,
-            "win_rate": round(wins / total, 3),
-            "profit_factor": round(pf, 2),
-            "total_pnl": round(total_pnl, 0),
-            "avg_pnl": round(avg_pnl, 0),
+            "total_trades": m_all["total"],
+            "wins": m_all["wins"],
+            "losses": m_all["total"] - m_all["wins"],
+            "win_rate": round(m_all["win_rate"], 3),
+            "profit_factor": round(m_all["pf"], 2),
+            "total_pnl_cost_adjusted": round(m_all["total_pnl"], 0),
+            "total_pnl_raw": round(m_all["raw_pnl"], 0),
+            "total_cost": round(m_all["cost_total"], 0),
+            "avg_pnl": round(m_all["avg_pnl"], 0),
+            "in_sample": {
+                "trades": m_is["total"], "win_rate": round(m_is["win_rate"], 3),
+                "pf": round(m_is["pf"], 2), "pnl": round(m_is["total_pnl"], 0),
+            },
+            "out_of_sample": {
+                "trades": m_oos["total"], "win_rate": round(m_oos["win_rate"], 3),
+                "pf": round(m_oos["pf"], 2), "pnl": round(m_oos["total_pnl"], 0),
+            },
         }
         Path("knowledge/backtest_summary.json").write_text(
             json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8"

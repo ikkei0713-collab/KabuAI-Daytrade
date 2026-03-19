@@ -29,6 +29,31 @@ class TrendFollowStrategy(BaseStrategy):
     def __init__(self, config: Optional[StrategyConfig] = None):
         super().__init__(config or self.get_default_config())
 
+    @staticmethod
+    def is_trending(features: dict) -> tuple[bool, str, float]:
+        """Check if market is trending. Used as a filter by other strategies.
+
+        Returns:
+            (is_trending, direction, strength) where direction is 'up'/'down'/'none'
+            and strength is 0-1.
+        """
+        ema_9 = features.get("ema_9", 0)
+        ema_21 = features.get("ema_21", 0)
+        vwap = features.get("vwap", 0)
+        trend_str = features.get("trend_strength", 0)
+
+        if not all([ema_9, ema_21, vwap]):
+            return False, "none", 0.0
+
+        buf = ema_9 * 0.0005  # 0.05% buffer
+
+        if ema_9 > ema_21 + buf and ema_21 > vwap + buf:
+            return True, "up", min(abs(trend_str), 1.0)
+        elif ema_9 < ema_21 - buf and ema_21 < vwap - buf:
+            return True, "down", min(abs(trend_str), 1.0)
+
+        return False, "none", 0.0
+
     def get_default_config(self) -> StrategyConfig:
         return StrategyConfig(
             strategy_name="trend_follow",

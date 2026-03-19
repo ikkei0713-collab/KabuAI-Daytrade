@@ -105,6 +105,17 @@ def _load_backtest_summary() -> dict | None:
     return None
 
 
+def _load_paper_state() -> dict | None:
+    """Load paper trading state (watchlist, regime, etc.)"""
+    state_path = Path.home() / "dev" / "KabuAI-Daytrade" / "knowledge" / "paper_state.json"
+    if state_path.exists():
+        try:
+            return json.loads(state_path.read_text())
+        except Exception:
+            pass
+    return None
+
+
 def _tail_log(n=15) -> list[str]:
     """Get last N lines of paper trading log"""
     if not LOG_PATH.exists():
@@ -233,6 +244,74 @@ def render():
                     st.caption(f"In-Sample: {is_d['trades']}件 勝率{is_d['win_rate']:.0%} PF={is_d['pf']:.2f}")
                 with ic2:
                     st.caption(f"Out-of-Sample: {oos_d['trades']}件 勝率{oos_d['win_rate']:.0%} PF={oos_d['pf']:.2f}")
+
+        # --- Paper State: Watchlist, Regime, Strategy On/Off ---
+        paper_state = _load_paper_state()
+        if paper_state:
+            st.markdown("---")
+
+            # Regime + Anomaly status
+            rc1, rc2, rc3 = st.columns(3)
+            with rc1:
+                regime = paper_state.get("regime", "unknown")
+                regime_conf = paper_state.get("regime_confidence", 0)
+                regime_colors = {
+                    "trend_up": "green", "trend_down": "red", "range": "orange",
+                    "volatile": "purple", "low_vol": "gray",
+                }
+                st.metric("レジーム", f"{regime} ({regime_conf:.0%})")
+            with rc2:
+                active_count = len(paper_state.get("active_strategies", []))
+                disabled_count = len(paper_state.get("disabled_strategies", []))
+                st.metric("戦略", f"{active_count} ON / {disabled_count} OFF")
+            with rc3:
+                if paper_state.get("halted"):
+                    st.error(f"異常停止: {paper_state.get('halt_reason', '')}")
+                else:
+                    st.success("正常稼働")
+
+            # Strategy on/off details
+            with st.expander("戦略 ON/OFF 詳細"):
+                sc1, sc2 = st.columns(2)
+                with sc1:
+                    st.caption("ON (稼働中)")
+                    for s in paper_state.get("active_strategies", []):
+                        st.text(f"  {s}")
+                with sc2:
+                    st.caption("OFF (停止中)")
+                    for s in paper_state.get("disabled_strategies", []):
+                        st.text(f"  {s}")
+
+            # Watchlist
+            watchlist = paper_state.get("watchlist", [])
+            if watchlist:
+                st.markdown("#### ウォッチリスト (採用理由付き)")
+                wl_data = []
+                for w in watchlist:
+                    wl_data.append({
+                        "銘柄": format_ticker(w.get("code", "")),
+                        "スコア": f"{w.get('combined', 0):.3f}",
+                        "ギャップ": f"{w.get('gap_pct', 0):.1f}%",
+                        "出来高比": f"{w.get('relative_volume', 0):.1f}x",
+                        "イベント": "有" if w.get("has_event") else "-",
+                        "採用理由": w.get("reason", "")[:60],
+                    })
+                st.dataframe(pd.DataFrame(wl_data), hide_index=True, use_container_width=True)
+
+            # Open positions
+            positions = paper_state.get("positions", {})
+            if positions:
+                st.markdown("#### 保有ポジション")
+                pos_data = []
+                for ticker, pos in positions.items():
+                    pos_data.append({
+                        "銘柄": format_ticker(ticker),
+                        "戦略": pos.get("strategy", ""),
+                        "方向": pos.get("direction", ""),
+                        "エントリー": f"¥{pos.get('entry_price', 0):,.0f}",
+                        "時刻": pos.get("entry_time", "")[:16],
+                    })
+                st.dataframe(pd.DataFrame(pos_data), hide_index=True, use_container_width=True)
 
         # --- Live Log ---
         st.markdown("#### ペーパートレードログ")

@@ -28,6 +28,27 @@ class SpreadEntryStrategy(BaseStrategy):
     def __init__(self, config: Optional[StrategyConfig] = None):
         super().__init__(config or self.get_default_config())
 
+    @staticmethod
+    def get_spread_boost(features: dict) -> float:
+        """Return confidence boost (0 to 0.15) based on spread conditions.
+
+        Used as auxiliary signal to boost other strategies' confidence
+        when spread conditions are favorable.
+        """
+        spread_pct = features.get("spread_percentile", 50)
+        vol_build = features.get("volume_building", 1.0)
+        price_comp = features.get("price_compression", 0.0)
+
+        boost = 0.0
+        if spread_pct < 20:
+            boost += 0.05
+        if vol_build > 2.0:
+            boost += 0.05
+        if price_comp > 0.5:
+            boost += 0.05
+
+        return min(boost, 0.15)
+
     def get_default_config(self) -> StrategyConfig:
         return StrategyConfig(
             strategy_name="spread_entry",

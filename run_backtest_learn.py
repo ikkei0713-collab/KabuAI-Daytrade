@@ -353,30 +353,44 @@ class BacktestLearner:
                     # Position sizing (ATR-based via BaseStrategy)
                     quantity = strategy.calculate_position_size(entry_price, atr, self.capital)
 
-                    # ストップ/利確判定
+                    # Intraday exit simulation:
+                    # 1. Check if stop hit during the day (low touches stop for long)
+                    # 2. Check if TP hit during the day (high touches TP for long)
+                    # 3. If neither, check strategy exit conditions at close
+                    # 4. If still holding, exit at close
                     if signal.direction == "long":
-                        # ストップロスにヒット?
+                        # Stop is checked first (conservative: assume stop hit before TP if both possible)
                         if next_low <= signal.stop_loss:
                             exit_price = signal.stop_loss
-                            exit_reason = "ストップロス"
-                        # 利確にヒット?
+                            exit_reason = "ストップロス(intraday)"
                         elif next_high >= signal.take_profit:
                             exit_price = signal.take_profit
-                            exit_reason = "利確"
+                            exit_reason = "利確(intraday)"
                         else:
-                            exit_price = next_close
-                            exit_reason = "翌日決済"
+                            # Check if holding is losing at close
+                            pnl_at_close = next_close - entry_price
+                            if pnl_at_close < -atr * 0.5:
+                                exit_price = next_close
+                                exit_reason = "含み損決済"
+                            else:
+                                exit_price = next_close
+                                exit_reason = "翌日決済"
                         raw_pnl = (exit_price - entry_price) * quantity
                     else:
                         if next_high >= signal.stop_loss:
                             exit_price = signal.stop_loss
-                            exit_reason = "ストップロス"
+                            exit_reason = "ストップロス(intraday)"
                         elif next_low <= signal.take_profit:
                             exit_price = signal.take_profit
-                            exit_reason = "利確"
+                            exit_reason = "利確(intraday)"
                         else:
-                            exit_price = next_close
-                            exit_reason = "翌日決済"
+                            pnl_at_close = entry_price - next_close
+                            if pnl_at_close < -atr * 0.5:
+                                exit_price = next_close
+                                exit_reason = "含み損決済"
+                            else:
+                                exit_price = next_close
+                                exit_reason = "翌日決済"
                         raw_pnl = (entry_price - exit_price) * quantity
 
                     # Cost-adjusted prices and PnL
@@ -538,7 +552,7 @@ class BacktestLearner:
                 await self.db.save_candidate_update(update)
 
             # ストップロスが多すぎる戦略
-            sl_count = sum(1 for t in strades if t.exit_reason == "ストップロス")
+            sl_count = sum(1 for t in strades if "ストップロス" in (t.exit_reason or ""))
             sl_ratio = sl_count / len(strades) if strades else 0
             if sl_ratio > 0.5 and len(strades) >= 5:
                 update = CandidateUpdate(
@@ -686,6 +700,15 @@ class BacktestLearner:
             "out_of_sample": {
                 "trades": m_oos["total"], "win_rate": round(m_oos["win_rate"], 3),
                 "pf": round(m_oos["pf"], 2), "pnl": round(m_oos["total_pnl"], 0),
+            },
+            "strategy_regime": {
+                f"{sname}_{regime}": {
+                    "trades": len(trades),
+                    "win_rate": round(self._calc_metrics(trades)["win_rate"], 3),
+                    "pf": round(self._calc_metrics(trades)["pf"], 2),
+                }
+                for (sname, regime), trades in self.strategy_regime_trades.items()
+                if len(trades) >= 2
             },
         }
         Path("knowledge/backtest_summary.json").write_text(

@@ -19,6 +19,43 @@ class SafetyError(Exception):
 
 
 # ---------------------------------------------------------------------------
+# Anomaly detection helpers
+# ---------------------------------------------------------------------------
+
+
+def check_consecutive_losses(recent_trades: list, max_consecutive: int = 4) -> bool:
+    """Return True if the last max_consecutive trades were all losses."""
+    if len(recent_trades) < max_consecutive:
+        return False
+    return all(t.pnl <= 0 for t in recent_trades[-max_consecutive:])
+
+
+def check_drawdown_speed(
+    recent_trades: list, window: int = 10, max_loss_pct: float = 3.0, capital: float = 3_000_000,
+) -> bool:
+    """Return True if drawdown in last N trades exceeds threshold."""
+    if len(recent_trades) < 2:
+        return False
+    window_trades = recent_trades[-window:]
+    window_pnl = sum(t.pnl for t in window_trades)
+    pct = window_pnl / capital * 100
+    return pct < -max_loss_pct
+
+
+def check_strategy_degradation(
+    strategy_name: str, recent_trades: list, min_trades: int = 10, min_pf: float = 0.7,
+) -> bool:
+    """Return True if a strategy's rolling PF has degraded below threshold."""
+    strades = [t for t in recent_trades if t.strategy_name == strategy_name]
+    if len(strades) < min_trades:
+        return False
+    gp = sum(t.pnl for t in strades if t.pnl > 0)
+    gl = abs(sum(t.pnl for t in strades if t.pnl <= 0))
+    pf = gp / gl if gl > 0 else 99.0
+    return pf < min_pf
+
+
+# ---------------------------------------------------------------------------
 # Individual checks
 # ---------------------------------------------------------------------------
 
@@ -177,6 +214,18 @@ class SafetyGuard:
             return True, ""
         except SafetyError as exc:
             return False, str(exc)
+
+    def check_anomalies(
+        self,
+        recent_trades: list,
+        capital: float = 3_000_000,
+    ) -> tuple[bool, str]:
+        """Run all anomaly checks. Returns (should_halt, reason)."""
+        if check_consecutive_losses(recent_trades, max_consecutive=4):
+            return True, "4連敗検知 — 一時停止"
+        if check_drawdown_speed(recent_trades, window=10, max_loss_pct=3.0, capital=capital):
+            return True, "急速ドローダウン検知 (直近10件で-3%超) — 一時停止"
+        return False, ""
 
     @staticmethod
     def is_market_open(now: datetime | None = None) -> bool:

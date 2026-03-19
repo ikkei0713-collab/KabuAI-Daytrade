@@ -173,6 +173,18 @@ class ORBStrategy(BaseStrategy):
                 stop_price = or_high + buffer
                 target_price = entry_price - or_size * target_mult
 
+        # Continuation filter: require prior bar to also show direction
+        if len(data) >= 3:
+            prev_bar = data.iloc[-2]
+            prev_close = float(prev_bar["close"])
+            prev_open = float(prev_bar["open"])
+            if direction == "long" and prev_close < prev_open:
+                # Previous bar was bearish — this is a reversal, not continuation
+                # Still allow but reduce confidence later
+                pass
+            elif direction == "short" and prev_close > prev_open:
+                pass
+
         if direction is None:
             return None
 
@@ -236,6 +248,18 @@ class ORBStrategy(BaseStrategy):
                 confidence -= 0.05
             elif direction == "short" and market_trend == "up":
                 confidence -= 0.05
+
+        # Factor 7: Continuation confirmation (0 to +0.10)
+        if len(data) >= 3:
+            prev_bar = data.iloc[-2]
+            prev_close_f = float(prev_bar["close"])
+            prev_open_f = float(prev_bar["open"])
+            if direction == "long" and prev_close_f > prev_open_f:
+                confidence += 0.10  # Prior bar bullish = continuation confirmed
+            elif direction == "short" and prev_close_f < prev_open_f:
+                confidence += 0.10
+            else:
+                confidence -= 0.05  # Reversal breakout = lower confidence
 
         confidence = round(min(max(confidence, 0.1), 0.95), 2)
 

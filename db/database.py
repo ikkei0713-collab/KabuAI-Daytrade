@@ -174,6 +174,19 @@ CREATE TABLE IF NOT EXISTS skipped_signals (
 
 CREATE INDEX IF NOT EXISTS idx_skipped_strategy ON skipped_signals(strategy_name);
 CREATE INDEX IF NOT EXISTS idx_skipped_timestamp ON skipped_signals(timestamp);
+
+CREATE TABLE IF NOT EXISTS ticker_affinity (
+    strategy_name   TEXT NOT NULL,
+    ticker          TEXT NOT NULL,
+    trades          INTEGER NOT NULL DEFAULT 0,
+    wins            INTEGER NOT NULL DEFAULT 0,
+    avg_pnl         REAL NOT NULL DEFAULT 0,
+    last_updated    TEXT NOT NULL,
+    PRIMARY KEY (strategy_name, ticker)
+);
+
+CREATE INDEX IF NOT EXISTS idx_affinity_strategy ON ticker_affinity(strategy_name);
+CREATE INDEX IF NOT EXISTS idx_affinity_ticker ON ticker_affinity(ticker);
 """
 
 
@@ -662,6 +675,58 @@ class DatabaseManager:
                 ),
             )
             await db.commit()
+
+    # ------------------------------------------------------------------
+    # Ticker affinity
+    # ------------------------------------------------------------------
+
+    async def update_ticker_affinity(
+        self, strategy_name: str, ticker: str, pnl: float, is_win: bool,
+    ) -> None:
+        """Update win/loss stats for a strategy-ticker pair."""
+        async with aiosqlite.connect(self.db_path) as db:
+            # Upsert
+            await db.execute(
+                """
+                INSERT INTO ticker_affinity (strategy_name, ticker, trades, wins, avg_pnl, last_updated)
+                VALUES (?, ?, 1, ?, ?, ?)
+                ON CONFLICT(strategy_name, ticker) DO UPDATE SET
+                    trades = trades + 1,
+                    wins = wins + (CASE WHEN ? THEN 1 ELSE 0 END),
+                    avg_pnl = (avg_pnl * trades + ?) / (trades + 1),
+                    last_updated = ?
+                """,
+                (
+                    strategy_name, ticker, 1 if is_win else 0, pnl,
+                    _dt_to_str(datetime.now()),
+                    is_win, pnl, _dt_to_str(datetime.now()),
+                ),
+            )
+            await db.commit()
+
+    async def get_ticker_affinity(
+        self, strategy_name: str, ticker: str,
+    ) -> dict | None:
+        """Get affinity stats for a strategy-ticker pair."""
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute(
+                "SELECT * FROM ticker_affinity WHERE strategy_name = ? AND ticker = ?",
+                (strategy_name, ticker),
+            ) as cursor:
+                row = await cursor.fetchone()
+        if row is None:
+            return None
+        return {
+            "trades": row["trades"],
+            "wins": row["wins"],
+            "win_rate": row["wins"] / row["trades"] if row["trades"] > 0 else 0,
+            "avg_pnl": row["avg_pnl"],
+        }
+
+    # ------------------------------------------------------------------
+    # Daily reports
+    # ------------------------------------------------------------------
 
     async def get_daily_report(self, report_date: date) -> DailyReport | None:
         async with aiosqlite.connect(self.db_path) as db:

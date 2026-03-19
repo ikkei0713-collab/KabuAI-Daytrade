@@ -117,6 +117,22 @@ class VWAPReclaimStrategy(BaseStrategy):
         candle_range = float(latest["high"]) - float(latest["low"])
         if candle_range > 0 and body / candle_range > 0.6:
             confidence += 0.10
+        # Event weighting: boost confidence if TDnet event present
+        event_type = features.get("event_type", "")
+        if event_type and event_type not in ("", 0, 0.0):
+            confidence += 0.15  # Strong boost for event-driven VWAP reclaim
+            if features.get("event_magnitude", 0) > 0.5:
+                confidence += 0.05
+
+        # Regime alignment
+        regime_result = features.get("regime_result")
+        if regime_result is not None:
+            vwap_weight = regime_result.strategy_weights.get("vwap_reclaim", 0.5)
+            if vwap_weight >= 0.7:
+                confidence += 0.05
+            elif vwap_weight < 0.3:
+                confidence -= 0.10
+
         confidence = min(confidence, 0.90)
 
         shares = self.calculate_position_size(entry_price, atr, 10_000_000)

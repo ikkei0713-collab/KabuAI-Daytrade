@@ -130,3 +130,50 @@ class StrategyRegistry:
             f"[registry] Registered {len(default_strategies)} strategies "
             f"({len(active)} active): {active}"
         )
+
+    @classmethod
+    def auto_toggle(cls, recent_trades: list, min_trades: int = 8) -> list[str]:
+        """Auto-disable strategies with poor rolling performance.
+
+        Returns list of strategy names that were toggled off.
+        Strategies are re-enabled if they were disabled by auto_toggle
+        and their performance has recovered.
+        """
+        from core.safety import check_strategy_degradation
+
+        toggled: list[str] = []
+        for name, strategy in cls._strategies.items():
+            if name in {"orderbook_imbalance", "large_absorption", "open_drive"}:
+                continue  # permanently disabled
+
+            strades = [t for t in recent_trades if t.strategy_name == name]
+
+            if len(strades) < min_trades:
+                continue
+
+            # Calculate rolling PF
+            gp = sum(t.pnl for t in strades if t.pnl > 0)
+            gl = abs(sum(t.pnl for t in strades if t.pnl <= 0))
+            pf = gp / gl if gl > 0 else 99.0
+            wr = sum(1 for t in strades if t.pnl > 0) / len(strades)
+
+            was_active = strategy.config.is_active
+
+            # Disable if PF < 0.7 or win rate < 30%
+            if pf < 0.7 or wr < 0.30:
+                if was_active:
+                    strategy.config.is_active = False
+                    toggled.append(name)
+                    logger.info(
+                        f"[auto_toggle] {name} 停止: PF={pf:.2f} 勝率={wr:.0%} "
+                        f"({len(strades)}件)"
+                    )
+            # Re-enable if PF > 1.0 and win rate > 45%
+            elif not was_active and pf > 1.0 and wr > 0.45:
+                strategy.config.is_active = True
+                toggled.append(name)
+                logger.info(
+                    f"[auto_toggle] {name} 再開: PF={pf:.2f} 勝率={wr:.0%}"
+                )
+
+        return toggled

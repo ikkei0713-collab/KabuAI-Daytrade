@@ -1,16 +1,19 @@
 """
-ペーパートレード常時稼働スクリプト
+ペーパートレード常時稼働スクリプト v2
 
-J-Quantsの日足データから特徴量を計算し、
-16戦略をスキャンしてシミュレーション売買を実行。
-トレード結果とナレッジをDBに蓄積し続ける。
+改修内容:
+- random.shuffle廃止 → PreMarketScanner + StockSelector で銘柄選定
+- simulate_current_price廃止 → 日足終値ベースの判断に統一
+- RegimeDetector統合 → 全戦略にレジーム情報を供給
+- 戦略階層: VWAP Reclaim(主), ORB Continuation(補), TrendFollow(フィルタ), SpreadEntry(補助)
+- 異常検知: 連敗・急速ドローダウンで一時停止
+- 戦略auto on/off: ローリングPFで自動制御
+- 銘柄相性学習: strategy×ticker勝率をDB蓄積
 """
 
 import asyncio
 import json
-import random
 import sys
-import time
 from datetime import datetime, date, timedelta
 from pathlib import Path
 
@@ -25,12 +28,18 @@ load_dotenv()
 
 from core.config import settings
 from core.models import TradeSignal, TradeResult, StrategyPerformance, KnowledgeEntry
+from core.safety import SafetyGuard
 from db.database import DatabaseManager
 from data_sources.jquants import JQuantsClient
 from data_sources.tdnet import TDnetClient
 from strategies.registry import StrategyRegistry
 from strategies.base import BaseStrategy
+from strategies.momentum.trend_follow import TrendFollowStrategy
+from strategies.orderbook.spread_entry import SpreadEntryStrategy
 from tools.feature_engineering import FeatureEngineer
+from tools.market_regime import RegimeDetector
+from scanners.premarket import PreMarketScanner
+from scanners.stock_selector import StockSelector
 from core.ticker_map import update_from_jquants, format_ticker
 
 # ── 設定 ──────────────────────────────────────────────────────────────────────
@@ -39,6 +48,23 @@ TOP_UNIVERSE = 20    # 上位N銘柄をスキャン（レート制限対策）
 MAX_POSITIONS = 5
 POSITION_SIZE = 500_000  # 円
 MIN_CONFIDENCE = 0.3  # シグナル閾値（日足ベースなので緩めに）
+
+# 戦略階層: 主戦略に高い優先度
+STRATEGY_PRIORITY = {
+    "vwap_reclaim": 1.20,   # 主戦略: 最優先
+    "orb": 1.05,            # 継続型: 準優先
+    "gap_go": 1.00,
+    "gap_fade": 1.00,
+    "tdnet_event": 1.10,    # イベント: 高優先
+    "earnings_momentum": 1.10,
+    "catalyst_initial": 1.05,
+    "vwap_bounce": 0.95,
+    "trend_follow": 0.90,   # フィルタ兼用: 抑制
+    "spread_entry": 0.85,   # 補助シグナル: 抑制
+    "overextension": 0.90,
+    "rsi_reversal": 0.90,
+    "crash_rebound": 0.90,
+}
 
 logger.remove()
 logger.add(sys.stderr, level="INFO", format="{time:HH:mm:ss} | {level:<7} | {message}")
@@ -49,25 +75,79 @@ class PaperTrader:
     def __init__(self):
         self.db = DatabaseManager()
         self.fe = FeatureEngineer()
+        self.regime_detector = RegimeDetector()
+        self.stock_selector = StockSelector()
+        self.safety = SafetyGuard()
         self.positions: dict[str, dict] = {}  # ticker -> position info
         self.trades: list[TradeResult] = []
         self.daily_pnl = 0.0
         self.trade_count = 0
         self.win_count = 0
         self._eod_done = False
+        self._halted = False
+        self._halt_reason = ""
+        # 当日ウォッチリスト（UI表示用）
+        self.watchlist: list[dict] = []
+        self.current_regime = None
 
     async def init(self):
         await self.db.init_db()
         StrategyRegistry.register_all_defaults()
         logger.info(f"戦略 {len(StrategyRegistry.get_active())} 個を読み込み")
 
-    async def fetch_universe(self, client: JQuantsClient) -> list[dict]:
-        """出来高上位の銘柄を取得"""
+    async def build_watchlist(self, client: JQuantsClient, tdnet_events: dict[str, str]) -> list[dict]:
+        """PreMarketScanner + StockSelector で当日ウォッチリストを構築"""
+        # Step 1: 上場銘柄マスタからプライム/スタンダードを取得
         info = await client.get_listed_info()
-        # プライム市場のみ
-        prime = [s for s in info if s.get("MktNm") in ("プライム", "スタンダード")]
-        random.shuffle(prime)
-        return prime[:TOP_UNIVERSE]
+        candidates = [s for s in info if s.get("MktNm") in ("プライム", "スタンダード")]
+        candidate_codes = [s.get("Code", "") for s in candidates]
+
+        # Step 2: PreMarketScanner でギャップ・出来高・イベントをスキャン
+        scanner = PreMarketScanner(client)
+        scan_results = await scanner.generate_watchlist(candidate_codes[:200])
+
+        # Step 3: StockSelector で各銘柄をスコアリング
+        scored: list[dict] = []
+        for result in scan_results:
+            code = result.ticker
+            try:
+                df = await self.fetch_ohlcv(client, code)
+                if len(df) < 20:
+                    continue
+                has_event = code in tdnet_events
+                stock_score = self.stock_selector.score_stock(code, df, has_event=has_event)
+                if stock_score.excluded:
+                    continue
+                scored.append({
+                    "code": code,
+                    "scan_score": result.score,
+                    "stock_score": stock_score.total_score,
+                    "combined": result.score * 0.4 + stock_score.total_score * 0.6,
+                    "reason": result.reason,
+                    "has_event": has_event,
+                    "gap_pct": stock_score.gap_pct,
+                    "relative_volume": stock_score.relative_volume,
+                })
+            except Exception as e:
+                logger.debug(f"銘柄選定失敗 {code}: {e}")
+            await asyncio.sleep(0.3)
+
+        # Step 4: combined score で上位N銘柄を選出
+        scored.sort(key=lambda x: x["combined"], reverse=True)
+        watchlist = scored[:TOP_UNIVERSE]
+
+        if watchlist:
+            logger.info(f"ウォッチリスト構築完了: {len(scored)}銘柄中 {len(watchlist)}銘柄を選出")
+            for w in watchlist[:5]:
+                logger.info(
+                    f"  {format_ticker(w['code'])}: score={w['combined']:.3f} "
+                    f"gap={w['gap_pct']:.1f}% vol={w['relative_volume']:.1f}x"
+                    f"{' [EVENT]' if w['has_event'] else ''}"
+                )
+        else:
+            logger.warning("ウォッチリスト: 条件を満たす銘柄なし")
+
+        return watchlist
 
     async def fetch_ohlcv(self, client: JQuantsClient, code: str, days: int = 60) -> pd.DataFrame:
         """日足OHLCVを取得してDataFrameに変換"""
@@ -79,7 +159,6 @@ class PaperTrader:
 
         df = pd.DataFrame(raw)
         rename = {"O": "Open", "H": "High", "L": "Low", "C": "Close", "Vo": "Volume", "Date": "Date"}
-        # Adjusted prices if available
         if "AdjO" in df.columns:
             rename.update({"AdjO": "Open", "AdjH": "High", "AdjL": "Low", "AdjC": "Close", "AdjVo": "Volume"})
         df = df.rename(columns=rename)
@@ -89,9 +168,7 @@ class PaperTrader:
         df["Date"] = pd.to_datetime(df["Date"])
         df = df.sort_values("Date").reset_index(drop=True)
         df = df[["Date", "Open", "High", "Low", "Close", "Volume"]].dropna()
-        # 小文字カラム追加（戦略が小文字を期待）
         df = df.rename(columns={"Open": "open", "High": "high", "Low": "low", "Close": "close", "Volume": "volume"})
-        # 大文字も残す
         df["Open"] = df["open"]
         df["High"] = df["high"]
         df["Low"] = df["low"]
@@ -99,28 +176,28 @@ class PaperTrader:
         df["Volume"] = df["volume"]
         return df
 
-    def simulate_current_price(self, df: pd.DataFrame) -> float:
-        """最新終値にランダムウォークを加えて現在価格をシミュレート"""
-        if df.empty:
-            return 0.0
-        last_close = float(df["Close"].iloc[-1])
-        atr = float((df["High"] - df["Low"]).tail(14).mean()) if len(df) >= 14 else last_close * 0.02
-        noise = random.gauss(0, atr * 0.3)
-        return round(last_close + noise, 1)
+    def _detect_regime(self, df: pd.DataFrame):
+        """レジーム判定（代表銘柄のDFで実行）"""
+        if len(df) >= 20:
+            self.current_regime = self.regime_detector.detect(df)
+            logger.info(
+                f"レジーム: {self.current_regime.regime} "
+                f"(確信度{self.current_regime.confidence:.0%})"
+            )
 
-    async def scan_and_trade(self, client: JQuantsClient):
-        """全銘柄をスキャンして売買判断"""
-        universe = await self.fetch_universe(client)
+    async def scan_and_trade(self, client: JQuantsClient, tdnet_events: dict[str, str]):
+        """ウォッチリスト銘柄をスキャンして売買判断"""
+        if self._halted:
+            logger.warning(f"異常検知により停止中: {self._halt_reason}")
+            return
+
         strategies = StrategyRegistry.get_active()
+        logger.info(f"スキャン開始: {len(self.watchlist)}銘柄 x {len(strategies)}戦略")
 
-        logger.info(f"スキャン開始: {len(universe)}銘柄 x {len(strategies)}戦略")
+        signals: list[tuple[TradeSignal, BaseStrategy, float]] = []
 
-        signals: list[tuple[TradeSignal, BaseStrategy]] = []
-
-        for stock in universe:
-            code = stock.get("Code", "")
-            name = stock.get("CoName", "")
-
+        for item in self.watchlist:
+            code = item["code"]
             if code in self.positions:
                 continue
 
@@ -130,8 +207,13 @@ class PaperTrader:
                     continue
 
                 features = self.fe.calculate_all_features(df)
-                current_price = self.simulate_current_price(df)
+                # 日足終値をそのまま使用（simulate_current_price廃止）
+                current_price = float(df["close"].iloc[-1])
                 features["current_price"] = current_price
+
+                # レジーム情報を注入
+                if self.current_regime is not None:
+                    features["regime_result"] = self.current_regime
 
                 # TDnetイベント注入
                 if code in tdnet_events:
@@ -139,11 +221,47 @@ class PaperTrader:
                     features["event_magnitude"] = 1.0
                     features["historical_event_response"] = 0.5
 
+                # トレンドフィルタ情報を注入
+                is_trending, trend_dir, trend_strength = TrendFollowStrategy.is_trending(features)
+                features["_is_trending"] = is_trending
+                features["_trend_direction"] = trend_dir
+
+                # スプレッド補助シグナルを注入
+                spread_boost = SpreadEntryStrategy.get_spread_boost(features)
+                features["_spread_boost"] = spread_boost
+
+                # 銘柄スコアを注入
+                features["selector_score"] = item.get("stock_score", 0.5)
+
                 for strategy in strategies:
                     try:
                         signal = await strategy.scan(code, df, features)
                         if signal and signal.confidence >= MIN_CONFIDENCE:
-                            signals.append((signal, strategy))
+                            # 戦略優先度とフィルタを適用
+                            priority = STRATEGY_PRIORITY.get(strategy.name, 1.0)
+                            adjusted_conf = signal.confidence * priority
+
+                            # トレンドフィルタ: トレンド方向と一致でブースト
+                            if is_trending:
+                                if (signal.direction == "long" and trend_dir == "up") or \
+                                   (signal.direction == "short" and trend_dir == "down"):
+                                    adjusted_conf += 0.05 * trend_strength
+                                elif (signal.direction == "long" and trend_dir == "down") or \
+                                     (signal.direction == "short" and trend_dir == "up"):
+                                    adjusted_conf -= 0.05
+
+                            # スプレッド補助: 全戦略にブースト適用
+                            adjusted_conf += spread_boost * 0.5
+
+                            # 銘柄相性を確認
+                            affinity = await self.db.get_ticker_affinity(strategy.name, code)
+                            if affinity and affinity["trades"] >= 5:
+                                if affinity["win_rate"] > 0.6:
+                                    adjusted_conf += 0.05
+                                elif affinity["win_rate"] < 0.3:
+                                    adjusted_conf -= 0.10
+
+                            signals.append((signal, strategy, adjusted_conf))
                     except Exception as e:
                         logger.debug(f"{strategy.name}/{code}: {e}")
 
@@ -151,14 +269,13 @@ class PaperTrader:
                 logger.debug(f"{code} データ取得失敗: {e}")
                 continue
 
-            # レート制限対策
             await asyncio.sleep(0.5)
 
-        # 確信度順にソートして上位を実行
-        signals.sort(key=lambda x: x[0].confidence, reverse=True)
+        # 調整後確信度でソートして上位を実行
+        signals.sort(key=lambda x: x[2], reverse=True)
 
         executed = 0
-        for signal, strategy in signals:
+        for signal, strategy, adj_conf in signals:
             if len(self.positions) >= MAX_POSITIONS:
                 break
             if signal.ticker in self.positions:
@@ -192,7 +309,6 @@ class PaperTrader:
             f"理由: {signal.entry_reason}"
         )
 
-        # DBに保存
         await self.db.save_signal_skipped(signal, reason="EXECUTED")
 
     async def check_exits(self, client: JQuantsClient):
@@ -205,7 +321,8 @@ class PaperTrader:
                 if df.empty:
                     continue
 
-                current = self.simulate_current_price(df)
+                # 日足終値で判断（simulate_current_price廃止）
+                current = float(df["close"].iloc[-1])
                 features = self.fe.calculate_all_features(df)
                 features["current_price"] = current
 
@@ -270,6 +387,8 @@ class PaperTrader:
 
         win_rate = self.win_count / self.trade_count if self.trade_count > 0 else 0
 
+        regime_str = self.current_regime.regime if self.current_regime else ""
+
         trade = TradeResult(
             ticker=ticker,
             strategy_name=pos["strategy"].name,
@@ -285,18 +404,33 @@ class PaperTrader:
             exit_reason=reason,
             features_at_entry=pos["signal"].features_snapshot,
             features_at_exit=features,
+            market_condition=regime_str,
         )
 
         self.trades.append(trade)
         await self.db.save_trade(trade)
 
-        icon = "✅" if pnl > 0 else "❌"
+        # 銘柄相性学習
+        await self.db.update_ticker_affinity(
+            pos["strategy"].name, ticker, pnl, pnl > 0,
+        )
+
+        icon = "+" if pnl > 0 else "-"
         logger.info(
-            f"{icon} 決済 {format_ticker(ticker)} {pos['direction']} "
+            f"[{icon}] 決済 {format_ticker(ticker)} {pos['direction']} "
             f"@{fill_price:,.0f} 損益={pnl:+,.0f}円 ({pnl_pct:+.1f}%) "
             f"[{pos['strategy'].name}] 理由: {reason} "
             f"| 累計: {self.daily_pnl:+,.0f}円 勝率{win_rate:.0%} ({self.trade_count}件)"
         )
+
+        # 異常検知チェック
+        should_halt, halt_reason = self.safety.check_anomalies(
+            self.trades, capital=settings.TOTAL_CAPITAL,
+        )
+        if should_halt:
+            self._halted = True
+            self._halt_reason = halt_reason
+            logger.warning(f"異常検知: {halt_reason}")
 
     async def extract_knowledge(self):
         """蓄積されたトレードからナレッジを抽出"""
@@ -306,12 +440,10 @@ class PaperTrader:
         wins = [t for t in self.trades if t.pnl > 0]
         losses = [t for t in self.trades if t.pnl <= 0]
 
-        # 勝ちパターン抽出
         if wins:
             strategies_used = {}
             for t in wins:
                 strategies_used.setdefault(t.strategy_name, []).append(t)
-
             for sname, strades in strategies_used.items():
                 if len(strades) >= 2:
                     avg_pnl = sum(t.pnl for t in strades) / len(strades)
@@ -323,12 +455,10 @@ class PaperTrader:
                     )
                     await self.db.save_knowledge(entry)
 
-        # 負けパターン抽出
         if losses:
             strategies_used = {}
             for t in losses:
                 strategies_used.setdefault(t.strategy_name, []).append(t)
-
             for sname, strades in strategies_used.items():
                 if len(strades) >= 2:
                     avg_loss = sum(t.pnl for t in strades) / len(strades)
@@ -369,23 +499,56 @@ class PaperTrader:
     def _print_daily_summary(self):
         """日次サマリーをログ出力"""
         logger.info("=" * 60)
-        logger.info("📊 日次サマリー")
+        logger.info("日次サマリー")
         logger.info(f"  トレード数: {self.trade_count}")
         win_rate = self.win_count / self.trade_count * 100 if self.trade_count > 0 else 0
         logger.info(f"  勝率: {self.win_count}/{self.trade_count} ({win_rate:.1f}%)")
-        logger.info(f"  累計損益: ¥{self.daily_pnl:+,.0f}")
+        logger.info(f"  累計損益: Y{self.daily_pnl:+,.0f}")
+        if self.current_regime:
+            logger.info(f"  レジーム: {self.current_regime.regime}")
 
         if self.trades:
             by_strategy: dict[str, list] = {}
             for t in self.trades:
                 by_strategy.setdefault(t.strategy_name, []).append(t)
-            logger.info("  ── 戦略別 ──")
+            logger.info("  -- 戦略別 --")
             for sname, strades in sorted(by_strategy.items()):
                 s_pnl = sum(t.pnl for t in strades)
                 s_wins = sum(1 for t in strades if t.pnl > 0)
-                logger.info(f"    {sname}: {len(strades)}件 {s_wins}勝 損益¥{s_pnl:+,.0f}")
+                logger.info(f"    {sname}: {len(strades)}件 {s_wins}勝 損益Y{s_pnl:+,.0f}")
+
+        if self._halted:
+            logger.info(f"  [!] 異常停止: {self._halt_reason}")
 
         logger.info("=" * 60)
+
+    def _save_watchlist_json(self):
+        """ウォッチリストをJSONで保存（UI用）"""
+        data = {
+            "date": date.today().isoformat(),
+            "regime": self.current_regime.regime if self.current_regime else "unknown",
+            "regime_confidence": self.current_regime.confidence if self.current_regime else 0,
+            "halted": self._halted,
+            "halt_reason": self._halt_reason,
+            "watchlist": self.watchlist[:20],
+            "active_strategies": [s.name for s in StrategyRegistry.get_active()],
+            "disabled_strategies": [
+                s.name for s in StrategyRegistry.get_all() if not s.config.is_active
+            ],
+            "positions": {
+                ticker: {
+                    "strategy": pos["strategy"].name,
+                    "direction": pos["direction"],
+                    "entry_price": pos["entry_price"],
+                    "entry_time": pos["entry_time"].isoformat(),
+                }
+                for ticker, pos in self.positions.items()
+            },
+        }
+        Path("knowledge/paper_state.json").write_text(
+            json.dumps(data, indent=2, ensure_ascii=False, default=str),
+            encoding="utf-8",
+        )
 
     async def run(self):
         """メインループ"""
@@ -396,15 +559,18 @@ class PaperTrader:
             return
 
         logger.info("=" * 60)
-        logger.info("ペーパートレード開始")
-        logger.info(f"  資金: ¥{settings.TOTAL_CAPITAL:,.0f}")
+        logger.info("ペーパートレード v2 開始")
+        logger.info(f"  資金: Y{settings.TOTAL_CAPITAL:,.0f}")
         logger.info(f"  最大ポジション: {MAX_POSITIONS}")
         logger.info(f"  スキャン間隔: {SCAN_INTERVAL}秒")
+        logger.info(f"  銘柄選定: PreMarketScanner + StockSelector")
+        logger.info(f"  擬似intraday: 廃止 (日足終値ベース)")
         logger.info("=" * 60)
 
         tdnet_events: dict[str, str] = {}
         cycle = 0
         tdnet_fetched_today: str = ""
+        watchlist_built_today: str = ""
 
         async with JQuantsClient() as client:
             # 銘柄名マスタ更新
@@ -423,7 +589,6 @@ class PaperTrader:
 
                 # ── 市場開場前: 待機 ──
                 if now < market_open:
-                    # 08:55以降ならTDnetを事前取得
                     pre_open = now.replace(hour=8, minute=55, second=0, microsecond=0)
                     if now >= pre_open and tdnet_fetched_today != today_str:
                         try:
@@ -450,13 +615,13 @@ class PaperTrader:
                     if self.trades and not self._eod_done:
                         await self.extract_knowledge()
                         self._print_daily_summary()
+                        self._save_watchlist_json()
                         self._eod_done = True
 
-                    # 翌営業日 08:50 まで一括スリープ（無駄なログを出さない）
                     tomorrow_pre = (now + timedelta(days=1)).replace(hour=8, minute=50, second=0, microsecond=0)
-                    if now.weekday() == 4:  # 金曜 → 月曜
+                    if now.weekday() == 4:
                         tomorrow_pre += timedelta(days=2)
-                    elif now.weekday() == 5:  # 土曜 → 月曜
+                    elif now.weekday() == 5:
                         tomorrow_pre += timedelta(days=1)
                     wait_sec = (tomorrow_pre - now).total_seconds()
                     if not hasattr(self, '_post_market_logged') or self._post_market_logged != today_str:
@@ -468,15 +633,42 @@ class PaperTrader:
                 # ── 市場時間中 ──
                 self._eod_done = False
 
-                # 14:50 以降: 全ポジション強制決済
+                # 当日初回: ウォッチリスト構築 + レジーム判定 + 日次リセット
+                if watchlist_built_today != today_str:
+                    # 日次リセット
+                    self.daily_pnl = 0.0
+                    self.trade_count = 0
+                    self.win_count = 0
+                    self.trades.clear()
+                    self._halted = False
+                    self._halt_reason = ""
+
+                    logger.info("当日ウォッチリスト構築中...")
+                    self.watchlist = await self.build_watchlist(client, tdnet_events)
+
+                    # レジーム判定（ウォッチリスト先頭銘柄のDFで実施）
+                    if self.watchlist:
+                        regime_df = await self.fetch_ohlcv(client, self.watchlist[0]["code"])
+                        self._detect_regime(regime_df)
+
+                    # 戦略auto on/off
+                    all_recent = await self.db.get_trades(limit=100)
+                    toggled = StrategyRegistry.auto_toggle(all_recent)
+                    if toggled:
+                        logger.info(f"戦略auto toggle: {toggled}")
+
+                    self._save_watchlist_json()
+                    watchlist_built_today = today_str
+
+                # 15:20 以降: 全ポジション強制決済
                 if now >= force_close_time and self.positions:
-                    logger.info("14:50 全ポジション強制決済")
+                    logger.info("15:20 全ポジション強制決済")
                     for ticker in list(self.positions.keys()):
                         try:
                             df = await self.fetch_ohlcv(client, ticker, days=30)
                             if df.empty:
                                 continue
-                            current = self.simulate_current_price(df)
+                            current = float(df["close"].iloc[-1])
                             features = self.fe.calculate_all_features(df)
                             features["current_price"] = current
                             await self.close_position(ticker, current, "大引け強制決済", features)
@@ -505,7 +697,7 @@ class PaperTrader:
                             logger.warning(f"TDnet取得失敗: {e}")
 
                     # 新規エントリースキャン
-                    await self.scan_and_trade(client)
+                    await self.scan_and_trade(client, tdnet_events)
 
                     # 保有ポジション決済チェック
                     if self.positions:
@@ -515,12 +707,18 @@ class PaperTrader:
                     if cycle % 5 == 0 and self.trades:
                         await self.extract_knowledge()
 
+                    # 定期的にUI用状態保存
+                    if cycle % 3 == 0:
+                        self._save_watchlist_json()
+
                     status = (
                         f"ポジション: {len(self.positions)} | "
                         f"トレード: {self.trade_count} | "
-                        f"損益: ¥{self.daily_pnl:+,.0f} | "
+                        f"損益: Y{self.daily_pnl:+,.0f} | "
                         f"勝率: {self.win_count}/{self.trade_count}"
                     )
+                    if self.current_regime:
+                        status += f" | レジーム: {self.current_regime.regime}"
                     logger.info(status)
 
                 except Exception as e:

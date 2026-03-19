@@ -153,6 +153,18 @@ class VWAPReclaimStrategy(BaseStrategy):
         if selector_score < 0.25:
             confidence -= 0.10
 
+        # Sector bias: 米国→日本セクター lead-lag signal
+        # bullish sector: +0.05, bearish: -0.05, neutral: 0
+        # event ありの場合は sector bias より event を優先 (event > sector)
+        sector_bias_score = features.get("_sector_bias_score", 0.0)
+        if sector_bias_score != 0.0:
+            has_event = event_type and event_type not in ("", 0, 0.0)
+            if has_event:
+                # event 銘柄は sector bias の影響を半減
+                confidence += sector_bias_score * 0.5
+            else:
+                confidence += sector_bias_score
+
         confidence = min(confidence, 0.90)
 
         shares = self.calculate_position_size(entry_price, atr, 10_000_000)

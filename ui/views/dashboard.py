@@ -282,19 +282,46 @@ def render():
                     for s in paper_state.get("disabled_strategies", []):
                         st.text(f"  {s}")
 
+            # Sector Bias
+            sb = paper_state.get("sector_bias")
+            if sb and sb.get("fetch_success"):
+                st.markdown("#### 米国→日本 セクターバイアス")
+                sb_cols = st.columns(3)
+                with sb_cols[0]:
+                    spy_ret = sb.get("spy_return", 0)
+                    st.metric("SPY前日", f"{spy_ret:+.2%}")
+                with sb_cols[1]:
+                    risk = "Risk-OFF" if sb.get("risk_off") else "Risk-ON"
+                    st.metric("リスク", risk)
+                with sb_cols[2]:
+                    jp_bias = sb.get("jp_sector_bias", {})
+                    bullish_n = sum(1 for v in jp_bias.values() if v > 0.3)
+                    bearish_n = sum(1 for v in jp_bias.values() if v < -0.3)
+                    st.metric("業種バイアス", f"強気{bullish_n} / 弱気{bearish_n}")
+
+                # US ETF returns
+                with st.expander("米国セクターETF詳細"):
+                    us_ret = sb.get("us_returns", {})
+                    if us_ret:
+                        us_data = [{"ETF": k, "リターン": f"{v:+.2%}"} for k, v in sorted(us_ret.items(), key=lambda x: x[1], reverse=True)]
+                        st.dataframe(pd.DataFrame(us_data), hide_index=True, use_container_width=True)
+
             # Watchlist
             watchlist = paper_state.get("watchlist", [])
             if watchlist:
                 st.markdown("#### ウォッチリスト (採用理由付き)")
                 wl_data = []
                 for w in watchlist:
+                    bias_label = w.get("sector_bias_label", "-")
+                    bias_val = w.get("sector_bias", 0)
                     wl_data.append({
                         "銘柄": format_ticker(w.get("code", "")),
                         "スコア": f"{w.get('combined', 0):.3f}",
                         "ギャップ": f"{w.get('gap_pct', 0):.1f}%",
                         "出来高比": f"{w.get('relative_volume', 0):.1f}x",
                         "イベント": "有" if w.get("has_event") else "-",
-                        "採用理由": w.get("reason", "")[:60],
+                        "業種バイアス": f"{bias_label} ({bias_val:+.3f})" if bias_val else "-",
+                        "採用理由": w.get("reason", "")[:50],
                     })
                 st.dataframe(pd.DataFrame(wl_data), hide_index=True, use_container_width=True)
 

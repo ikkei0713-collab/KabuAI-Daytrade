@@ -40,6 +40,7 @@ from tools.feature_engineering import FeatureEngineer
 from tools.market_regime import RegimeDetector
 from scanners.premarket import PreMarketScanner
 from scanners.stock_selector import StockSelector
+from tools.sector_bias import SectorBiasCalculator, SectorBiasResult
 from core.ticker_map import update_from_jquants, format_ticker
 
 # ── 設定 ── 保守的チューニング (2026-03-19) ─────────────────────────────────
@@ -72,6 +73,8 @@ class PaperTrader:
         self.regime_detector = RegimeDetector()
         self.stock_selector = StockSelector()
         self.safety = SafetyGuard()
+        self.sector_bias_calc = SectorBiasCalculator()
+        self.sector_bias: SectorBiasResult | None = None
         self.positions: dict[str, dict] = {}  # ticker -> position info
         self.trades: list[TradeResult] = []
         self.daily_pnl = 0.0
@@ -90,11 +93,25 @@ class PaperTrader:
         logger.info(f"戦略 {len(StrategyRegistry.get_active())} 個を読み込み")
 
     async def build_watchlist(self, client: JQuantsClient, tdnet_events: dict[str, str]) -> list[dict]:
-        """PreMarketScanner + StockSelector で当日ウォッチリストを構築"""
+        """PreMarketScanner + StockSelector + SectorBias で当日ウォッチリストを構築"""
+        # Step 0: 米国セクターバイアスを計算
+        try:
+            self.sector_bias = await self.sector_bias_calc.calculate()
+            if self.sector_bias.fetch_success:
+                logger.info(
+                    f"セクターバイアス取得: SPY={self.sector_bias.spy_return:+.2%} "
+                    f"risk_off={self.sector_bias.risk_off}"
+                )
+        except Exception as e:
+            logger.warning(f"セクターバイアス取得失敗: {e}")
+            self.sector_bias = None
+
         # Step 1: 上場銘柄マスタからプライム/スタンダードを取得
         info = await client.get_listed_info()
         candidates = [s for s in info if s.get("MktNm") in ("プライム", "スタンダード")]
         candidate_codes = [s.get("Code", "") for s in candidates]
+        # S33マップを構築 (Code → S33コード)
+        code_to_s33 = {s.get("Code", ""): s.get("S33", "") for s in info}
 
         # Step 2: PreMarketScanner でギャップ・出来高・イベントをスキャン
         scanner = PreMarketScanner(client)
@@ -112,15 +129,27 @@ class PaperTrader:
                 stock_score = self.stock_selector.score_stock(code, df, has_event=has_event)
                 if stock_score.excluded:
                     continue
+                # Sector bias adjustment
+                s33 = code_to_s33.get(code, "")
+                bias_adj = 0.0
+                bias_label = "neutral"
+                if self.sector_bias and self.sector_bias.fetch_success and s33:
+                    bias_adj = self.sector_bias_calc.get_watchlist_adjustment(self.sector_bias, s33)
+                    bias_label = self.sector_bias.get_bias_label(s33)
+
+                base_combined = result.score * 0.4 + stock_score.total_score * 0.6
                 scored.append({
                     "code": code,
                     "scan_score": result.score,
                     "stock_score": stock_score.total_score,
-                    "combined": result.score * 0.4 + stock_score.total_score * 0.6,
+                    "combined": base_combined + bias_adj,
                     "reason": result.reason,
                     "has_event": has_event,
                     "gap_pct": stock_score.gap_pct,
                     "relative_volume": stock_score.relative_volume,
+                    "s33": s33,
+                    "sector_bias": round(bias_adj, 4),
+                    "sector_bias_label": bias_label,
                 })
             except Exception as e:
                 logger.debug(f"銘柄選定失敗 {code}: {e}")
@@ -226,6 +255,10 @@ class PaperTrader:
 
                 # 銘柄スコアを注入
                 features["selector_score"] = item.get("stock_score", 0.5)
+
+                # Sector bias: 米国→日本セクターバイアスを注入
+                features["_sector_bias_score"] = item.get("sector_bias", 0.0)
+                features["_sector_bias_label"] = item.get("sector_bias_label", "neutral")
 
                 for strategy in strategies:
                     try:
@@ -524,6 +557,7 @@ class PaperTrader:
             "regime_confidence": self.current_regime.confidence if self.current_regime else 0,
             "halted": self._halted,
             "halt_reason": self._halt_reason,
+            "sector_bias": self.sector_bias.to_dict() if self.sector_bias else None,
             "watchlist": self.watchlist[:20],
             "active_strategies": [s.name for s in StrategyRegistry.get_active()],
             "disabled_strategies": [

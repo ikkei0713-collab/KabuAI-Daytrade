@@ -1,24 +1,24 @@
 {
-  "date": "2026-03-19T14:57:43.984315",
-  "total_trades": 73,
-  "wins": 41,
-  "losses": 32,
-  "win_rate": 0.562,
-  "profit_factor": 1.86,
-  "total_pnl_cost_adjusted": 251892.0,
-  "total_pnl_raw": 297820.0,
-  "total_cost": 26567.0,
-  "avg_pnl": 3451.0,
+  "date": "2026-03-19T16:19:18.463817",
+  "total_trades": 54,
+  "wins": 31,
+  "losses": 23,
+  "win_rate": 0.574,
+  "profit_factor": 1.96,
+  "total_pnl_cost_adjusted": 218631.0,
+  "total_pnl_raw": 254460.0,
+  "total_cost": 21048.0,
+  "avg_pnl": 4049.0,
   "in_sample": {
-    "trades": 56,
-    "win_rate": 0.589,
-    "pf": 2.32,
-    "pnl": 219189.0
+    "trades": 43,
+    "win_rate": 0.581,
+    "pf": 2.11,
+    "pnl": 158171.0
   },
   "out_of_sample": {
-    "trades": 17,
-    "win_rate": 0.471,
-    "pf": 1.26,
-    "pnl": 32703.0
+    "trades": 11,
+    "win_rate": 0.545,
+    "pf": 1.71,
+    "pnl": 60460.0
   }
 }

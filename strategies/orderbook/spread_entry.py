@@ -36,7 +36,7 @@ class SpreadEntryStrategy(BaseStrategy):
             expected_market_condition="range",
             parameter_set={
                 "spread_percentile_max": 20,
-                "min_volume_building": 1.3,
+                "min_volume_building": 2.0,  # 最適化結果: 1.3→2.0 (OOS PF 1.63)
                 "min_price_compression": 0.5,
                 "target_atr_multiple": 1.0,
                 "stop_atr_multiple": 0.7,

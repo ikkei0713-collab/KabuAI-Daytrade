@@ -4,6 +4,11 @@ Claude Code 向け改善フィードバックパッケージ生成
 バックテスト / 学習ループ完了時に呼び出し、
 JSON (機械可読) + Markdown (人間/LLM可読) + plots (可視化) を生成する。
 
+論文準拠フィードバック設計 (2026-03-20):
+  Prompt1 (基本テキスト): 全体/IS/OOS metrics + strategy breakdown
+  Prompt2 (基本+追加テキスト): + feature statistics + IC/ICIR + net exposure
+  Prompt3 (テキスト+プロット): + equity curve, drawdown, cumulative IC, net exposure plot
+
 出力:
   knowledge/feedback_packet.json   — 全メトリクス + 異常情報 + 推奨ヒント
   knowledge/feedback_summary.md    — Claude Code へコピペしやすいサマリ
@@ -58,12 +63,14 @@ def _calc(trades: list) -> dict:
     """Calculate standard metrics from a trade list."""
     if not trades:
         return {"total": 0, "wins": 0, "win_rate": 0, "pf": 0,
-                "pnl": 0, "avg": 0, "max_win": 0, "max_loss": 0}
+                "pnl": 0, "avg": 0, "max_win": 0, "max_loss": 0, "sharpe": 0}
     total = len(trades)
     wins = sum(1 for t in trades if t.pnl > 0)
     pnl = sum(t.pnl for t in trades)
     gp = sum(t.pnl for t in trades if t.pnl > 0)
     gl = abs(sum(t.pnl for t in trades if t.pnl <= 0))
+    pnl_arr = np.array([t.pnl for t in trades])
+    sharpe = float(pnl_arr.mean() / pnl_arr.std() * np.sqrt(252)) if pnl_arr.std() > 0 else 0
     return {
         "total": total,
         "wins": wins,
@@ -73,6 +80,7 @@ def _calc(trades: list) -> dict:
         "avg": round(pnl / total, 0) if total else 0,
         "max_win": round(max(t.pnl for t in trades), 0) if trades else 0,
         "max_loss": round(min(t.pnl for t in trades), 0) if trades else 0,
+        "sharpe": round(sharpe, 2),
     }
 
 
@@ -215,6 +223,15 @@ class FeedbackPacketGenerator:
                 "strategy": t.strategy_name,
             })
 
+        # --- Prompt2 追加情報: Feature statistics ---
+        feature_stats = self._feature_statistics()
+
+        # --- Prompt2 追加情報: IC/ICIR (近似) ---
+        ic_icir = self._ic_icir()
+
+        # --- Prompt2 追加情報: Net exposure ---
+        net_exposure = self._net_exposure()
+
         # Plot paths
         plot_paths = {
             "equity_curve": str(PLOTS_DIR / "equity_curve.png"),
@@ -223,6 +240,8 @@ class FeedbackPacketGenerator:
             "regime_heatmap": str(PLOTS_DIR / "regime_heatmap.png"),
             "confidence_vs_pnl": str(PLOTS_DIR / "confidence_vs_pnl.png"),
             "feature_win_loss": str(PLOTS_DIR / "feature_win_loss_compare.png"),
+            "cumulative_ic": str(PLOTS_DIR / "cumulative_ic.png"),
+            "net_exposure": str(PLOTS_DIR / "net_exposure.png"),
         }
 
         return {
@@ -235,6 +254,9 @@ class FeedbackPacketGenerator:
             "regime_metrics": regime_metrics,
             "symbol_metrics": symbol_metrics,
             "feature_diagnostics": feature_diag,
+            "feature_statistics": feature_stats,
+            "ic_icir": ic_icir,
+            "net_exposure": net_exposure,
             "anomaly_summary": anomaly,
             "recommendation_hints": hints,
             "plot_paths": plot_paths,
@@ -269,6 +291,172 @@ class FeedbackPacketGenerator:
             "proxy_feature_rate": round(rate, 3),
             "proxy_features_used": sorted(proxy_used),
             "warning": "intraday proxy依存 > 30%" if rate > 0.3 else None,
+        }
+
+    # ------------------------------------------------------------------
+    # Feature statistics (論文 Prompt2 基本情報)
+    # ------------------------------------------------------------------
+
+    def _feature_statistics(self) -> dict:
+        """Per-feature descriptive statistics across all trades.
+
+        論文の「基本情報」に相当: count, mean, std, min,
+        1%, 5%, 50%, 95%, 99%, max, skew, kurtosis, missing_ratio, zero_ratio.
+        """
+        if not self.all_trades:
+            return {}
+
+        # Collect numeric features from all trades
+        feature_vals: dict[str, list[float]] = {}
+        total_trades = len(self.all_trades)
+        missing_counts: dict[str, int] = {}
+
+        # Key features to track (avoid internal/metadata keys)
+        target_keys = {
+            "atr", "vwap", "vwap_distance", "volume_ratio", "gap_pct",
+            "rsi_14", "rsi_5", "ema_9", "ema_21", "sma_5", "sma_20",
+            "macd", "macd_histogram", "bb_pct", "trend_strength",
+            "volume_trend", "intraday_range", "roc_5", "roc_10",
+            "time_below_vwap", "volume_at_reclaim", "selector_score",
+        }
+
+        for t in self.all_trades:
+            feats = t.features_at_entry or {}
+            for key in target_keys:
+                val = feats.get(key)
+                if val is None or (isinstance(val, float) and (np.isnan(val) or np.isinf(val))):
+                    missing_counts[key] = missing_counts.get(key, 0) + 1
+                else:
+                    try:
+                        feature_vals.setdefault(key, []).append(float(val))
+                    except (ValueError, TypeError):
+                        missing_counts[key] = missing_counts.get(key, 0) + 1
+
+        stats = {}
+        from scipy import stats as sp_stats
+
+        for key in sorted(target_keys):
+            vals = feature_vals.get(key, [])
+            n = len(vals)
+            missing = missing_counts.get(key, 0) + (total_trades - n - missing_counts.get(key, 0))
+            if n < 2:
+                stats[key] = {"count": n, "missing_ratio": 1.0 if n == 0 else round(missing / total_trades, 3)}
+                continue
+
+            arr = np.array(vals)
+            is_proxy = key in PROXY_FEATURES
+            stats[key] = {
+                "count": n,
+                "mean": round(float(arr.mean()), 4),
+                "std": round(float(arr.std()), 4),
+                "min": round(float(arr.min()), 4),
+                "p1": round(float(np.percentile(arr, 1)), 4),
+                "p5": round(float(np.percentile(arr, 5)), 4),
+                "p50": round(float(np.percentile(arr, 50)), 4),
+                "p95": round(float(np.percentile(arr, 95)), 4),
+                "p99": round(float(np.percentile(arr, 99)), 4),
+                "max": round(float(arr.max()), 4),
+                "skew": round(float(sp_stats.skew(arr)), 4) if n >= 3 and arr.std() > 1e-10 else None,
+                "kurtosis": round(float(sp_stats.kurtosis(arr)), 4) if n >= 4 and arr.std() > 1e-10 else None,
+                "missing_ratio": round(missing / total_trades, 3) if total_trades > 0 else 0,
+                "zero_ratio": round(float((arr == 0).sum() / n), 3),
+                "is_proxy": is_proxy,
+            }
+
+        return stats
+
+    # ------------------------------------------------------------------
+    # IC / ICIR (論文 Prompt2 追加情報)
+    # ------------------------------------------------------------------
+
+    def _ic_icir(self) -> dict:
+        """Approximate Information Coefficient (IC) and IC Information Ratio.
+
+        IC ≈ Spearman(selector_score, realized_return) per trade.
+        これは厳密な因子IC ではなく近似値。
+        """
+        scores = []
+        returns = []
+        for t in self.all_trades:
+            feats = t.features_at_entry or {}
+            score = feats.get("selector_score")
+            if score is not None and t.entry_price > 0:
+                scores.append(float(score))
+                returns.append(t.pnl_pct if hasattr(t, 'pnl_pct') and t.pnl_pct else
+                               t.pnl / (t.entry_price * 100) * 100)
+
+        if len(scores) < 5:
+            return {"ic": None, "icir": None, "note": "サンプル不足 (5件未満)"}
+
+        from scipy.stats import spearmanr
+        ic, p_value = spearmanr(scores, returns)
+
+        # Rolling IC for ICIR (use rolling window of 5)
+        rolling_ics = []
+        window = min(5, len(scores) - 1)
+        for i in range(window, len(scores)):
+            chunk_s = scores[i - window:i]
+            chunk_r = returns[i - window:i]
+            if len(set(chunk_s)) > 1 and len(set(chunk_r)) > 1:
+                r, _ = spearmanr(chunk_s, chunk_r)
+                if not np.isnan(r):
+                    rolling_ics.append(r)
+
+        icir = None
+        if rolling_ics and np.std(rolling_ics) > 0:
+            icir = round(float(np.mean(rolling_ics) / np.std(rolling_ics)), 3)
+
+        return {
+            "ic": round(float(ic), 4) if not np.isnan(ic) else None,
+            "ic_p_value": round(float(p_value), 4) if not np.isnan(p_value) else None,
+            "icir": icir,
+            "n_samples": len(scores),
+            "rolling_ics": [round(float(x), 4) for x in rolling_ics],
+            "note": "近似値: Spearman(selector_score, realized_return)",
+        }
+
+    # ------------------------------------------------------------------
+    # Net exposure (論文 Prompt2 追加情報)
+    # ------------------------------------------------------------------
+
+    def _net_exposure(self) -> dict:
+        """Calculate net exposure breakdown by direction, strategy, sector.
+
+        Net exposure ≈ 方向/戦略/セクターの偏り度合い。
+        厳密なドル建てexposureではなく、取引件数ベースの近似値。
+        """
+        if not self.all_trades:
+            return {}
+
+        # Direction exposure
+        long_count = sum(1 for t in self.all_trades if t.direction == "long")
+        short_count = sum(1 for t in self.all_trades if t.direction == "short")
+        total = len(self.all_trades)
+        direction_bias = (long_count - short_count) / total if total > 0 else 0
+
+        # Strategy concentration
+        strat_counts: dict[str, int] = {}
+        for t in self.all_trades:
+            strat_counts[t.strategy_name] = strat_counts.get(t.strategy_name, 0) + 1
+        max_strat = max(strat_counts.values()) if strat_counts else 0
+        concentration = max_strat / total if total > 0 else 0
+
+        # Ticker concentration (top 3)
+        ticker_counts: dict[str, int] = {}
+        for t in self.all_trades:
+            ticker_counts[t.ticker] = ticker_counts.get(t.ticker, 0) + 1
+        top_tickers = sorted(ticker_counts.items(), key=lambda x: -x[1])[:3]
+
+        return {
+            "long_count": long_count,
+            "short_count": short_count,
+            "direction_bias": round(direction_bias, 3),
+            "direction_bias_label": "long偏重" if direction_bias > 0.3 else
+                                    "short偏重" if direction_bias < -0.3 else "中立",
+            "strategy_concentration": round(concentration, 3),
+            "strategy_counts": strat_counts,
+            "top_tickers": [{"ticker": t, "count": c} for t, c in top_tickers],
+            "note": "取引件数ベースの近似値 (金額ベースではない)",
         }
 
     # ------------------------------------------------------------------
@@ -427,6 +615,29 @@ class FeedbackPacketGenerator:
         for note in hints["system_notes"]:
             lines.append(f"- {note}")
 
+        # IC/ICIR
+        ic_data = packet.get("ic_icir", {})
+        if ic_data.get("ic") is not None:
+            lines += [
+                "",
+                "## IC/ICIR (近似)",
+                f"- IC (Spearman): {ic_data['ic']:.4f} (p={ic_data.get('ic_p_value', '?')})",
+                f"- ICIR: {ic_data.get('icir', 'N/A')}",
+                f"- サンプル数: {ic_data.get('n_samples', 0)}",
+                f"- 注: {ic_data.get('note', '')}",
+            ]
+
+        # Net exposure
+        ne = packet.get("net_exposure", {})
+        if ne:
+            lines += [
+                "",
+                "## Net Exposure",
+                f"- 方向: Long {ne.get('long_count', 0)} / Short {ne.get('short_count', 0)} "
+                f"(バイアス: {ne.get('direction_bias_label', '?')})",
+                f"- 戦略集中度: {ne.get('strategy_concentration', 0):.0%}",
+            ]
+
         lines += [
             "",
             "## 次に改善すべき観点",
@@ -460,6 +671,8 @@ class FeedbackPacketGenerator:
         self._plot_regime_heatmap(plt)
         self._plot_confidence_vs_pnl(plt)
         self._plot_feature_compare(plt)
+        self._plot_cumulative_ic(plt)
+        self._plot_net_exposure(plt)
 
     def _plot_equity_curve(self, plt):
         if not self.all_trades:
@@ -602,4 +815,46 @@ class FeedbackPacketGenerator:
         fig.suptitle("Feature: Win vs Lose (Median)", fontsize=11)
         fig.tight_layout()
         fig.savefig(PLOTS_DIR / "feature_win_loss_compare.png", dpi=120)
+        plt.close(fig)
+
+    def _plot_cumulative_ic(self, plt):
+        """Cumulative IC plot (論文 Prompt3 図)."""
+        ic_data = self._ic_icir()
+        rolling_ics = ic_data.get("rolling_ics", [])
+        if len(rolling_ics) < 3:
+            return
+        cumulative = np.cumsum(rolling_ics)
+        fig, ax = plt.subplots(figsize=(10, 3))
+        ax.plot(cumulative, linewidth=1.5, color="#4488ff")
+        ax.fill_between(range(len(cumulative)), cumulative, alpha=0.15, color="#4488ff")
+        ax.axhline(y=0, color="gray", linewidth=0.5, linestyle="--")
+        ax.set_title("Cumulative IC (selector_score vs return)")
+        ax.set_xlabel("Window #")
+        ax.set_ylabel("Cumulative IC")
+        ax.grid(alpha=0.3)
+        fig.tight_layout()
+        fig.savefig(PLOTS_DIR / "cumulative_ic.png", dpi=120)
+        plt.close(fig)
+
+    def _plot_net_exposure(self, plt):
+        """Net exposure per trade (論文 Prompt3 図).
+
+        +1 = long, -1 = short. Cumulative shows directional bias over time.
+        """
+        if not self.all_trades:
+            return
+        directions = [1 if t.direction == "long" else -1 for t in self.all_trades]
+        cumulative = np.cumsum(directions)
+        fig, ax = plt.subplots(figsize=(10, 3))
+        ax.bar(range(len(directions)), directions, color=["#00d4aa" if d > 0 else "#ff4444" for d in directions],
+               alpha=0.6, width=0.8)
+        ax2 = ax.twinx()
+        ax2.plot(cumulative, linewidth=1.5, color="#ffaa00", label="Cumulative")
+        ax2.set_ylabel("Cumulative Direction", color="#ffaa00")
+        ax.set_title("Net Exposure (Direction Bias)")
+        ax.set_xlabel("Trade #")
+        ax.set_ylabel("Direction (+1=Long, -1=Short)")
+        ax.grid(alpha=0.3)
+        fig.tight_layout()
+        fig.savefig(PLOTS_DIR / "net_exposure.png", dpi=120)
         plt.close(fig)

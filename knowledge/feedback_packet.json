@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-20T01:31:58.544159",
+  "generated_at": "2026-03-20T02:09:46.007260",
   "data_quality": {
     "total_feature_observations": 1476,
     "proxy_feature_observations": 216,
@@ -29,6 +29,7 @@
     "avg": 4920.0,
     "max_win": 89518.0,
     "max_loss": -33181.0,
+    "sharpe": 3.27,
     "max_drawdown": 60587.0,
     "max_drawdown_pct": 25.493
   },
@@ -40,7 +41,8 @@
     "pnl": 54126.0,
     "avg": 4164.0,
     "max_win": 21637.0,
-    "max_loss": -9050.0
+    "max_loss": -9050.0,
+    "sharpe": 8.39
   },
   "out_of_sample_metrics": {
     "total": 5,
@@ -50,7 +52,8 @@
     "pnl": 34441.0,
     "avg": 6888.0,
     "max_win": 89518.0,
-    "max_loss": -33181.0
+    "max_loss": -33181.0,
+    "sharpe": 2.52
   },
   "strategy_metrics": [
     {
@@ -63,7 +66,8 @@
         "pnl": 88567.0,
         "avg": 4920.0,
         "max_win": 89518.0,
-        "max_loss": -33181.0
+        "max_loss": -33181.0,
+        "sharpe": 3.27
       },
       "is": {
         "total": 13,
@@ -73,7 +77,8 @@
         "pnl": 54126.0,
         "avg": 4164.0,
         "max_win": 21637.0,
-        "max_loss": -9050.0
+        "max_loss": -9050.0,
+        "sharpe": 8.39
       },
       "oos": {
         "total": 5,
@@ -83,7 +88,8 @@
         "pnl": 34441.0,
         "avg": 6888.0,
         "max_win": 89518.0,
-        "max_loss": -33181.0
+        "max_loss": -33181.0,
+        "sharpe": 2.52
       },
       "avg_holding_min": 360.0,
       "is_oos_pf_gap": 1.97
@@ -100,7 +106,8 @@
       "pnl": 111536.0,
       "avg": 8580.0,
       "max_win": 89518.0,
-      "max_loss": -9050.0
+      "max_loss": -9050.0,
+      "sharpe": 5.63
     },
     {
       "strategy": "vwap_reclaim",
@@ -112,7 +119,8 @@
       "pnl": -28208.0,
       "avg": -7052.0,
       "max_win": 21637.0,
-      "max_loss": -33181.0
+      "max_loss": -33181.0,
+      "sharpe": -5.15
     }
   ],
   "symbol_metrics": [
@@ -125,7 +133,8 @@
       "pnl": 89518.0,
       "avg": 89518.0,
       "max_win": 89518.0,
-      "max_loss": 89518.0
+      "max_loss": 89518.0,
+      "sharpe": 0
     },
     {
       "ticker": "69810",
@@ -136,7 +145,8 @@
       "pnl": 21637.0,
       "avg": 21637.0,
       "max_win": 21637.0,
-      "max_loss": 21637.0
+      "max_loss": 21637.0,
+      "sharpe": 0
     },
     {
       "ticker": "75320",
@@ -147,7 +157,8 @@
       "pnl": 10381.0,
       "avg": 10381.0,
       "max_win": 10381.0,
-      "max_loss": 10381.0
+      "max_loss": 10381.0,
+      "sharpe": 0
     },
     {
       "ticker": "92020",
@@ -158,7 +169,8 @@
       "pnl": 9775.0,
       "avg": 9775.0,
       "max_win": 9775.0,
-      "max_loss": 9775.0
+      "max_loss": 9775.0,
+      "sharpe": 0
     },
     {
       "ticker": "66450",
@@ -169,7 +181,8 @@
       "pnl": 7961.0,
       "avg": 7961.0,
       "max_win": 7961.0,
-      "max_loss": 7961.0
+      "max_loss": 7961.0,
+      "sharpe": 0
     },
     {
       "ticker": "63260",
@@ -180,7 +193,8 @@
       "pnl": 7686.0,
       "avg": 7686.0,
       "max_win": 7686.0,
-      "max_loss": 7686.0
+      "max_loss": 7686.0,
+      "sharpe": 0
     },
     {
       "ticker": "86010",
@@ -191,7 +205,8 @@
       "pnl": 5510.0,
       "avg": 5510.0,
       "max_win": 5510.0,
-      "max_loss": 5510.0
+      "max_loss": 5510.0,
+      "sharpe": 0
     },
     {
       "ticker": "25020",
@@ -202,7 +217,8 @@
       "pnl": 5239.0,
       "avg": 5239.0,
       "max_win": 5239.0,
-      "max_loss": 5239.0
+      "max_loss": 5239.0,
+      "sharpe": 0
     },
     {
       "ticker": "28020",
@@ -213,7 +229,8 @@
       "pnl": 4826.0,
       "avg": 4826.0,
       "max_win": 4826.0,
-      "max_loss": 4826.0
+      "max_loss": 4826.0,
+      "sharpe": 0
     },
     {
       "ticker": "91010",
@@ -224,7 +241,8 @@
       "pnl": 4340.0,
       "avg": 4340.0,
       "max_win": 4340.0,
-      "max_loss": 4340.0
+      "max_loss": 4340.0,
+      "sharpe": 0
     },
     {
       "ticker": "33820",
@@ -235,7 +253,8 @@
       "pnl": 3217.0,
       "avg": 3217.0,
       "max_win": 3217.0,
-      "max_loss": 3217.0
+      "max_loss": 3217.0,
+      "sharpe": 0
     },
     {
       "ticker": "47680",
@@ -246,7 +265,8 @@
       "pnl": -4877.0,
       "avg": -2438.0,
       "max_win": 355.0,
-      "max_loss": -5232.0
+      "max_loss": -5232.0,
+      "sharpe": -13.86
     },
     {
       "ticker": "63670",
@@ -257,7 +277,8 @@
       "pnl": -5690.0,
       "avg": -5690.0,
       "max_win": -5690.0,
-      "max_loss": -5690.0
+      "max_loss": -5690.0,
+      "sharpe": 0
     },
     {
       "ticker": "78320",
@@ -268,7 +289,8 @@
       "pnl": -6551.0,
       "avg": -6551.0,
       "max_win": -6551.0,
-      "max_loss": -6551.0
+      "max_loss": -6551.0,
+      "sharpe": 0
     },
     {
       "ticker": "87660",
@@ -279,7 +301,8 @@
       "pnl": -9050.0,
       "avg": -9050.0,
       "max_win": -9050.0,
-      "max_loss": -9050.0
+      "max_loss": -9050.0,
+      "sharpe": 0
     },
     {
       "ticker": "39230",
@@ -290,7 +313,8 @@
       "pnl": -22174.0,
       "avg": -22174.0,
       "max_win": -22174.0,
-      "max_loss": -22174.0
+      "max_loss": -22174.0,
+      "sharpe": 0
     },
     {
       "ticker": "83160",
@@ -301,7 +325,8 @@
       "pnl": -33181.0,
       "avg": -33181.0,
       "max_win": -33181.0,
-      "max_loss": -33181.0
+      "max_loss": -33181.0,
+      "sharpe": 0
     }
   ],
   "feature_diagnostics": {
@@ -323,6 +348,399 @@
       "volume_first_5min"
     ],
     "warning": null
+  },
+  "feature_statistics": {
+    "atr": {
+      "count": 18,
+      "mean": 179.7631,
+      "std": 299.1513,
+      "min": 25.1857,
+      "p1": 26.5566,
+      "p5": 32.0404,
+      "p50": 83.5179,
+      "p95": 727.5357,
+      "p99": 1172.9357,
+      "max": 1284.2857,
+      "skew": 2.9376,
+      "kurtosis": 7.6279,
+      "missing_ratio": 0.0,
+      "zero_ratio": 0.0,
+      "is_proxy": false
+    },
+    "bb_pct": {
+      "count": 18,
+      "mean": 0.5301,
+      "std": 0.2291,
+      "min": 0.1376,
+      "p1": 0.1382,
+      "p5": 0.1405,
+      "p50": 0.5289,
+      "p95": 0.9572,
+      "p99": 0.9616,
+      "max": 0.9628,
+      "skew": 0.1972,
+      "kurtosis": -0.4849,
+      "missing_ratio": 0.0,
+      "zero_ratio": 0.0,
+      "is_proxy": false
+    },
+    "ema_21": {
+      "count": 18,
+      "mean": 5629.5417,
+      "std": 7488.9799,
+      "min": 838.1092,
+      "p1": 853.0355,
+      "p5": 912.7406,
+      "p50": 3243.5893,
+      "p95": 21007.9561,
+      "p99": 29781.0499,
+      "max": 31974.3234,
+      "skew": 2.6738,
+      "kurtosis": 6.1196,
+      "missing_ratio": 0.0,
+      "zero_ratio": 0.0,
+      "is_proxy": false
+    },
+    "ema_9": {
+      "count": 18,
+      "mean": 5583.3129,
+      "std": 7376.5533,
+      "min": 836.5101,
+      "p1": 851.3803,
+      "p5": 910.8614,
+      "p50": 3245.6678,
+      "p95": 20748.1046,
+      "p99": 29353.4812,
+      "max": 31504.8253,
+      "skew": 2.6671,
+      "kurtosis": 6.0882,
+      "missing_ratio": 0.0,
+      "zero_ratio": 0.0,
+      "is_proxy": false
+    },
+    "gap_pct": {
+      "count": 18,
+      "mean": 0.0048,
+      "std": 0.0149,
+      "min": -0.0328,
+      "p1": -0.0304,
+      "p5": -0.0207,
+      "p50": 0.0015,
+      "p95": 0.0246,
+      "p99": 0.0327,
+      "max": 0.0347,
+      "skew": -0.456,
+      "kurtosis": 0.7713,
+      "missing_ratio": 0.0,
+      "zero_ratio": 0.111,
+      "is_proxy": false
+    },
+    "intraday_range": {
+      "count": 18,
+      "mean": 0.0248,
+      "std": 0.0106,
+      "min": 0.0128,
+      "p1": 0.0131,
+      "p5": 0.0141,
+      "p50": 0.0228,
+      "p95": 0.0501,
+      "p99": 0.0514,
+      "max": 0.0517,
+      "skew": 1.422,
+      "kurtosis": 1.3252,
+      "missing_ratio": 0.0,
+      "zero_ratio": 0.0,
+      "is_proxy": false
+    },
+    "macd": {
+      "count": 18,
+      "mean": -43.328,
+      "std": 121.6917,
+      "min": -474.8264,
+      "p1": -438.1542,
+      "p5": -291.4651,
+      "p50": -3.5227,
+      "p95": 26.114,
+      "p99": 45.6822,
+      "max": 50.5743,
+      "skew": -2.7241,
+      "kurtosis": 6.3664,
+      "missing_ratio": 0.0,
+      "zero_ratio": 0.0,
+      "is_proxy": false
+    },
+    "macd_histogram": {
+      "count": 18,
+      "mean": -6.1696,
+      "std": 23.6763,
+      "min": -87.2165,
+      "p1": -77.3428,
+      "p5": -37.8483,
+      "p50": -3.4149,
+      "p95": 17.2295,
+      "p99": 17.9729,
+      "max": 18.1588,
+      "skew": -2.0707,
+      "kurtosis": 4.893,
+      "missing_ratio": 0.0,
+      "zero_ratio": 0.0,
+      "is_proxy": false
+    },
+    "roc_10": {
+      "count": 18,
+      "mean": 0.0076,
+      "std": 0.055,
+      "min": -0.1152,
+      "p1": -0.1064,
+      "p5": -0.0711,
+      "p50": 0.011,
+      "p95": 0.0684,
+      "p99": 0.1448,
+      "max": 0.1639,
+      "skew": 0.5153,
+      "kurtosis": 2.2876,
+      "missing_ratio": 0.0,
+      "zero_ratio": 0.0,
+      "is_proxy": false
+    },
+    "roc_5": {
+      "count": 18,
+      "mean": -0.001,
+      "std": 0.0413,
+      "min": -0.0957,
+      "p1": -0.0884,
+      "p5": -0.0589,
+      "p50": -0.0035,
+      "p95": 0.066,
+      "p99": 0.081,
+      "max": 0.0848,
+      "skew": -0.0392,
+      "kurtosis": 0.1964,
+      "missing_ratio": 0.0,
+      "zero_ratio": 0.0,
+      "is_proxy": false
+    },
+    "rsi_14": {
+      "count": 18,
+      "mean": 51.6464,
+      "std": 5.1907,
+      "min": 44.1853,
+      "p1": 44.3094,
+      "p5": 44.8058,
+      "p50": 51.6691,
+      "p95": 58.66,
+      "p99": 66.2724,
+      "max": 68.1755,
+      "skew": 1.5167,
+      "kurtosis": 3.2421,
+      "missing_ratio": 0.0,
+      "zero_ratio": 0.0,
+      "is_proxy": false
+    },
+    "rsi_5": {
+      "count": 18,
+      "mean": 54.8418,
+      "std": 12.0479,
+      "min": 37.1314,
+      "p1": 37.3491,
+      "p5": 38.2197,
+      "p50": 52.4922,
+      "p95": 70.7077,
+      "p99": 71.4685,
+      "max": 71.6587,
+      "skew": 0.0315,
+      "kurtosis": -1.4963,
+      "missing_ratio": 0.0,
+      "zero_ratio": 0.0,
+      "is_proxy": false
+    },
+    "selector_score": {
+      "count": 0,
+      "missing_ratio": 1.0
+    },
+    "sma_20": {
+      "count": 18,
+      "mean": 5660.7631,
+      "std": 7549.0193,
+      "min": 814.395,
+      "p1": 832.6522,
+      "p5": 905.6807,
+      "p50": 3251.15,
+      "p95": 21098.2875,
+      "p99": 30023.4575,
+      "max": 32254.75,
+      "skew": 2.6783,
+      "kurtosis": 6.1545,
+      "missing_ratio": 0.0,
+      "zero_ratio": 0.0,
+      "is_proxy": false
+    },
+    "sma_5": {
+      "count": 18,
+      "mean": 5546.2244,
+      "std": 7338.9922,
+      "min": 830.8,
+      "p1": 845.5968,
+      "p5": 904.784,
+      "p50": 3248.2,
+      "p95": 20468.9,
+      "p99": 29258.58,
+      "max": 31456.0,
+      "skew": 2.6858,
+      "kurtosis": 6.2102,
+      "missing_ratio": 0.0,
+      "zero_ratio": 0.0,
+      "is_proxy": false
+    },
+    "time_below_vwap": {
+      "count": 18,
+      "mean": 30.0,
+      "std": 0.0,
+      "min": 30.0,
+      "p1": 30.0,
+      "p5": 30.0,
+      "p50": 30.0,
+      "p95": 30.0,
+      "p99": 30.0,
+      "max": 30.0,
+      "skew": NaN,
+      "kurtosis": NaN,
+      "missing_ratio": 0.0,
+      "zero_ratio": 0.0,
+      "is_proxy": true
+    },
+    "trend_strength": {
+      "count": 18,
+      "mean": 0.076,
+      "std": 0.078,
+      "min": 0.0122,
+      "p1": 0.013,
+      "p5": 0.0162,
+      "p50": 0.0478,
+      "p95": 0.1732,
+      "p99": 0.3254,
+      "max": 0.3635,
+      "skew": 2.7211,
+      "kurtosis": 7.3589,
+      "missing_ratio": 0.0,
+      "zero_ratio": 0.0,
+      "is_proxy": false
+    },
+    "volume_at_reclaim": {
+      "count": 18,
+      "mean": 5723853.3333,
+      "std": 3155080.1011,
+      "min": 1367040.0,
+      "p1": 1465082.4,
+      "p5": 1857252.0,
+      "p50": 5988120.0,
+      "p95": 10714620.0,
+      "p99": 13481676.0,
+      "max": 14173440.0,
+      "skew": 0.8181,
+      "kurtosis": 0.5951,
+      "missing_ratio": 0.0,
+      "zero_ratio": 0.0,
+      "is_proxy": true
+    },
+    "volume_ratio": {
+      "count": 18,
+      "mean": 1.119,
+      "std": 0.3769,
+      "min": 0.7113,
+      "p1": 0.7128,
+      "p5": 0.719,
+      "p50": 1.0537,
+      "p95": 1.6888,
+      "p99": 2.1578,
+      "max": 2.2751,
+      "skew": 1.4634,
+      "kurtosis": 2.3413,
+      "missing_ratio": 0.0,
+      "zero_ratio": 0.0,
+      "is_proxy": false
+    },
+    "volume_trend": {
+      "count": 18,
+      "mean": 1.119,
+      "std": 0.3769,
+      "min": 0.7113,
+      "p1": 0.7128,
+      "p5": 0.719,
+      "p50": 1.0537,
+      "p95": 1.6888,
+      "p99": 2.1578,
+      "max": 2.2751,
+      "skew": 1.4634,
+      "kurtosis": 2.3413,
+      "missing_ratio": 0.0,
+      "zero_ratio": 0.0,
+      "is_proxy": false
+    },
+    "vwap": {
+      "count": 18,
+      "mean": 5656.0187,
+      "std": 7613.1659,
+      "min": 885.9358,
+      "p1": 894.1532,
+      "p5": 927.023,
+      "p50": 3247.2734,
+      "p95": 21298.7249,
+      "p99": 30246.707,
+      "max": 32483.7025,
+      "skew": 2.6884,
+      "kurtosis": 6.1773,
+      "missing_ratio": 0.0,
+      "zero_ratio": 0.0,
+      "is_proxy": false
+    },
+    "vwap_distance": {
+      "count": 18,
+      "mean": 0.0043,
+      "std": 0.0019,
+      "min": 0.0017,
+      "p1": 0.0017,
+      "p5": 0.0018,
+      "p50": 0.0044,
+      "p95": 0.0074,
+      "p99": 0.0076,
+      "max": 0.0076,
+      "skew": 0.3285,
+      "kurtosis": -1.0315,
+      "missing_ratio": 0.0,
+      "zero_ratio": 0.0,
+      "is_proxy": false
+    }
+  },
+  "ic_icir": {
+    "ic": null,
+    "icir": null,
+    "note": "サンプル不足 (5件未満)"
+  },
+  "net_exposure": {
+    "long_count": 18,
+    "short_count": 0,
+    "direction_bias": 1.0,
+    "direction_bias_label": "long偏重",
+    "strategy_concentration": 1.0,
+    "strategy_counts": {
+      "vwap_reclaim": 18
+    },
+    "top_tickers": [
+      {
+        "ticker": "47680",
+        "count": 2
+      },
+      {
+        "ticker": "87660",
+        "count": 1
+      },
+      {
+        "ticker": "63260",
+        "count": 1
+      }
+    ],
+    "note": "取引件数ベースの近似値 (金額ベースではない)"
   },
   "anomaly_summary": {
     "exit_reason_breakdown": {
@@ -365,6 +783,8 @@
     "strategy_oos": "knowledge/plots/strategy_oos.png",
     "regime_heatmap": "knowledge/plots/regime_heatmap.png",
     "confidence_vs_pnl": "knowledge/plots/confidence_vs_pnl.png",
-    "feature_win_loss": "knowledge/plots/feature_win_loss_compare.png"
+    "feature_win_loss": "knowledge/plots/feature_win_loss_compare.png",
+    "cumulative_ic": "knowledge/plots/cumulative_ic.png",
+    "net_exposure": "knowledge/plots/net_exposure.png"
   }
 }

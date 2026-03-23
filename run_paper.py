@@ -681,7 +681,8 @@ class PaperTrader:
         tdnet_fetched_today: str = ""
         watchlist_built_today: str = ""
 
-        async with JQuantsClient() as client:
+        # 市場時間中は日足データが更新される可能性があるためキャッシュを短縮
+        async with JQuantsClient(cache_ttl_seconds=300) as client:  # 5分キャッシュ
             # 銘柄名マスタ更新
             try:
                 master = await client.get_listed_info()
@@ -805,6 +806,9 @@ class PaperTrader:
                             tdnet_fetched_today = today_str
                         except Exception as e:
                             logger.warning(f"TDnet取得失敗: {e}")
+
+                    # OHLCV 日中キャッシュクリア (最新データを取得するため)
+                    self._ohlcv_cache.clear()
 
                     # 新規エントリースキャン
                     await self.scan_and_trade(client, tdnet_events)

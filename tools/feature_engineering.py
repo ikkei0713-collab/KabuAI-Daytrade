@@ -26,6 +26,7 @@ class FeatureSet:
     price: dict[str, Any] = field(default_factory=dict)
     pattern: dict[str, Any] = field(default_factory=dict)
     momentum: dict[str, Any] = field(default_factory=dict)
+    convergence: dict[str, Any] = field(default_factory=dict)
 
     def to_flat_dict(self) -> dict[str, Any]:
         """Merge every category into a single flat dict."""
@@ -37,6 +38,7 @@ class FeatureSet:
             self.price,
             self.pattern,
             self.momentum,
+            self.convergence,
         ):
             out.update(section)
         return out
@@ -77,6 +79,7 @@ class FeatureEngineer:
             price=self._price(df),
             pattern=self._pattern(df),
             momentum=self._momentum(df),
+            convergence=self._convergence(df),
         )
         out = fs.to_flat_dict()
 
@@ -181,11 +184,22 @@ class FeatureEngineer:
         "market_cap",            # 固定値 0
     }
 
+    # 収束系特徴量 (日足 OHLCV から直接計算 → proxy ではない)
+    CONVERGENCE_FEATURES: set[str] = {
+        "ma_short", "ma_mid", "ma_long",
+        "ma_spread_pct", "ma_spread_zscore",
+        "price_to_ma_short_pct", "price_to_ma_mid_pct", "price_to_ma_long_pct",
+        "price_ma_cluster_score", "ma_convergence_score", "ma_convergence_trend",
+        "range_compression_score", "volatility_compression_score",
+        "post_cross_expansion_flag", "post_cross_consolidation_flag",
+        "squeeze_breakout_ready", "extension_from_ma_score", "pullback_to_ma_score",
+    }
+
     # 戦略が依存する特徴量マッピング
     STRATEGY_PROXY_DEPS: dict[str, list[str]] = {
         "vwap_reclaim": ["time_below_vwap", "volume_at_reclaim"],
         "orb": ["opening_range_high", "opening_range_low"],
-        "trend_follow": [],  # EMA/VWAP は real
+        "trend_follow": [],  # EMA/VWAP/convergence は real
         "spread_entry": ["spread_percentile", "volume_building", "price_compression"],
         "gap_go": [],
         "gap_fade": [],
@@ -261,6 +275,239 @@ class FeatureEngineer:
             if k in self.PROXY_FEATURES:
                 proxy_count += 1
         return round(proxy_count / max(total, 1), 3)
+
+    # ------------------------------------------------------------------
+    # Convergence / compression features (v3.3)
+    # ------------------------------------------------------------------
+
+    def _convergence(self, df: pd.DataFrame) -> dict[str, Any]:
+        """MA収束・ボラティリティ圧縮・GC/DC後の状態を計算する.
+
+        日足ベースなので intraday proxy ではなく、比較的安定して計算可能。
+        """
+        from core.config import settings
+
+        close = df["close"]
+        high = df["high"]
+        low = df["low"]
+        features: dict[str, Any] = {}
+        n = len(df)
+
+        sw = settings.MA_SHORT_WINDOW   # 5
+        mw = settings.MA_MID_WINDOW     # 10
+        lw = settings.MA_LONG_WINDOW    # 20
+        conv_lb = settings.CONVERGENCE_LOOKBACK  # 5
+        comp_lb = settings.COMPRESSION_LOOKBACK  # 5
+
+        # --- Moving averages ---
+        ma_short = close.rolling(window=sw, min_periods=sw).mean()
+        ma_mid = close.rolling(window=mw, min_periods=mw).mean()
+        ma_long = close.rolling(window=lw, min_periods=lw).mean()
+
+        features["ma_short"] = _last(ma_short)
+        features["ma_mid"] = _last(ma_mid)
+        features["ma_long"] = _last(ma_long)
+
+        last_close = close.iloc[-1] if n > 0 else None
+        last_ma_s = features["ma_short"]
+        last_ma_m = features["ma_mid"]
+        last_ma_l = features["ma_long"]
+
+        # --- MA spread ---
+        if all(v is not None for v in [last_ma_s, last_ma_m, last_ma_l]) and last_close > 0:
+            ma_max = max(last_ma_s, last_ma_m, last_ma_l)
+            ma_min = min(last_ma_s, last_ma_m, last_ma_l)
+            ma_spread = ma_max - ma_min
+            features["ma_spread_pct"] = ma_spread / last_close
+
+            # MA spread z-score (rolling over convergence lookback)
+            spread_series = pd.Series(dtype=float)
+            if n >= lw + conv_lb:
+                for i in range(conv_lb):
+                    idx = -(conv_lb - i)
+                    s_val = ma_short.iloc[idx] if not pd.isna(ma_short.iloc[idx]) else None
+                    m_val = ma_mid.iloc[idx] if not pd.isna(ma_mid.iloc[idx]) else None
+                    l_val = ma_long.iloc[idx] if not pd.isna(ma_long.iloc[idx]) else None
+                    if all(v is not None for v in [s_val, m_val, l_val]):
+                        c_val = close.iloc[idx]
+                        if c_val > 0:
+                            spread_series = pd.concat([spread_series,
+                                pd.Series([(max(s_val, m_val, l_val) - min(s_val, m_val, l_val)) / c_val])])
+                if len(spread_series) >= 2 and spread_series.std() > 1e-10:
+                    features["ma_spread_zscore"] = float(
+                        (features["ma_spread_pct"] - spread_series.mean()) / spread_series.std()
+                    )
+                else:
+                    features["ma_spread_zscore"] = 0.0
+            else:
+                features["ma_spread_zscore"] = 0.0
+
+            # --- Price to MA distances ---
+            features["price_to_ma_short_pct"] = (last_close - last_ma_s) / last_close
+            features["price_to_ma_mid_pct"] = (last_close - last_ma_m) / last_close
+            features["price_to_ma_long_pct"] = (last_close - last_ma_l) / last_close
+
+            # --- Price-MA cluster score ---
+            # 価格とMA群がどれだけ近いか (0-1, 高いほど密集)
+            avg_dist = (abs(last_close - last_ma_s) + abs(last_close - last_ma_m) + abs(last_close - last_ma_l)) / 3.0
+            avg_dist_pct = avg_dist / last_close if last_close > 0 else 1.0
+            # 2% 以内なら 1.0, 5% 以上なら 0.0 に近づく
+            features["price_ma_cluster_score"] = max(0.0, min(1.0, 1.0 - avg_dist_pct / 0.05))
+
+            # --- MA convergence score ---
+            # MA 群の距離が小さいほど高い (0-1)
+            ma_spread_pct = features["ma_spread_pct"]
+            # 1% 以内なら 1.0, 4% 以上なら 0.0
+            features["ma_convergence_score"] = max(0.0, min(1.0, 1.0 - ma_spread_pct / 0.04))
+
+            # --- MA convergence trend ---
+            # 直近N本で ma_spread_pct が低下しているか (-1 ~ +1)
+            if n >= lw + conv_lb:
+                spread_vals = []
+                for i in range(conv_lb):
+                    idx = -(conv_lb - i)
+                    s_v = ma_short.iloc[idx]
+                    m_v = ma_mid.iloc[idx]
+                    l_v = ma_long.iloc[idx]
+                    c_v = close.iloc[idx]
+                    if not any(pd.isna(x) for x in [s_v, m_v, l_v]) and c_v > 0:
+                        spread_vals.append((max(s_v, m_v, l_v) - min(s_v, m_v, l_v)) / c_v)
+                if len(spread_vals) >= 2:
+                    # 負 = spread 縮小中 (収束中), 正 = 拡散中
+                    diffs = [spread_vals[i] - spread_vals[i - 1] for i in range(1, len(spread_vals))]
+                    avg_diff = sum(diffs) / len(diffs)
+                    # normalize to -1 ~ +1
+                    features["ma_convergence_trend"] = max(-1.0, min(1.0, -avg_diff / 0.005))
+                else:
+                    features["ma_convergence_trend"] = 0.0
+            else:
+                features["ma_convergence_trend"] = 0.0
+
+            # --- Extension from MA score ---
+            # MA群から離れすぎていないか (0-1, 低いほど乖離大)
+            max_dist_pct = max(abs(features["price_to_ma_short_pct"]),
+                               abs(features["price_to_ma_mid_pct"]),
+                               abs(features["price_to_ma_long_pct"]))
+            # 1% 以内なら 1.0, 5% 以上なら 0.0
+            features["extension_from_ma_score"] = max(0.0, min(1.0, 1.0 - max_dist_pct / 0.05))
+
+            # --- Pullback to MA score ---
+            # 強いトレンド中に価格がMA群へ軽く押してきたか (0-1)
+            if last_ma_s > last_ma_m > last_ma_l:  # uptrend order
+                # 価格がshort MA付近 (0.5% 以内) なら高スコア
+                pull_dist = abs(last_close - last_ma_s) / last_close
+                features["pullback_to_ma_score"] = max(0.0, min(1.0, 1.0 - pull_dist / 0.01))
+            elif last_ma_s < last_ma_m < last_ma_l:  # downtrend order
+                pull_dist = abs(last_close - last_ma_s) / last_close
+                features["pullback_to_ma_score"] = max(0.0, min(1.0, 1.0 - pull_dist / 0.01))
+            else:
+                features["pullback_to_ma_score"] = 0.0
+
+        else:
+            # Not enough data for MA convergence
+            features["ma_spread_pct"] = None
+            features["ma_spread_zscore"] = None
+            features["price_to_ma_short_pct"] = None
+            features["price_to_ma_mid_pct"] = None
+            features["price_to_ma_long_pct"] = None
+            features["price_ma_cluster_score"] = None
+            features["ma_convergence_score"] = None
+            features["ma_convergence_trend"] = None
+            features["extension_from_ma_score"] = None
+            features["pullback_to_ma_score"] = None
+
+        # --- Range compression score ---
+        # 直近N本の高安幅が縮小しているか (0-1)
+        if n >= comp_lb + 5:
+            ranges_recent = ((high.iloc[-comp_lb:] - low.iloc[-comp_lb:]) / close.iloc[-comp_lb:]).values
+            ranges_prior = ((high.iloc[-comp_lb * 2:-comp_lb] - low.iloc[-comp_lb * 2:-comp_lb]) /
+                            close.iloc[-comp_lb * 2:-comp_lb]).values if n >= comp_lb * 2 + 5 else ranges_recent
+            avg_recent = float(np.mean(ranges_recent)) if len(ranges_recent) > 0 else 0
+            avg_prior = float(np.mean(ranges_prior)) if len(ranges_prior) > 0 else avg_recent
+            if avg_prior > 1e-10:
+                ratio = avg_recent / avg_prior
+                # ratio < 1.0 = 圧縮中, ratio > 1.0 = 拡大中
+                features["range_compression_score"] = max(0.0, min(1.0, 1.0 - (ratio - 0.5) / 1.0))
+            else:
+                features["range_compression_score"] = 0.5
+        else:
+            features["range_compression_score"] = None
+
+        # --- Volatility compression score ---
+        # ATR の縮小度合い (0-1)
+        if n >= 14 + comp_lb:
+            prev_close = close.shift(1)
+            tr = pd.concat([
+                high - low,
+                (high - prev_close).abs(),
+                (low - prev_close).abs(),
+            ], axis=1).max(axis=1)
+            atr_series = tr.rolling(window=14, min_periods=14).mean()
+            atr_recent = atr_series.iloc[-1]
+            atr_prior = atr_series.iloc[-(comp_lb + 1)] if n >= 14 + comp_lb + 1 else atr_recent
+            if atr_prior is not None and not pd.isna(atr_prior) and atr_prior > 1e-10:
+                ratio = float(atr_recent / atr_prior) if not pd.isna(atr_recent) else 1.0
+                features["volatility_compression_score"] = max(0.0, min(1.0, 1.0 - (ratio - 0.5) / 1.0))
+            else:
+                features["volatility_compression_score"] = 0.5
+        else:
+            features["volatility_compression_score"] = None
+
+        # --- GC/DC and post-cross flags ---
+        if all(v is not None for v in [last_ma_s, last_ma_m]) and n >= sw + 2:
+            prev_ma_s = ma_short.iloc[-2] if not pd.isna(ma_short.iloc[-2]) else None
+            prev_ma_m = ma_mid.iloc[-2] if not pd.isna(ma_mid.iloc[-2]) else None
+
+            if prev_ma_s is not None and prev_ma_m is not None:
+                # Golden Cross: short MA crossed above mid MA recently
+                gc_just_happened = prev_ma_s <= prev_ma_m and last_ma_s > last_ma_m
+                # Death Cross: short MA crossed below mid MA recently
+                dc_just_happened = prev_ma_s >= prev_ma_m and last_ma_s < last_ma_m
+
+                # Check last N bars for any cross
+                recent_cross = gc_just_happened or dc_just_happened
+                if not recent_cross and n >= sw + conv_lb:
+                    for i in range(2, min(conv_lb + 1, n - sw)):
+                        s1 = ma_short.iloc[-(i + 1)]
+                        m1 = ma_mid.iloc[-(i + 1)]
+                        s2 = ma_short.iloc[-i]
+                        m2 = ma_mid.iloc[-i]
+                        if not any(pd.isna(x) for x in [s1, m1, s2, m2]):
+                            if (s1 <= m1 and s2 > m2) or (s1 >= m1 and s2 < m2):
+                                recent_cross = True
+                                break
+
+                # post_cross_expansion_flag: GC/DC 直後で MA がまだ大きく開いている
+                ma_spread_pct = features.get("ma_spread_pct", 0) or 0
+                features["post_cross_expansion_flag"] = (
+                    recent_cross and ma_spread_pct > 0.01
+                )
+
+                # post_cross_consolidation_flag: GC/DC 後にいったん収束した
+                conv_score = features.get("ma_convergence_score", 0) or 0
+                features["post_cross_consolidation_flag"] = (
+                    recent_cross and conv_score > 0.6
+                )
+            else:
+                features["post_cross_expansion_flag"] = False
+                features["post_cross_consolidation_flag"] = False
+        else:
+            features["post_cross_expansion_flag"] = False
+            features["post_cross_consolidation_flag"] = False
+
+        # --- Squeeze breakout ready ---
+        # MA 収束 + 価格圧縮 + ボラ縮小 → すべて閾値以上なら True
+        conv_score = features.get("ma_convergence_score")
+        rng_comp = features.get("range_compression_score")
+        vol_comp = features.get("volatility_compression_score")
+        if all(v is not None for v in [conv_score, rng_comp, vol_comp]):
+            features["squeeze_breakout_ready"] = (
+                conv_score >= 0.55 and rng_comp >= 0.50 and vol_comp >= 0.50
+            )
+        else:
+            features["squeeze_breakout_ready"] = False
+
+        return features
 
     # ------------------------------------------------------------------
     # Column normalisation

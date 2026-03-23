@@ -94,6 +94,7 @@ class PaperTrader:
 
     async def build_watchlist(self, client: JQuantsClient, tdnet_events: dict[str, str]) -> list[dict]:
         """PreMarketScanner + StockSelector + SectorBias で当日ウォッチリストを構築"""
+        from run_backtest_learn import CANDIDATE_CODES
         # Step 0: 米国セクターバイアスを計算
         try:
             self.sector_bias = await self.sector_bias_calc.calculate()
@@ -114,8 +115,14 @@ class PaperTrader:
         code_to_s33 = {s.get("Code", ""): s.get("S33", "") for s in info}
 
         # Step 2: PreMarketScanner でギャップ・出来高・イベントをスキャン
+        # 200→60: J-Quants 無料プランのレートリミット対策
+        # CANDIDATE_CODES (流動性上位) を優先し、残りはマスタから補完
+        priority_codes = [c for c in CANDIDATE_CODES if c in candidate_codes]
+        remaining = [c for c in candidate_codes if c not in priority_codes][:max(0, 60 - len(priority_codes))]
+        scan_target = priority_codes + remaining
+        logger.info(f"PreMarketScan対象: {len(scan_target)}銘柄 (優先{len(priority_codes)} + 補完{len(remaining)})")
         scanner = PreMarketScanner(client)
-        scan_results = await scanner.generate_watchlist(candidate_codes[:200])
+        scan_results = await scanner.generate_watchlist(scan_target)
 
         # Step 3: StockSelector で各銘柄をスコアリング
         scored: list[dict] = []
@@ -168,35 +175,92 @@ class PaperTrader:
                     f"{' [EVENT]' if w['has_event'] else ''}"
                 )
         else:
-            logger.warning("ウォッチリスト: 条件を満たす銘柄なし")
+            # フォールバック: PreMarketScan で 0 件でも CANDIDATE_CODES 上位を採用
+            logger.warning("ウォッチリスト: PreMarketScan 0件 → CANDIDATE_CODES フォールバック")
+            fb_tried = 0
+            fb_excluded = 0
+            # TOP_UNIVERSE の3倍を試行 (レートリミットでの失敗を考慮)
+            for code in CANDIDATE_CODES[:TOP_UNIVERSE * 3]:
+                if len(scored) >= TOP_UNIVERSE:
+                    break
+                try:
+                    df = await self.fetch_ohlcv(client, code)
+                    if len(df) < 20:
+                        continue
+                    has_event = code in tdnet_events
+                    stock_score = self.stock_selector.score_stock(code, df, has_event=has_event)
+                    fb_tried += 1
+                    if stock_score.excluded:
+                        fb_excluded += 1
+                        logger.debug(f"フォールバック除外 {code}: {stock_score.exclude_reason}")
+                        continue
+                    s33 = code_to_s33.get(code, "")
+                    bias_adj = 0.0
+                    bias_label = "neutral"
+                    if self.sector_bias and self.sector_bias.fetch_success and s33:
+                        bias_adj = self.sector_bias_calc.get_watchlist_adjustment(self.sector_bias, s33)
+                        bias_label = self.sector_bias.get_bias_label(s33)
+                    scored.append({
+                        "code": code,
+                        "scan_score": 0.0,
+                        "stock_score": stock_score.total_score,
+                        "combined": stock_score.total_score + bias_adj,
+                        "reason": "CANDIDATE fallback",
+                        "has_event": has_event,
+                        "gap_pct": stock_score.gap_pct,
+                        "relative_volume": stock_score.relative_volume,
+                        "s33": s33,
+                        "sector_bias": round(bias_adj, 4),
+                        "sector_bias_label": bias_label,
+                    })
+                except Exception as e:
+                    logger.debug(f"フォールバック銘柄取得失敗 {code}: {e}")
+                    continue
+                await asyncio.sleep(0.5)
+            logger.info(f"フォールバック: {fb_tried}銘柄試行, {fb_excluded}除外, {len(scored)}銘柄scored")
+            scored.sort(key=lambda x: x["combined"], reverse=True)
+            watchlist = scored[:TOP_UNIVERSE]
+            if watchlist:
+                logger.info(f"フォールバック採用: {len(watchlist)}銘柄")
+                for w in watchlist[:3]:
+                    logger.info(f"  {w['code']}: score={w['combined']:.3f}")
 
         return watchlist
 
+    _ohlcv_cache: dict[str, pd.DataFrame] = {}  # 日中キャッシュ (当日限り)
+
     async def fetch_ohlcv(self, client: JQuantsClient, code: str, days: int = 60) -> pd.DataFrame:
-        """日足OHLCVを取得してDataFrameに変換"""
+        """日足OHLCVを取得してDataFrameに変換 (日中キャッシュあり)"""
+        cache_key = f"{code}_{days}"
+        if cache_key in self._ohlcv_cache:
+            return self._ohlcv_cache[cache_key]
         end = date.today()
         start = end - timedelta(days=days)
+        await asyncio.sleep(0.3)  # レートリミット対策
         raw = await client.get_prices_daily(code, start.isoformat(), end.isoformat())
         if not raw:
             return pd.DataFrame()
 
         df = pd.DataFrame(raw)
-        rename = {"O": "Open", "H": "High", "L": "Low", "C": "Close", "Vo": "Volume", "Date": "Date"}
+        # Adjusted prices を優先 (重複カラム回避)
         if "AdjO" in df.columns:
-            rename.update({"AdjO": "Open", "AdjH": "High", "AdjL": "Low", "AdjC": "Close", "AdjVo": "Volume"})
-        df = df.rename(columns=rename)
-        for col in ["Open", "High", "Low", "Close", "Volume"]:
+            df = df.rename(columns={
+                "AdjO": "open", "AdjH": "high", "AdjL": "low",
+                "AdjC": "close", "AdjVo": "volume",
+            })
+        else:
+            df = df.rename(columns={
+                "O": "open", "H": "high", "L": "low",
+                "C": "close", "Vo": "volume",
+            })
+        for col in ["open", "high", "low", "close", "volume"]:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
         df["Date"] = pd.to_datetime(df["Date"])
         df = df.sort_values("Date").reset_index(drop=True)
-        df = df[["Date", "Open", "High", "Low", "Close", "Volume"]].dropna()
-        df = df.rename(columns={"Open": "open", "High": "high", "Low": "low", "Close": "close", "Volume": "volume"})
-        df["Open"] = df["open"]
-        df["High"] = df["high"]
-        df["Low"] = df["low"]
-        df["Close"] = df["close"]
-        df["Volume"] = df["volume"]
+        # 必要カラムだけ残す (重複カラム回避)
+        df = df[["Date", "open", "high", "low", "close", "volume"]].dropna()
+        self._ohlcv_cache[cache_key] = df
         return df
 
     def _detect_regime(self, df: pd.DataFrame):
@@ -687,6 +751,7 @@ class PaperTrader:
                     self.trades.clear()
                     self._halted = False
                     self._halt_reason = ""
+                    self._ohlcv_cache.clear()  # 日次キャッシュクリア
 
                     logger.info("当日ウォッチリスト構築中...")
                     self.watchlist = await self.build_watchlist(client, tdnet_events)

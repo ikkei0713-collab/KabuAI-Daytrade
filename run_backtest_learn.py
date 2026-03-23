@@ -156,9 +156,9 @@ class BacktestLearner:
         tdnet_events: dict[date, dict[str, str]] = {}  # date -> {ticker: event_type}
         logger.info("TDnetイベント取得中...")
         async with TDnetClient() as tdnet:
-            # 過去3ヶ月の営業日をスキャン
-            d = date(2026, 1, 1)
-            end = date(2026, 3, 18)
+            # 過去6ヶ月の営業日をスキャン
+            d = date(2025, 9, 1)
+            end = date(2026, 3, 19)
             while d <= end:
                 if d.weekday() < 5:  # 平日のみ
                     try:
@@ -186,7 +186,7 @@ class BacktestLearner:
             stock_data: dict[str, pd.DataFrame] = {}
             for code in CANDIDATE_CODES:
                 try:
-                    raw = await client.get_prices_daily(code, "2025-12-01", "2026-03-18")
+                    raw = await client.get_prices_daily(code, "2025-09-01", "2026-03-19")
                     if not raw:
                         continue
                     df = pd.DataFrame(raw)
@@ -223,7 +223,8 @@ class BacktestLearner:
         sim_dates = sim_dates[30:]
 
         # In-sample / Out-of-sample split (60% / 40%)
-        split_idx = int(len(sim_dates) * 0.6)
+        # IS/OOS 50/50 分割 (OOS サンプル増加のため)
+        split_idx = int(len(sim_dates) * 0.5)
         is_dates = set(sim_dates[:split_idx])
         oos_dates = set(sim_dates[split_idx:])
 

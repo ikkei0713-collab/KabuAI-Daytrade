@@ -203,6 +203,65 @@ class RegimeDetector:
     def _default_weights(self) -> dict:
         return {"orb": 0.5, "vwap_reclaim": 0.5, "vwap_bounce": 0.5}
 
+    @staticmethod
+    def get_convergence_params(regime: RegimeType) -> dict:
+        """レジーム別の収束フィルタ推奨閾値を返す.
+
+        論文 (Arai 2013) の知見: レジームによって有効なインジケータが異なる。
+        - トレンド相場: トレンドフォロー系指標 (MA) が有効 → 収束フィルタを緩和
+        - レンジ相場: オシレータ系指標 (RSI, BB) が有効 → 収束フィルタを厳格化
+        - 高ボラ: 拡散しやすい → 閾値を緩和 (拡散を許容)
+        - 低ボラ: 動きが少ない → 圧縮条件を緩和
+        """
+        params = {
+            "trend_up": {
+                # トレンド中は MA 拡散が自然 → 閾値を緩める
+                "max_ma_spread_pct": 0.035,
+                "min_convergence_score": 0.40,
+                "min_range_compression": 0.40,
+                "min_vol_compression": 0.40,
+                "convergence_boost": 0.05,
+                "expansion_penalty": 0.08,
+            },
+            "trend_down": {
+                # 下降トレンド → 拡散ロングは危険、収束を厳格に
+                "max_ma_spread_pct": 0.015,
+                "min_convergence_score": 0.65,
+                "min_range_compression": 0.55,
+                "min_vol_compression": 0.55,
+                "convergence_boost": 0.08,
+                "expansion_penalty": 0.15,
+            },
+            "range": {
+                # レンジ → オシレータ的な収束・発散が有効
+                "max_ma_spread_pct": 0.020,
+                "min_convergence_score": 0.55,
+                "min_range_compression": 0.50,
+                "min_vol_compression": 0.50,
+                "convergence_boost": 0.07,
+                "expansion_penalty": 0.12,
+            },
+            "volatile": {
+                # ボラ高い → 拡散は自然、厳しくしすぎない
+                "max_ma_spread_pct": 0.040,
+                "min_convergence_score": 0.35,
+                "min_range_compression": 0.35,
+                "min_vol_compression": 0.35,
+                "convergence_boost": 0.04,
+                "expansion_penalty": 0.06,
+            },
+            "low_vol": {
+                # ボラ低い → 圧縮が常態 → 条件を緩める
+                "max_ma_spread_pct": 0.025,
+                "min_convergence_score": 0.45,
+                "min_range_compression": 0.40,
+                "min_vol_compression": 0.40,
+                "convergence_boost": 0.05,
+                "expansion_penalty": 0.10,
+            },
+        }
+        return params.get(regime, params["range"])
+
     def _get_position_scale(self, regime: RegimeType, confidence: float) -> float:
         """レジーム別のロット倍率"""
         base = {

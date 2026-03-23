@@ -225,6 +225,34 @@ def render():
             else:
                 st.info("戦略データなし")
 
+        # --- Convergence Filter Status (v3.3) ---
+        feedback_packet_path = Path.home() / "dev" / "KabuAI-Daytrade" / "knowledge" / "feedback_packet.json"
+        if feedback_packet_path.exists():
+            try:
+                fb_packet = json.loads(feedback_packet_path.read_text())
+                conv = fb_packet.get("convergence_analysis", {})
+                if conv:
+                    with st.expander("収束フィルタ分析 (v3.3)"):
+                        cc1, cc2, cc3 = st.columns(3)
+                        conv_m = conv.get("convergence_entry_metrics", {})
+                        exp_m = conv.get("expansion_entry_metrics", {})
+                        with cc1:
+                            st.metric("収束後エントリー",
+                                      f"{conv_m.get('count', 0)}件",
+                                      f"WR {conv_m.get('win_rate', 0):.0%}")
+                        with cc2:
+                            st.metric("拡散エントリー",
+                                      f"{exp_m.get('count', 0)}件",
+                                      f"WR {exp_m.get('win_rate', 0):.0%}")
+                        with cc3:
+                            hints = fb_packet.get("recommendation_hints", {})
+                            helped = hints.get("convergence_filter_helped", False)
+                            st.metric("フィルタ有効性",
+                                      "有効" if helped else "未確定",
+                                      f"拡散損失率 {hints.get('expansion_chasing_loss_rate', 0):.0%}")
+            except Exception:
+                pass
+
         # --- Backtest Summary ---
         if summary:
             st.markdown("#### 最新バックテスト結果")
@@ -353,11 +381,21 @@ def render():
                 for w in watchlist:
                     bias_label = w.get("sector_bias_label", "-")
                     bias_val = w.get("sector_bias", 0)
+                    conv_score = w.get("ma_convergence_score")
+                    conv_label = f"{conv_score:.2f}" if conv_score is not None else "-"
+                    # 収束後候補ラベル
+                    squeeze = w.get("squeeze_breakout_ready", False)
+                    conv_tag = ""
+                    if squeeze:
+                        conv_tag = " [収束後候補]"
+                    elif conv_score is not None and conv_score < 0.3:
+                        conv_tag = " [拡散注意]"
                     wl_data.append({
                         "銘柄": format_ticker(w.get("code", "")),
                         "スコア": f"{w.get('combined', 0):.3f}",
                         "ギャップ": f"{w.get('gap_pct', 0):.1f}%",
                         "出来高比": f"{w.get('relative_volume', 0):.1f}x",
+                        "収束": f"{conv_label}{conv_tag}",
                         "イベント": "有" if w.get("has_event") else "-",
                         "業種バイアス": f"{bias_label} ({bias_val:+.3f})" if bias_val else "-",
                         "採用理由": w.get("reason", "")[:50],

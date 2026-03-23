@@ -1,0 +1,293 @@
+{
+  "date": "2026-03-23",
+  "regime": "trend_down",
+  "regime_confidence": 0.6,
+  "halted": false,
+  "halt_reason": "",
+  "sector_bias": {
+    "source_date": "2026-03-23",
+    "spy_return": 0.0,
+    "risk_off": false,
+    "us_returns": {
+      "XLK": 0.0,
+      "XLF": 0.0,
+      "XLE": 0.0,
+      "XLV": 0.0,
+      "XLY": 0.0,
+      "XLP": 0.0,
+      "XLI": 0.0,
+      "XLB": 0.0,
+      "XLU": 0.0,
+      "XLRE": 0.0,
+      "XLC": 0.0
+    },
+    "jp_sector_bias": {
+      "3650": 0.0,
+      "5250": 0.0,
+      "3750": 0.0,
+      "7050": 0.0,
+      "7100": 0.0,
+      "7150": 0.0,
+      "7200": 0.0,
+      "1050": 0.0,
+      "3300": 0.0,
+      "3250": 0.0,
+      "6100": 0.0,
+      "9050": 0.0,
+      "5150": 0.0,
+      "3050": 0.0,
+      "6050": 0.0,
+      "3600": 0.0,
+      "3700": 0.0,
+      "2050": 0.0,
+      "3200": 0.0,
+      "3450": 0.0,
+      "3500": 0.0,
+      "3400": 0.0,
+      "4050": 0.0,
+      "8050": 0.0
+    },
+    "fetch_success": true
+  },
+  "watchlist": [
+    {
+      "code": "99840",
+      "scan_score": 0.0,
+      "stock_score": 0.6081,
+      "combined": 0.6081,
+      "reason": "CANDIDATE fallback",
+      "has_event": false,
+      "gap_pct": 3.386666666666667,
+      "relative_volume": 0.8681140911848699,
+      "s33": "5250",
+      "sector_bias": 0.0,
+      "sector_bias_label": "neutral"
+    },
+    {
+      "code": "69810",
+      "scan_score": 0.0,
+      "stock_score": 0.5893,
+      "combined": 0.5893,
+      "reason": "CANDIDATE fallback",
+      "has_event": false,
+      "gap_pct": 3.4859521331945893,
+      "relative_volume": 0.7642552276555095,
+      "s33": "3650",
+      "sector_bias": 0.0,
+      "sector_bias_label": "neutral"
+    },
+    {
+      "code": "69200",
+      "scan_score": 0.0,
+      "stock_score": 0.5857,
+      "combined": 0.5857,
+      "reason": "CANDIDATE fallback",
+      "has_event": false,
+      "gap_pct": 3.1093836757357023,
+      "relative_volume": 0.7198222222222223,
+      "s33": "3650",
+      "sector_bias": 0.0,
+      "sector_bias_label": "neutral"
+    },
+    {
+      "code": "67580",
+      "scan_score": 0.0,
+      "stock_score": 0.5034,
+      "combined": 0.5034,
+      "reason": "CANDIDATE fallback",
+      "has_event": false,
+      "gap_pct": 0.9433962264150944,
+      "relative_volume": 1.0097728860089819,
+      "s33": "3650",
+      "sector_bias": 0.0,
+      "sector_bias_label": "neutral"
+    },
+    {
+      "code": "69020",
+      "scan_score": 0.0,
+      "stock_score": 0.4957,
+      "combined": 0.4957,
+      "reason": "CANDIDATE fallback",
+      "has_event": false,
+      "gap_pct": 1.5012722646310432,
+      "relative_volume": 1.4840869893027493,
+      "s33": "3700",
+      "sector_bias": 0.0,
+      "sector_bias_label": "neutral"
+    },
+    {
+      "code": "79740",
+      "scan_score": 0.0,
+      "stock_score": 0.4818,
+      "combined": 0.4818,
+      "reason": "CANDIDATE fallback",
+      "has_event": false,
+      "gap_pct": 1.612739628765595,
+      "relative_volume": 0.8390045597479981,
+      "s33": "3800",
+      "sector_bias": 0.0,
+      "sector_bias_label": "neutral"
+    },
+    {
+      "code": "72030",
+      "scan_score": 0.0,
+      "stock_score": 0.4747,
+      "combined": 0.4747,
+      "reason": "CANDIDATE fallback",
+      "has_event": false,
+      "gap_pct": 1.2925969447708578,
+      "relative_volume": 0.9298112338348345,
+      "s33": "3700",
+      "sector_bias": 0.0,
+      "sector_bias_label": "neutral"
+    },
+    {
+      "code": "83060",
+      "scan_score": 0.0,
+      "stock_score": 0.4609,
+      "combined": 0.4609,
+      "reason": "CANDIDATE fallback",
+      "has_event": false,
+      "gap_pct": 1.5012815818381546,
+      "relative_volume": 0.8367439323944801,
+      "s33": "7050",
+      "sector_bias": 0.0,
+      "sector_bias_label": "neutral"
+    }
+  ],
+  "active_strategies": [
+    "vwap_reclaim"
+  ],
+  "disabled_strategies": [
+    "gap_go",
+    "gap_fade",
+    "open_drive",
+    "orb",
+    "vwap_bounce",
+    "trend_follow",
+    "overextension",
+    "rsi_reversal",
+    "crash_rebound",
+    "orderbook_imbalance",
+    "large_absorption",
+    "spread_entry",
+    "tdnet_event",
+    "earnings_momentum",
+    "catalyst_initial"
+  ],
+  "strategy_status": {
+    "active": [
+      "vwap_reclaim"
+    ],
+    "filter": [
+      "trend_follow"
+    ],
+    "supplement": [
+      "spread_entry"
+    ],
+    "watch": [
+      "orb",
+      "tdnet_event",
+      "gap_go"
+    ],
+    "off": [
+      "vwap_bounce",
+      "orderbook_imbalance",
+      "large_absorption",
+      "open_drive",
+      "gap_fade",
+      "overextension",
+      "rsi_reversal",
+      "crash_rebound",
+      "earnings_momentum",
+      "catalyst_initial"
+    ]
+  },
+  "proxy_summary": {
+    "vwap_reclaim": {
+      "status": "active",
+      "proxy_usage_rate": 1.0,
+      "proxy_penalty": 0.05
+    },
+    "trend_follow": {
+      "status": "filter",
+      "proxy_usage_rate": 0.0,
+      "proxy_penalty": 0.0
+    },
+    "spread_entry": {
+      "status": "supplement",
+      "proxy_usage_rate": 0.3333333333333333,
+      "proxy_penalty": 0.05
+    },
+    "orb": {
+      "status": "watch",
+      "proxy_usage_rate": 1.0,
+      "proxy_penalty": 0.15
+    },
+    "tdnet_event": {
+      "status": "watch",
+      "proxy_usage_rate": 0.0,
+      "proxy_penalty": 0.0
+    },
+    "gap_go": {
+      "status": "watch",
+      "proxy_usage_rate": 0.0,
+      "proxy_penalty": 0.0
+    },
+    "vwap_bounce": {
+      "status": "off",
+      "proxy_usage_rate": 1.0,
+      "proxy_penalty": 0.15
+    },
+    "orderbook_imbalance": {
+      "status": "off",
+      "proxy_usage_rate": 1.0,
+      "proxy_penalty": 0.15
+    },
+    "large_absorption": {
+      "status": "off",
+      "proxy_usage_rate": 1.0,
+      "proxy_penalty": 0.15
+    },
+    "open_drive": {
+      "status": "off",
+      "proxy_usage_rate": 1.0,
+      "proxy_penalty": 0.15
+    },
+    "gap_fade": {
+      "status": "off",
+      "proxy_usage_rate": 0.0,
+      "proxy_penalty": 0.0
+    },
+    "overextension": {
+      "status": "off",
+      "proxy_usage_rate": 1.0,
+      "proxy_penalty": 0.15
+    },
+    "rsi_reversal": {
+      "status": "off",
+      "proxy_usage_rate": 1.0,
+      "proxy_penalty": 0.15
+    },
+    "crash_rebound": {
+      "status": "off",
+      "proxy_usage_rate": 1.0,
+      "proxy_penalty": 0.15
+    },
+    "earnings_momentum": {
+      "status": "off",
+      "proxy_usage_rate": 1.0,
+      "proxy_penalty": 0.15
+    },
+    "catalyst_initial": {
+      "status": "off",
+      "proxy_usage_rate": 1.0,
+      "proxy_penalty": 0.15
+    }
+  },
+  "positions": {},
+  "data_quality_warnings": [
+    "intraday proxy features are estimated from daily OHLCV",
+    "proxy-dependent strategies have limited evaluation reliability"
+  ]
+}

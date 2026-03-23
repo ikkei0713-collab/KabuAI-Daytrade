@@ -41,11 +41,12 @@ class VWAPReclaimStrategy(BaseStrategy):
             feature_requirements=self.REQUIRED_FEATURES,
             expected_market_condition="bull",
             parameter_set={
-                "min_time_below_vwap_min": 15,         # 保守化: 10→15 (飛びつき抑制)
-                "min_volume_at_reclaim": 1.5,           # 保守化: 1.0→1.5 (出来高確認を厳格化)
-                "target_atr_multiple": 1.2,             # 保守化: 1.8→1.2 (利確を手前に)
-                "reclaim_buffer_pct": 0.15,             # 維持
-                "max_distance_from_vwap_pct": 0.8,      # 緩和: 0.5→0.8 (件数確保)
+                # 最適化結果 (2026-03-23, 6ヶ月データ, 219回試行, OOS PF=1.92)
+                "min_time_below_vwap_min": 10,
+                "min_volume_at_reclaim": 1.0,
+                "target_atr_multiple": 1.5,
+                "reclaim_buffer_pct": 0.20,
+                "max_distance_from_vwap_pct": 2.0,
             },
         )
 
@@ -131,13 +132,20 @@ class VWAPReclaimStrategy(BaseStrategy):
                 confidence += 0.05
 
         # Regime alignment
+        # BT結果: range PF=4.44 vs trend_down PF=0.39 → 下降時を厳しく
         regime_result = features.get("regime_result")
         if regime_result is not None:
             vwap_weight = regime_result.strategy_weights.get("vwap_reclaim", 0.5)
             if vwap_weight >= 0.7:
                 confidence += 0.05
             elif vwap_weight < 0.3:
-                confidence -= 0.10
+                confidence -= 0.15  # -0.10→-0.15: trend_down での減点を強化
+            # trend_down ではさらに収束を要求
+            if regime_result.regime == "trend_down":
+                conv_score = features.get("ma_convergence_score", 0)
+                if conv_score is not None and conv_score < 0.65:
+                    confidence -= 0.10
+                    logger.debug(f"[vwap_reclaim] {ticker}: trend_down + low convergence → -0.10")
 
         # Trend follow filter gate (保守的チューニング)
         # EMA9>EMA21, close>VWAP, strength>0.45, vol_trend>1.2 で加点
@@ -153,6 +161,20 @@ class VWAPReclaimStrategy(BaseStrategy):
                 confidence += 0.03  # 部分通過
         else:
             confidence -= 0.15  # trend 不通過 → 厳しく減点
+
+        # Convergence filter gate (v3.3)
+        # MA収束後の再拡大を狙い、拡散飛び乗りを抑制する
+        from strategies.momentum.trend_follow import TrendFollowStrategy
+        conv_passed, conv_adj, conv_reason = TrendFollowStrategy.convergence_filter(features)
+        if not conv_passed:
+            confidence -= abs(conv_adj)
+            logger.debug(f"[vwap_reclaim] {ticker}: convergence filter blocked: {conv_reason}")
+        else:
+            confidence += conv_adj
+            # squeeze_breakout_ready なら最優先シナリオ
+            if features.get("squeeze_breakout_ready", False):
+                confidence += 0.05
+                logger.debug(f"[vwap_reclaim] {ticker}: squeeze_breakout_ready → +0.05")
 
         # selector_score フィルタ: 上位銘柄のみ許可
         selector_score = features.get("selector_score", 0)

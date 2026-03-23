@@ -52,14 +52,15 @@ class StockSelector:
     MIN_TURNOVER = 1_000_000_000   # 5億→10億: 高流動性のみ
     MIN_VOLUME_SHARES = 500_000    # 20万→50万株: 板が薄い銘柄を除外
 
-    # スコアリング重み
+    # スコアリング重み (convergence は軽く加算, v3.3)
     WEIGHTS = {
-        "gap": 0.20,          # ギャップ率
-        "volume": 0.25,       # 相対出来高
+        "gap": 0.19,          # ギャップ率 (0.20→0.19)
+        "volume": 0.24,       # 相対出来高 (0.25→0.24)
         "turnover": 0.15,     # 売買代金
-        "atr": 0.20,          # ボラティリティ
+        "atr": 0.19,          # ボラティリティ (0.20→0.19)
         "event": 0.10,        # イベント有無
         "range": 0.10,        # 値幅率
+        "convergence": 0.03,  # MA収束加点 (v3.3, 小さく)
     }
 
     def score_stock(
@@ -150,6 +151,9 @@ class StockSelector:
         event_score = 1.0 if has_event else 0.0
         range_score = min(score.range_pct / 5.0, 1.0)  # 5%で満点
 
+        # 収束スコア (v3.3) – 日足から MA 収束度を軽く加点
+        convergence_score = self._calc_convergence_score(df, close_col, high_col, low_col)
+
         score.score_breakdown = {
             "gap": round(gap_score, 3),
             "volume": round(vol_score, 3),
@@ -157,6 +161,7 @@ class StockSelector:
             "atr": round(atr_score, 3),
             "event": round(event_score, 3),
             "range": round(range_score, 3),
+            "convergence": round(convergence_score, 3),
         }
 
         score.total_score = sum(
@@ -166,6 +171,45 @@ class StockSelector:
         score.total_score = round(score.total_score, 4)
 
         return score
+
+    @staticmethod
+    def _calc_convergence_score(df: pd.DataFrame, close_col: str,
+                                 high_col: str, low_col: str) -> float:
+        """MA収束度を 0-1 でスコアリング (日足ベース).
+
+        event + MA収束 + 価格圧縮 → 加点
+        拡散しすぎ → 減点
+        """
+        close = df[close_col]
+        if len(close) < 20:
+            return 0.5  # データ不足 → 中立
+
+        ma5 = close.rolling(5, min_periods=5).mean().iloc[-1]
+        ma10 = close.rolling(10, min_periods=10).mean().iloc[-1]
+        ma20 = close.rolling(20, min_periods=20).mean().iloc[-1]
+        last_close = close.iloc[-1]
+
+        if any(pd.isna(x) for x in [ma5, ma10, ma20]) or last_close <= 0:
+            return 0.5
+
+        # MA spread
+        spread = (max(ma5, ma10, ma20) - min(ma5, ma10, ma20)) / last_close
+        # 1% 以内 → 1.0, 4% 以上 → 0.0
+        conv_score = max(0.0, min(1.0, 1.0 - spread / 0.04))
+
+        # レンジ圧縮
+        if len(df) >= 10:
+            recent_ranges = ((df[high_col].iloc[-5:] - df[low_col].iloc[-5:]) / close.iloc[-5:]).mean()
+            prior_ranges = ((df[high_col].iloc[-10:-5] - df[low_col].iloc[-10:-5]) / close.iloc[-10:-5]).mean()
+            if prior_ranges > 1e-10:
+                range_ratio = float(recent_ranges / prior_ranges)
+                range_score = max(0.0, min(1.0, 1.0 - (range_ratio - 0.5)))
+            else:
+                range_score = 0.5
+        else:
+            range_score = 0.5
+
+        return (conv_score * 0.6 + range_score * 0.4)
 
     def select_top(
         self,

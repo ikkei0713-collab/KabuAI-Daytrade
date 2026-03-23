@@ -62,6 +62,8 @@ class PreMarketScanner:
         self._client = jquants_client
         self._lookback_days = lookback_days
         self._price_cache: dict[str, list[dict[str, Any]]] = {}
+        # J-Quants 無料プランのレートリミット対策
+        self._api_semaphore = asyncio.Semaphore(2)  # 同時2リクエストまで
 
     # ------------------------------------------------------------------
     # Public scanning methods
@@ -161,9 +163,11 @@ class PreMarketScanner:
 
         for ticker in tickers:
             try:
-                statements = await self._client.get_financial_statements(
-                    ticker, report_date=ref.isoformat(),
-                )
+                async with self._api_semaphore:
+                    statements = await self._client.get_financial_statements(
+                        ticker, report_date=ref.isoformat(),
+                    )
+                    await asyncio.sleep(0.3)  # レートリミット対策
             except Exception as e:
                 logger.debug("Failed to fetch statements for {}: {}", ticker, e)
                 continue
@@ -311,12 +315,11 @@ class PreMarketScanner:
             "PreMarketScanner: generating combined watchlist from {} tickers", len(tickers),
         )
 
-        # Run all scans concurrently
-        gap_results, event_results, volume_results = await asyncio.gather(
-            self.scan_gaps(tickers, ref),
-            self.scan_events(tickers, ref),
-            self.scan_volume(tickers, ref),
-        )
+        # Run scans sequentially to avoid J-Quants rate limit explosion
+        # gap → volume (shares price cache) → events (separate endpoint)
+        gap_results = await self.scan_gaps(tickers, ref)
+        volume_results = await self.scan_volume(tickers, ref)  # price cache hit
+        event_results = await self.scan_events(tickers, ref)
 
         # Merge results by ticker, combining scores and reasons
         ticker_map: dict[str, ScanResult] = {}
@@ -380,16 +383,18 @@ class PreMarketScanner:
     async def _get_recent_prices(
         self, ticker: str, ref: date,
     ) -> list[dict[str, Any]]:
-        """Fetch and cache recent daily prices."""
+        """Fetch and cache recent daily prices (rate-limit aware)."""
         if ticker not in self._price_cache:
             from_date = (ref - timedelta(days=self._lookback_days + 10)).isoformat()
             to_date = ref.isoformat()
-            try:
-                prices = await self._client.get_prices_daily(ticker, from_date, to_date)
-                self._price_cache[ticker] = prices
-            except Exception as e:
-                logger.warning("Failed to fetch prices for {}: {}", ticker, e)
-                self._price_cache[ticker] = []
+            async with self._api_semaphore:
+                try:
+                    prices = await self._client.get_prices_daily(ticker, from_date, to_date)
+                    self._price_cache[ticker] = prices
+                except Exception as e:
+                    logger.warning("Failed to fetch prices for {}: {}", ticker, e)
+                    self._price_cache[ticker] = []
+                await asyncio.sleep(0.3)  # レートリミット対策
         return self._price_cache[ticker]
 
     @staticmethod

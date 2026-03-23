@@ -60,10 +60,15 @@ PROXY_FEATURES = {
 # ---------------------------------------------------------------------------
 
 def _calc(trades: list) -> dict:
-    """Calculate standard metrics from a trade list."""
+    """Calculate standard metrics from a trade list.
+
+    Includes fit3 (Arai 2013): -Loss + 0.01*Profit
+    損失回避型適合度関数。損失を強く罰し過学習を抑制する。
+    """
     if not trades:
         return {"total": 0, "wins": 0, "win_rate": 0, "pf": 0,
-                "pnl": 0, "avg": 0, "max_win": 0, "max_loss": 0, "sharpe": 0}
+                "pnl": 0, "avg": 0, "max_win": 0, "max_loss": 0,
+                "sharpe": 0, "fit3": 0}
     total = len(trades)
     wins = sum(1 for t in trades if t.pnl > 0)
     pnl = sum(t.pnl for t in trades)
@@ -71,6 +76,8 @@ def _calc(trades: list) -> dict:
     gl = abs(sum(t.pnl for t in trades if t.pnl <= 0))
     pnl_arr = np.array([t.pnl for t in trades])
     sharpe = float(pnl_arr.mean() / pnl_arr.std() * np.sqrt(252)) if pnl_arr.std() > 0 else 0
+    # 論文 (Arai 2013) fit3: -Loss + 0.01 * Profit
+    fit3 = -gl + 0.01 * gp
     return {
         "total": total,
         "wins": wins,
@@ -81,6 +88,7 @@ def _calc(trades: list) -> dict:
         "max_win": round(max(t.pnl for t in trades), 0) if trades else 0,
         "max_loss": round(min(t.pnl for t in trades), 0) if trades else 0,
         "sharpe": round(sharpe, 2),
+        "fit3": round(fit3, 0),
     }
 
 
@@ -232,6 +240,9 @@ class FeedbackPacketGenerator:
         # --- Prompt2 追加情報: Net exposure ---
         net_exposure = self._net_exposure()
 
+        # Convergence feature analysis (v3.3)
+        convergence_analysis = self._convergence_analysis()
+
         # Plot paths
         plot_paths = {
             "equity_curve": str(PLOTS_DIR / "equity_curve.png"),
@@ -257,6 +268,7 @@ class FeedbackPacketGenerator:
             "feature_statistics": feature_stats,
             "ic_icir": ic_icir,
             "net_exposure": net_exposure,
+            "convergence_analysis": convergence_analysis,
             "anomaly_summary": anomaly,
             "recommendation_hints": hints,
             "plot_paths": plot_paths,
@@ -318,6 +330,11 @@ class FeedbackPacketGenerator:
             "macd", "macd_histogram", "bb_pct", "trend_strength",
             "volume_trend", "intraday_range", "roc_5", "roc_10",
             "time_below_vwap", "volume_at_reclaim", "selector_score",
+            # Convergence features (v3.3)
+            "ma_spread_pct", "ma_convergence_score", "ma_convergence_trend",
+            "range_compression_score", "volatility_compression_score",
+            "extension_from_ma_score", "price_ma_cluster_score",
+            "pullback_to_ma_score",
         }
 
         for t in self.all_trades:
@@ -460,6 +477,99 @@ class FeedbackPacketGenerator:
         }
 
     # ------------------------------------------------------------------
+    # Convergence analysis (v3.3)
+    # ------------------------------------------------------------------
+
+    def _convergence_analysis(self) -> dict:
+        """Analyze convergence feature effectiveness across trades."""
+        if not self.all_trades:
+            return {}
+
+        conv_keys = [
+            "ma_spread_pct", "ma_convergence_score", "range_compression_score",
+            "volatility_compression_score", "extension_from_ma_score",
+            "post_cross_expansion_flag", "post_cross_consolidation_flag",
+            "squeeze_breakout_ready",
+        ]
+
+        # Collect distributions
+        distributions: dict[str, list[float]] = {k: [] for k in conv_keys[:5]}
+        win_vals: dict[str, list[float]] = {k: [] for k in conv_keys[:5]}
+        loss_vals: dict[str, list[float]] = {k: [] for k in conv_keys[:5]}
+
+        expansion_trades = []
+        convergence_trades = []
+        post_cross_exp_trades = []
+        post_cross_con_trades = []
+        squeeze_trades = []
+
+        for t in self.all_trades:
+            feats = t.features_at_entry or {}
+            is_win = t.pnl > 0
+
+            for k in conv_keys[:5]:
+                val = feats.get(k)
+                if val is not None and isinstance(val, (int, float)) and not np.isnan(val):
+                    distributions[k].append(float(val))
+                    if is_win:
+                        win_vals[k].append(float(val))
+                    else:
+                        loss_vals[k].append(float(val))
+
+            # Classify trades
+            ma_conv = feats.get("ma_convergence_score")
+            if ma_conv is not None:
+                if ma_conv >= 0.55:
+                    convergence_trades.append(t)
+                else:
+                    expansion_trades.append(t)
+
+            if feats.get("post_cross_expansion_flag"):
+                post_cross_exp_trades.append(t)
+            if feats.get("post_cross_consolidation_flag"):
+                post_cross_con_trades.append(t)
+            if feats.get("squeeze_breakout_ready"):
+                squeeze_trades.append(t)
+
+        # Summary stats per feature
+        feature_summary = {}
+        for k in conv_keys[:5]:
+            vals = distributions[k]
+            if vals:
+                feature_summary[k] = {
+                    "mean": round(float(np.mean(vals)), 4),
+                    "std": round(float(np.std(vals)), 4),
+                    "p25": round(float(np.percentile(vals, 25)), 4),
+                    "p50": round(float(np.percentile(vals, 50)), 4),
+                    "p75": round(float(np.percentile(vals, 75)), 4),
+                    "win_mean": round(float(np.mean(win_vals[k])), 4) if win_vals[k] else None,
+                    "loss_mean": round(float(np.mean(loss_vals[k])), 4) if loss_vals[k] else None,
+                }
+
+        def _group_metrics(trades):
+            if not trades:
+                return {"count": 0}
+            wins = sum(1 for t in trades if t.pnl > 0)
+            pnl = sum(t.pnl for t in trades)
+            gp = sum(t.pnl for t in trades if t.pnl > 0)
+            gl = abs(sum(t.pnl for t in trades if t.pnl <= 0))
+            return {
+                "count": len(trades),
+                "win_rate": round(wins / len(trades), 3) if trades else 0,
+                "pf": round(gp / gl, 2) if gl > 0 else 0,
+                "avg_pnl": round(pnl / len(trades), 0) if trades else 0,
+            }
+
+        return {
+            "convergence_feature_summary": feature_summary,
+            "expansion_entry_metrics": _group_metrics(expansion_trades),
+            "convergence_entry_metrics": _group_metrics(convergence_trades),
+            "post_cross_expansion_metrics": _group_metrics(post_cross_exp_trades),
+            "post_cross_consolidation_metrics": _group_metrics(post_cross_con_trades),
+            "squeeze_breakout_metrics": _group_metrics(squeeze_trades),
+        }
+
+    # ------------------------------------------------------------------
     # Anomaly summary
     # ------------------------------------------------------------------
 
@@ -520,15 +630,29 @@ class FeedbackPacketGenerator:
                     "gap": sm["is_oos_pf_gap"],
                 })
 
+        # Convergence filter effectiveness (v3.3)
+        conv = self._convergence_analysis()
+        conv_exp = conv.get("expansion_entry_metrics", {})
+        conv_con = conv.get("convergence_entry_metrics", {})
+        convergence_helped = False
+        expansion_loss_rate = 0
+        if conv_con.get("count", 0) >= 3 and conv_exp.get("count", 0) >= 3:
+            if conv_con.get("pf", 0) > conv_exp.get("pf", 0):
+                convergence_helped = True
+            expansion_loss_rate = round(1.0 - conv_exp.get("win_rate", 0), 3)
+
         return {
             "weakest_strategies": weak,
             "strongest_strategies": strong,
             "overfitting_signals": overfitting,
+            "convergence_filter_helped": convergence_helped,
+            "expansion_chasing_loss_rate": expansion_loss_rate,
             "data_quality_warning": self._feature_diagnostics().get("warning"),
             "system_notes": [
                 "本システムはintraday proxy (日足+擬似特徴量) で動作",
                 "ORB/spread/orderbook系の評価信頼度は限定的",
                 "OOS PF > IS PF の場合はサンプルサイズ不足の可能性",
+                "収束系特徴量は日足から直接計算 (proxy ではない) だが intraday 精度は限定的",
             ],
         }
 
@@ -638,6 +762,36 @@ class FeedbackPacketGenerator:
                 f"- 戦略集中度: {ne.get('strategy_concentration', 0):.0%}",
             ]
 
+        # Convergence analysis (v3.3)
+        conv = packet.get("convergence_analysis", {})
+        if conv:
+            lines += [
+                "",
+                "## 収束フィルタ分析 (v3.3)",
+            ]
+            conv_m = conv.get("convergence_entry_metrics", {})
+            exp_m = conv.get("expansion_entry_metrics", {})
+            if conv_m.get("count", 0) > 0:
+                lines.append(
+                    f"- 収束後エントリー: {conv_m['count']}件 WR={conv_m.get('win_rate', 0):.0%} "
+                    f"PF={conv_m.get('pf', 0):.2f} avg={conv_m.get('avg_pnl', 0):+,.0f}円"
+                )
+            if exp_m.get("count", 0) > 0:
+                lines.append(
+                    f"- 拡散エントリー: {exp_m['count']}件 WR={exp_m.get('win_rate', 0):.0%} "
+                    f"PF={exp_m.get('pf', 0):.2f} avg={exp_m.get('avg_pnl', 0):+,.0f}円"
+                )
+            pce = conv.get("post_cross_expansion_metrics", {})
+            pcc = conv.get("post_cross_consolidation_metrics", {})
+            if pce.get("count", 0) > 0:
+                lines.append(f"- GC/DC直後拡散: {pce['count']}件 WR={pce.get('win_rate', 0):.0%}")
+            if pcc.get("count", 0) > 0:
+                lines.append(f"- GC/DC後収束: {pcc['count']}件 WR={pcc.get('win_rate', 0):.0%}")
+            if hints.get("convergence_filter_helped"):
+                lines.append("- **収束フィルタは有効** (収束後 PF > 拡散 PF)")
+            if hints.get("expansion_chasing_loss_rate", 0) > 0.5:
+                lines.append(f"- 拡散飛び乗り損失率: {hints['expansion_chasing_loss_rate']:.0%}")
+
         lines += [
             "",
             "## 次に改善すべき観点",
@@ -646,6 +800,7 @@ class FeedbackPacketGenerator:
             "3. 擬似特徴量依存の低減 (分足データ導入検討)",
             "4. ストップロス幅の再検討",
             "5. 銘柄選定フィルタの見直し",
+            "6. 収束フィルタ閾値の調整 (MAX_MA_SPREAD_PCT, MIN_CONVERGENCE_SCORE 等)",
         ]
 
         return "\n".join(lines) + "\n"

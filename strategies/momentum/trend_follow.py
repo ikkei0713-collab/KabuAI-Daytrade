@@ -54,6 +54,97 @@ class TrendFollowStrategy(BaseStrategy):
 
         return False, "none", 0.0
 
+    @staticmethod
+    def convergence_filter(features: dict) -> tuple[bool, float, str]:
+        """収束フィルタ: 拡散飛び乗りを拒否し、収束後のみ許可する.
+
+        レジーム情報がある場合は、レジーム別閾値を適用する。
+        論文 (Arai 2013): トレンド相場とレンジ相場で有効なインジケータが異なる。
+        → トレンド時は MA 拡散を許容、レンジ時は収束を厳格に要求。
+
+        Returns:
+            (passed, adjustment, reason)
+            - passed: フィルタ通過したか
+            - adjustment: confidence への加減算値
+            - reason: 判定理由
+        """
+        from core.config import settings
+
+        ma_spread_pct = features.get("ma_spread_pct")
+        ma_conv_score = features.get("ma_convergence_score")
+        ma_conv_trend = features.get("ma_convergence_trend", 0)
+        range_comp = features.get("range_compression_score")
+        vol_comp = features.get("volatility_compression_score")
+        ext_score = features.get("extension_from_ma_score")
+        post_cross_exp = features.get("post_cross_expansion_flag", False)
+        post_cross_con = features.get("post_cross_consolidation_flag", False)
+
+        # データ不足の場合はフィルタ通過 (制約しない)
+        if ma_spread_pct is None or ma_conv_score is None:
+            return True, 0.0, "convergence_data_insufficient"
+
+        # レジーム別閾値の取得 (Arai 2013 の知見を反映)
+        regime_result = features.get("regime_result")
+        if regime_result is not None:
+            from tools.market_regime import RegimeDetector
+            rp = RegimeDetector.get_convergence_params(regime_result.regime)
+            max_spread = rp["max_ma_spread_pct"]
+            min_conv = rp["min_convergence_score"]
+            min_range = rp["min_range_compression"]
+            min_vol = rp["min_vol_compression"]
+            conv_boost = rp["convergence_boost"]
+            exp_penalty = rp["expansion_penalty"]
+        else:
+            # デフォルト (config 値)
+            max_spread = settings.MAX_MA_SPREAD_PCT_FOR_ENTRY
+            min_conv = settings.MIN_MA_CONVERGENCE_SCORE
+            min_range = settings.MIN_RANGE_COMPRESSION_SCORE
+            min_vol = settings.MIN_VOLATILITY_COMPRESSION_SCORE
+            conv_boost = settings.CONVERGENCE_CONFIDENCE_BOOST
+            exp_penalty = settings.EXPANSION_PENALTY_AFTER_CROSS
+
+        adjustment = 0.0
+        reasons = []
+
+        # 1. MA 拡散しすぎ → 拒否
+        if ma_spread_pct > max_spread:
+            return False, -0.10, f"ma_spread_too_wide({ma_spread_pct:.4f}>{max_spread:.4f})"
+
+        # 2. MA 乖離が大きすぎる → 拒否
+        # BT結果: 勝ち=0.69 vs 負け=0.11 → 0.30→0.35 に引き上げ
+        if ext_score is not None and ext_score < 0.35:
+            return False, -0.10, f"extension_too_far({ext_score:.2f})"
+
+        # 3. GC/DC 直後の拡散 → 拒否
+        if post_cross_exp:
+            return False, -exp_penalty, "post_cross_expansion"
+
+        # 4. GC/DC 後の収束 → 加点
+        if post_cross_con:
+            adjustment += conv_boost * 0.5
+            reasons.append("post_cross_consolidation")
+
+        # 5. 収束スコアが高い → 加点
+        if ma_conv_score >= min_conv:
+            adjustment += conv_boost * 0.5
+            reasons.append(f"convergence_high({ma_conv_score:.2f})")
+
+        # 6. 収束トレンドが改善中 → 加点
+        if ma_conv_trend > 0.3:
+            adjustment += 0.03
+            reasons.append("convergence_improving")
+
+        # 7. レンジ圧縮・ボラ縮小 → 加点
+        if range_comp is not None and range_comp >= min_range:
+            adjustment += 0.02
+            reasons.append("range_compressed")
+        if vol_comp is not None and vol_comp >= min_vol:
+            adjustment += 0.02
+            reasons.append("vol_compressed")
+
+        reason_str = ",".join(reasons) if reasons else "convergence_neutral"
+        return True, round(adjustment, 3), reason_str
+
     def get_default_config(self) -> StrategyConfig:
         return StrategyConfig(
             strategy_name="trend_follow",

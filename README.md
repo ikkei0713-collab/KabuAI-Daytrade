@@ -3,6 +3,54 @@
 AI駆動型の日本株デイトレード学習システム。
 ペーパートレードとバックテストで勝ちパターンを自動発見し、戦略を継続的に改善する。
 
+## v3.3 収束フィルタ導入 (2026-03-22)
+
+**方針: 「拡散に飛び乗らず、収束後の再拡大だけを狙う」**
+
+### v3.3 変更点
+- **MA収束フィルタ**: MA群(5/10/20)と価格の収束度・ボラ圧縮度を計算し、拡散飛び乗りを拒否
+- **vwap_reclaim 改善**: 収束フィルタ通過時のみ confidence 加点、GC/DC直後拡散は減点
+- **trend_follow 進化**: 「強いから入る」→「収束後だけ許可するフィルタ」へ (`convergence_filter()` 追加)
+- **ORB 収束評価**: watch のまま、収束後 continuation のみ評価
+- **銘柄選定に収束加点**: event + MA収束 + 価格圧縮 → 軽く加点 (weight=0.03)
+- **feedback に収束分析追加**: 収束あり/なし別 PF, WR, avg_pnl を自動比較
+- **UI に収束表示**: watchlist に収束スコア・収束後候補ラベル・拡散注意ラベルを追加
+- **収束特徴量は日足から直接計算** (proxy ではない) → proxy 依存度を増やさない
+- **config 化**: 全閾値を `core/config.py` の Settings で管理
+
+### 最適化結果 (2026-03-23, 6ヶ月データ, 219回試行)
+
+| パラメータ | 値 | 根拠 |
+|-----------|-----|------|
+| min_time_below_vwap_min | 10 | OOS PF=1.92 |
+| min_volume_at_reclaim | 1.0 | 件数確保 |
+| target_atr_multiple | 1.5 | 利確を適度に |
+| reclaim_buffer_pct | 0.20 | ノイズ除去 |
+| max_distance_from_vwap_pct | 2.0 | 広めに許容 |
+| MAX_MA_SPREAD_PCT | 0.03 | 緩め=件数確保 |
+| MIN_MA_CONVERGENCE_SCORE | 0.55 | 維持 |
+| MIN_RANGE_COMPRESSION | 0.30 | 緩和 |
+| MIN_VOL_COMPRESSION | 0.50 | やや厳格 |
+| CONVERGENCE_BOOST | 0.04 | 控えめ |
+| EXPANSION_PENALTY | 0.10 | 控えめ |
+
+### 収束フィルタの仕組み
+```
+vwap_reclaim (主戦略)
+  ├── trend_follow.is_trending() → EMA/VWAP alignment check
+  ├── trend_follow.convergence_filter() → MA収束/ボラ圧縮/GC直後拡散チェック
+  │     ├── ma_spread_pct > 閾値 → 拒否 (拡散しすぎ)
+  │     ├── extension_from_ma_score < 0.35 → 拒否 (乖離しすぎ)
+  │     ├── post_cross_expansion_flag → 拒否 (GC/DC直後の拡散)
+  │     ├── ma_convergence_score ≥ 0.55 → 加点
+  │     ├── range/vol compression ≥ 閾値 → 加点
+  │     └── squeeze_breakout_ready → 最優先加点
+  └── confidence 最終判定 → MIN_CONFIDENCE 0.65 でゲート
+```
+
+**重要**: intraday proxy 制約があるため、収束特徴量の評価も過信しないこと。
+日足ベースの MA/ATR 計算は比較的安定しているが、intraday の精度とは異なる。
+
 ## v3.2 論文準拠フィードバック強化 (2026-03-20)
 
 **方針: 「増やす」ではなく「削る」「止める」「絞る」+ proxy 依存ペナルティ + 論文準拠フィードバック**
@@ -85,12 +133,12 @@ AI駆動型の日本株デイトレード学習システム。
      戦略on/off・異常停止・トレード履歴 / 30秒自動更新
 ```
 
-## 戦略構成 (v3.1)
+## 戦略構成 (v3.3)
 
 | Status | 戦略 | Proxy率 | 説明 |
 |--------|------|---------|------|
-| **Active** | **vwap_reclaim** | 100% | 唯一の主戦略。proxy 依存だが他戦略より相対的に最良 |
-| Filter | trend_follow | 0% | is_trending() で vwap_reclaim のゲートに使用。EMA/VWAP は real |
+| **Active** | **vwap_reclaim** | 100% | 唯一の主戦略。収束フィルタで拡散飛び乗り抑制 |
+| Filter | trend_follow | 0% | is_trending() + convergence_filter() で vwap_reclaim のゲートに使用 |
 | Supplement | spread_entry | 100% | get_spread_boost() で微小ブースト (max 0.05)。単独発火しない |
 | Watch | orb | 100% | intraday proxy 信頼性不足。将来再開用 |
 | Watch | tdnet_event | 0% | イベント時参考。TDnet は real データ |
@@ -214,6 +262,30 @@ cat prompts/prompt3_with_plots.md    # プロット付き
 - 同時保有 **最大2件** / 1件あたり **25万円**
 - 市場時間外は自動待機（週末・祝日スキップ）
 - 重複注文防止 / コスト込み評価
+
+## 参考文献
+
+本システムの設計・実装に以下の学術論文の知見を活用しています。
+
+### [1] GA を用いた適合度関数と相場変化に着目したシステムトレード
+- **著者**: 荒井裕也, 折原良尚, 中川博之, 清雄一, 田原康之, 大須賀昭彦
+- **所属**: 電気通信大学大学院 情報システム学研究科
+- **出典**: 人工知能学会 SIG-FIN-010, pp.55-60, 2013
+- **URL**: https://www.jstage.jst.go.jp/article/jsaisigtwo/2013/FIN-010/2013_10/_pdf
+- **適用箇所**:
+  - **損失回避型適合度関数 (fit3)**: `-Loss + 0.01 * Profit` → `run_optimize.py` のパラメータ評価に使用。損失を強く罰することで過学習を抑制し、安定したパラメータを発見する
+  - **レジーム別インジケータ切替**: トレンド相場ではトレンドフォロー系、レンジ相場ではオシレータ系の指標が有効 → `market_regime.py` の `get_convergence_params()` でレジーム別に収束フィルタ閾値を切り替える設計に反映
+  - **短期学習ウィンドウ**: ハイブリッド切替は1-2ヶ月の短い学習期間が良い → ローリングウィンドウの設計方針に反映
+
+### [2] 部分空間正則化付き主成分分析を用いた日米業種リードラグ投資戦略
+- **著者**: 中川慧, 竹本悠城, 久保健治, 加藤真大
+- **所属**: 大阪公立大学 / MATSUO Institute / 東京大学 / みずほDLフィナンシャルテクノロジー
+- **出典**: 人工知能学会 SIG-FIN-036, pp.76-83, 2026
+- **URL**: https://www.jstage.jst.go.jp/article/jsaisigtwo/2026/FIN-036/2026_76/_pdf/-char/ja
+- **適用箇所**:
+  - **米国→日本セクターバイアス**: 前日の米国セクターETF騰落率から日本業種への波及を予測 → `tools/sector_bias.py` の lead-lag signal に反映。論文は部分空間正則化PCA (K=3, λ=0.9) を使うが、本システムでは軽量な手動マッピング + 線形加重で近似実装
+  - **IC/ICIR 評価フレームワーク**: 銘柄選定スコアの予測力を Spearman IC で定量化 → `analytics/feedback_packet.py` の `_ic_icir()` に反映
+  - **セクターローテーション**: GICS セクター分類による循環/ディフェンシブ区分の考え方 → `sector_bias.py` のマッピングテーブル設計に参考
 
 ## ライセンス
 

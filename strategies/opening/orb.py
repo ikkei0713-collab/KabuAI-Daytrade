@@ -261,6 +261,20 @@ class ORBStrategy(BaseStrategy):
             else:
                 confidence -= 0.05  # Reversal breakout = lower confidence
 
+        # --- Convergence evaluation (v3.3) ---
+        # ORB は watch のまま。GC/DC直後の拡散ブレイクは評価しない。
+        # 収束後 continuation のみ評価する。
+        from strategies.momentum.trend_follow import TrendFollowStrategy
+        conv_passed, conv_adj, conv_reason = TrendFollowStrategy.convergence_filter(features)
+        if not conv_passed:
+            confidence -= 0.10
+            logger.debug(f"[orb] {ticker}: convergence filter: {conv_reason} → -0.10")
+        else:
+            confidence += conv_adj
+        # 収束ありのブレイクアウトかどうかをスナップショットに記録
+        features["_orb_convergence_passed"] = conv_passed
+        features["_orb_convergence_reason"] = conv_reason
+
         confidence = round(min(max(confidence, 0.1), 0.95), 2)
 
         # --- Minimum confidence gate ---

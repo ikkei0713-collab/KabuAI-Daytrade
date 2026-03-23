@@ -51,29 +51,44 @@ logger.add("logs/optimize.log", rotation="10 MB", level="DEBUG")
 # 候補銘柄（run_backtest_learn.pyと同じ）
 from run_backtest_learn import CANDIDATE_CODES, _clean_features
 
-DURATION_MINUTES = 30  # 最適化実行時間
+DURATION_MINUTES = 60  # 最適化実行時間 (1時間)
 
 
 def _calc_metrics(trades: list[TradeResult]) -> dict:
     if not trades:
-        return {"total": 0, "wins": 0, "win_rate": 0, "pf": 0, "pnl": 0, "avg": 0}
+        return {"total": 0, "wins": 0, "win_rate": 0, "pf": 0, "pnl": 0, "avg": 0,
+                "fit3": 0, "loss_averse_score": 0}
     total = len(trades)
     wins = sum(1 for t in trades if t.pnl > 0)
     pnl = sum(t.pnl for t in trades)
     gp = sum(t.pnl for t in trades if t.pnl > 0)
     gl = abs(sum(t.pnl for t in trades if t.pnl <= 0))
+    wr = wins / total if total else 0
+
+    # 論文 (Arai 2013) 準拠の適合度関数
+    # fit3: -Loss + 0.01 * Profit  (損失回避型)
+    # 損失を強く罰することで過学習を抑制し、安定した取引ルールを構築
+    fit3 = -gl + 0.01 * gp
+
+    # loss_averse_score: fit3 を正規化 (比較しやすくする)
+    # Profit * WinRate 型 (fit1 相当) も組み合わせ
+    fit1 = gp * wr if wr > 0 else 0
+    loss_averse_score = round(fit3 / max(total, 1), 2)
+
     return {
         "total": total,
         "wins": wins,
-        "win_rate": wins / total if total else 0,
+        "win_rate": wr,
         "pf": gp / gl if gl > 0 else 0,
         "pnl": pnl,
         "avg": pnl / total if total else 0,
+        "fit3": round(fit3, 0),
+        "loss_averse_score": loss_averse_score,
     }
 
 
 # パラメータ空間の定義
-# v3: vwap_reclaim のみ active なので vwap_reclaim に集中探索
+# v3.3: vwap_reclaim + 収束フィルタのパラメータを同時探索
 PARAM_SPACE = {
     "vwap_reclaim": {
         "min_time_below_vwap_min": [5, 10, 15, 20, 25, 30],
@@ -82,6 +97,16 @@ PARAM_SPACE = {
         "reclaim_buffer_pct": [0.05, 0.10, 0.15, 0.20, 0.25],
         "max_distance_from_vwap_pct": [0.5, 0.8, 1.0, 1.2, 1.5, 2.0],
     },
+}
+
+# 収束フィルタのパラメータ空間 (config.py の Settings を一時変更)
+CONVERGENCE_PARAM_SPACE = {
+    "MAX_MA_SPREAD_PCT_FOR_ENTRY": [0.010, 0.015, 0.018, 0.020, 0.025, 0.030],
+    "MIN_MA_CONVERGENCE_SCORE": [0.40, 0.45, 0.50, 0.55, 0.60, 0.65],
+    "MIN_RANGE_COMPRESSION_SCORE": [0.30, 0.40, 0.45, 0.50, 0.55],
+    "MIN_VOLATILITY_COMPRESSION_SCORE": [0.30, 0.35, 0.40, 0.45, 0.50],
+    "CONVERGENCE_CONFIDENCE_BOOST": [0.04, 0.06, 0.08, 0.10, 0.12],
+    "EXPANSION_PENALTY_AFTER_CROSS": [0.08, 0.10, 0.12, 0.15, 0.20],
 }
 
 
@@ -104,10 +129,10 @@ class Optimizer:
         """データを一回だけ取得"""
         logger.info("データ取得開始...")
 
-        # TDnet
+        # TDnet (6ヶ月に延長)
         async with TDnetClient() as tdnet:
-            d = date(2026, 1, 1)
-            end = date(2026, 3, 18)
+            d = date(2025, 9, 1)
+            end = date(2026, 3, 19)
             while d <= end:
                 if d.weekday() < 5:
                     try:
@@ -130,7 +155,7 @@ class Optimizer:
 
             for code in CANDIDATE_CODES:
                 try:
-                    raw = await client.get_prices_daily(code, "2025-12-01", "2026-03-18")
+                    raw = await client.get_prices_daily(code, "2025-09-01", "2026-03-19")
                     if not raw:
                         continue
                     df = pd.DataFrame(raw)
@@ -157,7 +182,8 @@ class Optimizer:
             all_dates.update(df["Date"].dt.date.tolist())
         self.sim_dates = sorted(all_dates)[30:]  # 30日ウォームアップ
 
-        split = int(len(self.sim_dates) * 0.6)
+        # IS/OOS 50/50 分割 (OOS サンプル増加のため)
+        split = int(len(self.sim_dates) * 0.5)
         self.is_dates = set(self.sim_dates[:split])
         self.oos_dates = set(self.sim_dates[split:])
         logger.info(f"シミュレーション: {len(self.sim_dates)}日 (IS {len(self.is_dates)} / OOS {len(self.oos_dates)})")
@@ -307,10 +333,22 @@ class Optimizer:
             elapsed = (time.time() - start_time) / 60
             remaining = (end_time - time.time()) / 60
 
+            # 交互に探索: 偶数=vwap_reclaim, 奇数=収束フィルタ
+            explore_convergence = (iteration % 3 != 0)  # 2/3 は収束フィルタ探索
+
             # ランダムにパラメータを選択
             strategy_name = random.choice(list(PARAM_SPACE.keys()))
             param_choices = PARAM_SPACE[strategy_name]
             trial_params = {k: random.choice(v) for k, v in param_choices.items()}
+
+            # 収束フィルタパラメータも同時に探索
+            conv_params = {}
+            if explore_convergence:
+                from core.config import settings
+                conv_params = {k: random.choice(v) for k, v in CONVERGENCE_PARAM_SPACE.items()}
+                # Settings を一時変更
+                for k, v in conv_params.items():
+                    setattr(settings, k, v)
 
             # 戦略をリセットして再登録
             StrategyRegistry.clear()
@@ -327,17 +365,36 @@ class Optimizer:
             is_m = _calc_metrics(is_trades)
             oos_m = _calc_metrics(oos_trades)
 
-            # 評価（OOSのPFで判断、ただしトレード数が少なすぎるのは除外）
+            # 収束パラメータをリセット (次回ループ用)
+            if explore_convergence and conv_params:
+                from core.config import Settings
+                defaults = Settings()
+                for k in conv_params:
+                    setattr(settings, k, getattr(defaults, k))
+
+            # 評価（OOS PF + 損失回避スコア fit3 で総合判断）
+            # 論文 (Arai 2013): fit3 は損失を強く罰し過学習を抑制する
+            # OOS PF が同等なら fit3 が良い方を優先
             improved = False
+            combined_params = {strategy_name: trial_params}
+            if conv_params:
+                combined_params["convergence"] = conv_params
             if oos_m["total"] >= 5 and oos_m["pf"] > self.best_oos_pf:
                 self.best_oos_pf = oos_m["pf"]
-                self.best_params = {strategy_name: trial_params}
+                self.best_params = combined_params
+                improved = True
+            elif (oos_m["total"] >= 5
+                  and abs(oos_m["pf"] - self.best_oos_pf) < 0.05
+                  and oos_m["loss_averse_score"] > self.results[-1].get("oos", {}).get("loss_averse_score", -9999)):
+                self.best_oos_pf = oos_m["pf"]
+                self.best_params = combined_params
                 improved = True
 
             self.results.append({
                 "iteration": iteration,
                 "strategy": strategy_name,
                 "params": trial_params,
+                "convergence_params": conv_params if conv_params else None,
                 "is": is_m,
                 "oos": oos_m,
                 "improved": improved,
@@ -349,6 +406,7 @@ class Optimizer:
                 f"{strategy_name} | "
                 f"IS: {is_m['total']}件 WR={is_m['win_rate']:.0%} PF={is_m['pf']:.2f} | "
                 f"OOS: {oos_m['total']}件 WR={oos_m['win_rate']:.0%} PF={oos_m['pf']:.2f} "
+                f"fit3={oos_m['fit3']:+,.0f} "
                 f"¥{oos_m['pnl']:+,.0f} {marker}"
             )
 
@@ -390,6 +448,8 @@ class Optimizer:
                     "oos_pf": round(r["oos"]["pf"], 3),
                     "oos_wr": round(r["oos"]["win_rate"], 3),
                     "oos_pnl": round(r["oos"]["pnl"], 0),
+                    "oos_fit3": round(r["oos"].get("fit3", 0), 0),
+                    "oos_loss_averse": r["oos"].get("loss_averse_score", 0),
                     "oos_trades": r["oos"]["total"],
                     "is_pf": round(r["is"]["pf"], 3),
                     "is_trades": r["is"]["total"],

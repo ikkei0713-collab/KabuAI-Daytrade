@@ -59,7 +59,7 @@ class Settings(BaseSettings):
     TACHIBANA_USER: str = ""
     TACHIBANA_PASSWORD: str = ""
 
-    model_config = {"env_file": ".env", "env_prefix": "KABUAI_"}
+    model_config = {"env_file": ".env", "env_prefix": "KABUAI_", "extra": "ignore"}
 
 
 settings = Settings()

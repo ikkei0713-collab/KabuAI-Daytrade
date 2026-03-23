@@ -41,6 +41,7 @@ from tools.market_regime import RegimeDetector
 from scanners.premarket import PreMarketScanner
 from scanners.stock_selector import StockSelector
 from tools.sector_bias import SectorBiasCalculator, SectorBiasResult
+from tools.disclosure_analyzer import DisclosureAnalyzer
 from core.ticker_map import update_from_jquants, format_ticker
 
 # ── 設定 ── 保守的チューニング (2026-03-19) ─────────────────────────────────
@@ -305,7 +306,14 @@ class PaperTrader:
                 # TDnetイベント注入
                 if code in tdnet_events:
                     features["event_type"] = tdnet_events[code]
-                    features["event_magnitude"] = 1.0
+                    # LLM 分析結果があれば使用、なければフォールバック
+                    analysis = getattr(self, '_disclosure_analysis', {}).get(code)
+                    if analysis and analysis.analyzed:
+                        features["event_magnitude"] = analysis.magnitude
+                        features["event_direction"] = analysis.direction
+                        features["event_category"] = analysis.category
+                    else:
+                        features["event_magnitude"] = 0.5  # フォールバック (旧: 1.0)
                     features["historical_event_response"] = 0.5
 
                 # トレンドフィルタ情報を注入
@@ -702,13 +710,24 @@ class PaperTrader:
                     pre_open = now.replace(hour=8, minute=55, second=0, microsecond=0)
                     if now >= pre_open and tdnet_fetched_today != today_str:
                         try:
+                            disclosure_analyzer = DisclosureAnalyzer()
                             async with TDnetClient() as tdnet:
                                 disclosures = await tdnet.fetch_today_disclosures()
                                 material = tdnet.filter_material_events(disclosures)
                                 tdnet_events.clear()
                                 for d in material:
-                                    tdnet_events[d.ticker + "0"] = d.disclosure_type.value
-                                logger.info(f"TDnet: {len(disclosures)}件の開示, {len(material)}件の重要イベント")
+                                    key = d.ticker + "0"
+                                    # LLM で開示内容を分析
+                                    analysis = disclosure_analyzer.analyze(d.title, d.company_name)
+                                    tdnet_events[key] = d.disclosure_type.value
+                                    # 分析結果を _disclosure_analysis に保存
+                                    if not hasattr(self, '_disclosure_analysis'):
+                                        self._disclosure_analysis = {}
+                                    self._disclosure_analysis[key] = analysis
+                                logger.info(
+                                    f"TDnet: {len(disclosures)}件の開示, {len(material)}件の重要イベント"
+                                    f" (LLM分析済: {sum(1 for a in getattr(self, '_disclosure_analysis', {}).values() if a.analyzed)}件)"
+                                )
                             tdnet_fetched_today = today_str
                         except Exception as e:
                             logger.warning(f"TDnet取得失敗: {e}")
@@ -793,15 +812,21 @@ class PaperTrader:
                 try:
                     logger.info(f"--- サイクル {cycle} ({now.strftime('%H:%M:%S')}) ---")
 
-                    # TDnet未取得なら取得
+                    # TDnet未取得なら取得 (LLM分析付き)
                     if tdnet_fetched_today != today_str:
                         try:
+                            disclosure_analyzer = DisclosureAnalyzer()
                             async with TDnetClient() as tdnet:
                                 disclosures = await tdnet.fetch_today_disclosures()
                                 material = tdnet.filter_material_events(disclosures)
                                 tdnet_events.clear()
                                 for d in material:
-                                    tdnet_events[d.ticker + "0"] = d.disclosure_type.value
+                                    key = d.ticker + "0"
+                                    tdnet_events[key] = d.disclosure_type.value
+                                    analysis = disclosure_analyzer.analyze(d.title, d.company_name)
+                                    if not hasattr(self, '_disclosure_analysis'):
+                                        self._disclosure_analysis = {}
+                                    self._disclosure_analysis[key] = analysis
                                 logger.info(f"TDnet: {len(disclosures)}件の開示, {len(material)}件の重要イベント")
                             tdnet_fetched_today = today_str
                         except Exception as e:

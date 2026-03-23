@@ -124,12 +124,17 @@ class VWAPReclaimStrategy(BaseStrategy):
         candle_range = float(latest["high"]) - float(latest["low"])
         if candle_range > 0 and body / candle_range > 0.6:
             confidence += 0.10
-        # Event weighting: boost confidence if TDnet event present
+        # Event weighting: LLM分析済みの magnitude/direction で加減点
         event_type = features.get("event_type", "")
         if event_type and event_type not in ("", 0, 0.0):
-            confidence += 0.15  # Strong boost for event-driven VWAP reclaim
-            if features.get("event_magnitude", 0) > 0.5:
-                confidence += 0.05
+            event_dir = features.get("event_direction", "neutral")
+            event_mag = features.get("event_magnitude", 0.5)
+            if event_dir == "positive":
+                confidence += 0.10 + event_mag * 0.10  # +0.10~+0.20
+            elif event_dir == "negative":
+                confidence -= 0.05 + event_mag * 0.10  # -0.05~-0.15
+            else:
+                confidence += 0.05  # neutral event: 軽い加点
 
         # Regime alignment
         # BT結果: range PF=4.44 vs trend_down PF=0.39 → 下降時を厳しく

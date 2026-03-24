@@ -245,8 +245,8 @@ class UniverseScanner:
         """Apply filters that require price data (volume, price range, market cap)."""
         passed: list[str] = []
 
-        # Process in batches to respect rate limits
-        batch_size = 20
+        # 有料プラン: バッチサイズ拡大
+        batch_size = 50
         for i in range(0, len(tickers), batch_size):
             batch = tickers[i : i + batch_size]
             tasks = [self._check_dynamic_filters(t, ref) for t in batch]

@@ -1,0 +1,65 @@
+{
+  "date": "2026-03-24T11:37:05.243724",
+  "regime_performance": {
+    "vwap_reclaim_range": {
+      "trades": 32,
+      "win_rate": 0.406,
+      "pf": 0.21,
+      "total_pnl": -235679.0
+    },
+    "vwap_reclaim_trend_down": {
+      "trades": 4,
+      "win_rate": 0.25,
+      "pf": 0.18,
+      "total_pnl": -18307.0
+    },
+    "vwap_reclaim_volatile": {
+      "trades": 5,
+      "win_rate": 0.8,
+      "pf": 17.5,
+      "total_pnl": 66295.0
+    },
+    "vwap_reclaim_trend_up": {
+      "trades": 14,
+      "win_rate": 0.357,
+      "pf": 0.96,
+      "total_pnl": -1282.0
+    },
+    "vwap_reclaim_low_vol": {
+      "trades": 3,
+      "win_rate": 0.667,
+      "pf": 8.33,
+      "total_pnl": 14627.0
+    }
+  },
+  "adjustments_applied": [
+    {
+      "target": "vwap_reclaim_range",
+      "action": "suppress_regime",
+      "reason": "PF=0.21, 32件で損失"
+    },
+    {
+      "target": "vwap_reclaim_volatile",
+      "action": "boost_regime",
+      "reason": "PF=17.50, 勝率80%"
+    },
+    {
+      "target": "vwap_reclaim_low_vol",
+      "action": "boost_regime",
+      "reason": "PF=8.33, 勝率67%"
+    }
+  ],
+  "oos_summary": {
+    "trades": 17,
+    "win_rate": 0.471,
+    "pf": 2.33,
+    "total_pnl": 61801.0
+  },
+  "worst_trade": {
+    "ticker": "61460",
+    "strategy": "vwap_reclaim",
+    "pnl": -221324.0,
+    "regime": "range",
+    "exit_reason": "ストップロス(intraday)"
+  }
+}

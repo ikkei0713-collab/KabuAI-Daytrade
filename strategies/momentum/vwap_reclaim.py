@@ -137,20 +137,29 @@ class VWAPReclaimStrategy(BaseStrategy):
                 confidence += 0.05  # neutral event: 軽い加点
 
         # Regime alignment
-        # BT結果: range PF=4.44 vs trend_down PF=0.39 → 下降時を厳しく
+        # BT結果(2026-03-24): volatile PF=7.06, low_vol PF=8.33,
+        #   range PF=0.25(-242k), trend_down PF=0.29(-19k) → range/downを強力に抑制
         regime_result = features.get("regime_result")
         if regime_result is not None:
+            regime = regime_result.regime
             vwap_weight = regime_result.strategy_weights.get("vwap_reclaim", 0.5)
-            if vwap_weight >= 0.7:
-                confidence += 0.05
-            elif vwap_weight < 0.3:
-                confidence -= 0.15  # -0.10→-0.15: trend_down での減点を強化
-            # trend_down ではさらに収束を要求
-            if regime_result.regime == "trend_down":
+
+            if regime in ("volatile", "low_vol"):
+                confidence += 0.10  # 得意レジーム: 積極エントリー
+            elif regime == "range":
+                confidence -= 0.15  # range は減点（ただし他条件良ければ通過可能）
+                logger.debug(f"[vwap_reclaim] {ticker}: range regime → -0.15")
+            elif regime == "trend_down":
+                confidence -= 0.10  # trend_down は減点（日足ベース判定の限界を考慮）
                 conv_score = features.get("ma_convergence_score", 0)
                 if conv_score is not None and conv_score < 0.65:
+                    confidence -= 0.05
+                    logger.debug(f"[vwap_reclaim] {ticker}: trend_down + low convergence → -0.15 total")
+            elif regime == "trend_up":
+                if vwap_weight >= 0.7:
+                    confidence += 0.05
+                elif vwap_weight < 0.3:
                     confidence -= 0.10
-                    logger.debug(f"[vwap_reclaim] {ticker}: trend_down + low convergence → -0.10")
 
         # Trend follow filter gate (保守的チューニング)
         # EMA9>EMA21, close>VWAP, strength>0.45, vol_trend>1.2 で加点

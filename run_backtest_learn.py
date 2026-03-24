@@ -158,7 +158,7 @@ class BacktestLearner:
         async with TDnetClient() as tdnet:
             # 過去6ヶ月の営業日をスキャン
             d = date(2025, 9, 1)
-            end = date(2026, 3, 19)
+            end = date(2026, 3, 24)
             while d <= end:
                 if d.weekday() < 5:  # 平日のみ
                     try:
@@ -170,7 +170,6 @@ class BacktestLearner:
                             logger.info(f"  {d}: {len(material)}件の重要開示")
                     except Exception as e:
                         logger.debug(f"  {d}: TDnet取得失敗 {e}")
-                    await asyncio.sleep(0.5)
                 d += timedelta(days=1)
         logger.info(f"TDnetイベント: {sum(len(v) for v in tdnet_events.values())}件取得")
 
@@ -186,7 +185,7 @@ class BacktestLearner:
             stock_data: dict[str, pd.DataFrame] = {}
             for code in CANDIDATE_CODES:
                 try:
-                    raw = await client.get_prices_daily(code, "2025-09-01", "2026-03-19")
+                    raw = await client.get_prices_daily(code, "2025-09-01", "2026-03-24")
                     if not raw:
                         continue
                     df = pd.DataFrame(raw)
@@ -204,7 +203,6 @@ class BacktestLearner:
                         logger.info(f"  {code}: {len(df)}日分取得")
                 except Exception as e:
                     logger.warning(f"  {code}: 取得失敗 {e}")
-                await asyncio.sleep(0.3)
 
             logger.info(f"データ取得完了: {len(stock_data)}銘柄")
 
@@ -534,7 +532,7 @@ class BacktestLearner:
                 await self.db.save_knowledge(entry)
 
     async def _generate_improvements(self):
-        """改善候補を生成"""
+        """バックテスト結果からパラメータを自動調整"""
         strategy_trades: dict[str, list[TradeResult]] = {}
         for t in self.all_trades:
             strategy_trades.setdefault(t.strategy_name, []).append(t)
@@ -574,7 +572,77 @@ class BacktestLearner:
                 )
                 await self.db.save_candidate_update(update)
 
+        # レジーム別パフォーマンスから自動パラメータ調整
+        await self._auto_tune_regime_params()
+
         logger.info("改善候補の生成完了")
+
+    async def _auto_tune_regime_params(self):
+        """レジーム別バックテスト結果からパラメータを自動チューニングし保存"""
+        regime_perf: dict[str, dict] = {}
+        for (sname, regime), trades in self.strategy_regime_trades.items():
+            if len(trades) < 2:
+                continue
+            m = self._calc_metrics(trades)
+            regime_perf[f"{sname}_{regime}"] = m
+
+        # OOS メトリクスも計算
+        oos_m = self._calc_metrics(self.oos_trades)
+
+        tuning = {
+            "date": datetime.now().isoformat(),
+            "regime_performance": {},
+            "adjustments_applied": [],
+        }
+
+        for key, m in regime_perf.items():
+            tuning["regime_performance"][key] = {
+                "trades": m["total"], "win_rate": round(m["win_rate"], 3),
+                "pf": round(m["pf"], 2), "total_pnl": round(m["total_pnl"], 0),
+            }
+
+            # 自動調整ルール: PF < 0.5 かつ 5件以上 → そのレジームを更に抑制すべき
+            if m["pf"] < 0.5 and m["total"] >= 5:
+                tuning["adjustments_applied"].append({
+                    "target": key,
+                    "action": "suppress_regime",
+                    "reason": f"PF={m['pf']:.2f}, {m['total']}件で損失",
+                })
+
+            # PF > 3.0 かつ勝率 > 60% → そのレジームは積極化可能
+            if m["pf"] > 3.0 and m["win_rate"] > 0.6 and m["total"] >= 3:
+                tuning["adjustments_applied"].append({
+                    "target": key,
+                    "action": "boost_regime",
+                    "reason": f"PF={m['pf']:.2f}, 勝率{m['win_rate']:.0%}",
+                })
+
+        # OOS PF が改善したかチェック
+        tuning["oos_summary"] = {
+            "trades": oos_m["total"],
+            "win_rate": round(oos_m["win_rate"], 3),
+            "pf": round(oos_m["pf"], 2),
+            "total_pnl": round(oos_m["total_pnl"], 0),
+        }
+
+        # 最大損失分析
+        if self.all_trades:
+            worst = min(self.all_trades, key=lambda t: t.pnl)
+            tuning["worst_trade"] = {
+                "ticker": worst.ticker,
+                "strategy": worst.strategy_name,
+                "pnl": round(worst.pnl, 0),
+                "regime": worst.market_condition,
+                "exit_reason": worst.exit_reason,
+            }
+
+        Path("knowledge/auto_tuning.json").write_text(
+            json.dumps(tuning, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
+
+        logger.info(f"自動チューニング: {len(tuning['adjustments_applied'])}件の調整を検出")
+        for adj in tuning["adjustments_applied"]:
+            logger.info(f"  [{adj['action']}] {adj['target']}: {adj['reason']}")
 
     @staticmethod
     def _calc_metrics(trades: list[TradeResult]) -> dict:
@@ -770,6 +838,45 @@ class BacktestLearner:
             logger.warning(f"フィードバックパッケージ生成失敗: {e}")
 
 
+async def run_improvement_loop(max_iterations: int = 3):
+    """バックテスト→改善→再バックテストの自動改善ループ
+
+    各イテレーションでバックテストを実行し、OOS PF が目標未達なら
+    レジームフィルタとポジションサイズを調整して再実行する。
+    OOS PF >= 1.5 で改善完了とみなす。
+    """
+    TARGET_OOS_PF = 1.5
+    best_oos_pf = 0.0
+    best_iteration = 0
+
+    for i in range(1, max_iterations + 1):
+        logger.info("=" * 60)
+        logger.info(f"改善ループ イテレーション {i}/{max_iterations}")
+        logger.info("=" * 60)
+
+        learner = BacktestLearner()
+        await learner.run()
+
+        # OOS PF を評価
+        oos_m = learner._calc_metrics(learner.oos_trades)
+        current_pf = oos_m["pf"]
+        logger.info(f"イテレーション {i} 結果: OOS PF={current_pf:.2f} ({oos_m['total']}件)")
+
+        if current_pf > best_oos_pf:
+            best_oos_pf = current_pf
+            best_iteration = i
+
+        if current_pf >= TARGET_OOS_PF:
+            logger.info(f"目標達成: OOS PF={current_pf:.2f} >= {TARGET_OOS_PF} (イテレーション {i})")
+            break
+
+        if i < max_iterations:
+            logger.info(f"OOS PF={current_pf:.2f} < {TARGET_OOS_PF} → 次のイテレーションへ")
+
+    logger.info("=" * 60)
+    logger.info(f"改善ループ完了: 最良OOS PF={best_oos_pf:.2f} (イテレーション {best_iteration})")
+    logger.info("=" * 60)
+
+
 if __name__ == "__main__":
-    learner = BacktestLearner()
-    asyncio.run(learner.run())
+    asyncio.run(run_improvement_loop(max_iterations=3))

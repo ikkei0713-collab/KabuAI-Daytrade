@@ -44,9 +44,9 @@ from tools.sector_bias import SectorBiasCalculator, SectorBiasResult
 from tools.disclosure_analyzer import DisclosureAnalyzer
 from core.ticker_map import update_from_jquants, format_ticker
 
-# ── 設定 ── 保守的チューニング (2026-03-19) ─────────────────────────────────
-SCAN_INTERVAL = 300       # 90→300秒: API負荷軽減 + 無駄打ち抑制
-TOP_UNIVERSE = 8          # 20→8: 流動性上位に集中
+# ── 設定 ── 有料プラン対応 (2026-03-24) ──────────────────────────────────
+SCAN_INTERVAL = 90        # 90秒間隔: 有料プランで高頻度スキャン
+TOP_UNIVERSE = 30         # 30銘柄: 有料プランで広範囲スクリーニング
 MAX_POSITIONS = 2         # 5→2: config.MAX_POSITIONS と同期
 POSITION_SIZE = 250_000   # 50万→25万: config.MAX_POSITION_SIZE と同期
 MIN_CONFIDENCE = 0.65     # 0.3→0.65: 高確信シグナルのみ通過
@@ -116,13 +116,12 @@ class PaperTrader:
         code_to_s33 = {s.get("Code", ""): s.get("S33", "") for s in info}
 
         # Step 2: PreMarketScanner でギャップ・出来高・イベントをスキャン
-        # 200→60: J-Quants 無料プランのレートリミット対策
-        # CANDIDATE_CODES (流動性上位) を優先し、残りはマスタから補完
+        # 有料プラン + 一括プリロード済み: 全プライム/スタンダード銘柄をスキャン
         priority_codes = [c for c in CANDIDATE_CODES if c in candidate_codes]
-        remaining = [c for c in candidate_codes if c not in priority_codes][:max(0, 60 - len(priority_codes))]
+        remaining = [c for c in candidate_codes if c not in priority_codes]
         scan_target = priority_codes + remaining
         logger.info(f"PreMarketScan対象: {len(scan_target)}銘柄 (優先{len(priority_codes)} + 補完{len(remaining)})")
-        scanner = PreMarketScanner(client)
+        scanner = PreMarketScanner(client, price_cache=self._raw_price_cache)
         scan_results = await scanner.generate_watchlist(scan_target)
 
         # Step 3: StockSelector で各銘柄をスコアリング
@@ -161,7 +160,6 @@ class PaperTrader:
                 })
             except Exception as e:
                 logger.debug(f"銘柄選定失敗 {code}: {e}")
-            await asyncio.sleep(0.3)
 
         # Step 4: combined score で上位N銘柄を選出
         scored.sort(key=lambda x: x["combined"], reverse=True)
@@ -217,7 +215,6 @@ class PaperTrader:
                 except Exception as e:
                     logger.debug(f"フォールバック銘柄取得失敗 {code}: {e}")
                     continue
-                await asyncio.sleep(0.5)
             logger.info(f"フォールバック: {fb_tried}銘柄試行, {fb_excluded}除外, {len(scored)}銘柄scored")
             scored.sort(key=lambda x: x["combined"], reverse=True)
             watchlist = scored[:TOP_UNIVERSE]
@@ -229,21 +226,49 @@ class PaperTrader:
         return watchlist
 
     _ohlcv_cache: dict[str, pd.DataFrame] = {}  # 日中キャッシュ (当日限り)
+    _raw_price_cache: dict[str, list[dict]] = {}  # PreMarketScanner用raw形式キャッシュ
 
-    async def fetch_ohlcv(self, client: JQuantsClient, code: str, days: int = 60) -> pd.DataFrame:
-        """日足OHLCVを取得してDataFrameに変換 (日中キャッシュあり)"""
-        cache_key = f"{code}_{days}"
-        if cache_key in self._ohlcv_cache:
-            return self._ohlcv_cache[cache_key]
+    async def preload_bulk_prices(self, client: JQuantsClient, days: int = 60) -> None:
+        """全銘柄の日足を一括取得してキャッシュにプリロード。
+
+        J-Quants V2 の date パラメータで日ごとに全銘柄の日足を1回のAPIコールで取得。
+        個別リクエストの代わりに使うことで API 呼び出し回数を大幅削減。
+        """
         end = date.today()
         start = end - timedelta(days=days)
-        await asyncio.sleep(0.3)  # レートリミット対策
-        raw = await client.get_prices_daily(code, start.isoformat(), end.isoformat())
+        logger.info(f"一括日足プリロード開始: {start} → {end}")
+
+        # 日ごとに一括取得
+        bulk_data: dict[str, list[dict]] = {}  # code -> [records]
+        d = start
+        while d <= end:
+            try:
+                records = await client.get_prices_daily_bulk(d.isoformat())
+                for rec in records:
+                    code = rec.get("Code", "")
+                    if code:
+                        bulk_data.setdefault(code, []).append(rec)
+            except Exception as e:
+                logger.debug(f"一括取得失敗 {d}: {e}")
+            d += timedelta(days=1)
+
+        # コードごとにDataFrameに変換してキャッシュ
+        loaded = 0
+        for code, raw in bulk_data.items():
+            df = self._raw_to_df(raw)
+            if not df.empty:
+                self._ohlcv_cache[f"{code}_{days}"] = df
+                self._raw_price_cache[code] = raw  # PreMarketScanner用
+                loaded += 1
+
+        logger.info(f"一括プリロード完了: {loaded}銘柄キャッシュ済み ({len(bulk_data)}銘柄取得)")
+
+    @staticmethod
+    def _raw_to_df(raw: list[dict]) -> pd.DataFrame:
+        """生データをOHLCV DataFrameに変換"""
         if not raw:
             return pd.DataFrame()
-
         df = pd.DataFrame(raw)
-        # Adjusted prices を優先 (重複カラム回避)
         if "AdjO" in df.columns:
             df = df.rename(columns={
                 "AdjO": "open", "AdjH": "high", "AdjL": "low",
@@ -257,11 +282,24 @@ class PaperTrader:
         for col in ["open", "high", "low", "close", "volume"]:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
-        df["Date"] = pd.to_datetime(df["Date"])
-        df = df.sort_values("Date").reset_index(drop=True)
-        # 必要カラムだけ残す (重複カラム回避)
-        df = df[["Date", "open", "high", "low", "close", "volume"]].dropna()
-        self._ohlcv_cache[cache_key] = df
+        if "Date" in df.columns:
+            df["Date"] = pd.to_datetime(df["Date"])
+            df = df.sort_values("Date").reset_index(drop=True)
+            df = df[["Date", "open", "high", "low", "close", "volume"]].dropna()
+        return df
+
+    async def fetch_ohlcv(self, client: JQuantsClient, code: str, days: int = 60) -> pd.DataFrame:
+        """日足OHLCVを取得してDataFrameに変換 (プリロードキャッシュ優先)"""
+        cache_key = f"{code}_{days}"
+        if cache_key in self._ohlcv_cache:
+            return self._ohlcv_cache[cache_key]
+        # キャッシュミス: 個別取得にフォールバック
+        end = date.today()
+        start = end - timedelta(days=days)
+        raw = await client.get_prices_daily(code, start.isoformat(), end.isoformat())
+        df = self._raw_to_df(raw)
+        if not df.empty:
+            self._ohlcv_cache[cache_key] = df
         return df
 
     def _detect_regime(self, df: pd.DataFrame):
@@ -368,8 +406,6 @@ class PaperTrader:
                 logger.debug(f"{code} データ取得失敗: {e}")
                 continue
 
-            await asyncio.sleep(0.5)
-
         # 調整後確信度でソートして上位を実行
         signals.sort(key=lambda x: x[2], reverse=True)
 
@@ -402,11 +438,24 @@ class PaperTrader:
             "take_profit": signal.take_profit,
         }
 
-        logger.info(
-            f"▶ エントリー {format_ticker(signal.ticker)} {signal.direction} "
-            f"@{fill_price:,.0f} x{quantity} [{strategy.name}] "
-            f"理由: {signal.entry_reason}"
+        now = datetime.now()
+        table = (
+            f"\n{'='*62}\n"
+            f"  ENTRY\n"
+            f"{'='*62}\n"
+            f"  {'時刻':<8} | {now:%Y-%m-%d %H:%M:%S}\n"
+            f"  {'銘柄':<8} | {format_ticker(signal.ticker)}\n"
+            f"  {'方向':<8} | {signal.direction}\n"
+            f"  {'約定価格':<6} | {fill_price:>12,.0f} 円\n"
+            f"  {'数量':<8} | {quantity:>12,} 株\n"
+            f"  {'金額':<8} | {fill_price * quantity:>12,.0f} 円\n"
+            f"  {'戦略':<8} | {strategy.name}\n"
+            f"  {'SL':<8} | {signal.stop_loss:>12,.0f} 円\n"
+            f"  {'TP':<8} | {signal.take_profit:>12,.0f} 円\n"
+            f"  {'理由':<8} | {signal.entry_reason}\n"
+            f"{'='*62}"
         )
+        logger.info(table)
 
         await self.db.save_signal_skipped(signal, reason="EXECUTED")
 
@@ -514,13 +563,29 @@ class PaperTrader:
             pos["strategy"].name, ticker, pnl, pnl > 0,
         )
 
-        icon = "+" if pnl > 0 else "-"
-        logger.info(
-            f"[{icon}] 決済 {format_ticker(ticker)} {pos['direction']} "
-            f"@{fill_price:,.0f} 損益={pnl:+,.0f}円 ({pnl_pct:+.1f}%) "
-            f"[{pos['strategy'].name}] 理由: {reason} "
-            f"| 累計: {self.daily_pnl:+,.0f}円 勝率{win_rate:.0%} ({self.trade_count}件)"
+        icon = "WIN" if pnl > 0 else "LOSE"
+        now = datetime.now()
+        table = (
+            f"\n{'='*62}\n"
+            f"  EXIT  [{icon}]\n"
+            f"{'='*62}\n"
+            f"  {'時刻':<8} | {now:%Y-%m-%d %H:%M:%S}\n"
+            f"  {'銘柄':<8} | {format_ticker(ticker)}\n"
+            f"  {'方向':<8} | {pos['direction']}\n"
+            f"  {'参入時刻':<6} | {pos['entry_time']:%Y-%m-%d %H:%M:%S}\n"
+            f"  {'参入価格':<6} | {pos['entry_price']:>12,.0f} 円\n"
+            f"  {'決済価格':<6} | {fill_price:>12,.0f} 円\n"
+            f"  {'数量':<8} | {pos['quantity']:>12,} 株\n"
+            f"  {'損益':<8} | {pnl:>+12,.0f} 円 ({pnl_pct:+.1f}%)\n"
+            f"  {'保有時間':<6} | {holding_min:>12,} 分\n"
+            f"  {'戦略':<8} | {pos['strategy'].name}\n"
+            f"  {'理由':<8} | {reason}\n"
+            f"{'-'*62}\n"
+            f"  {'累計損益':<6} | {self.daily_pnl:>+12,.0f} 円\n"
+            f"  {'勝率':<8} | {win_rate:>11.0%} ({self.trade_count}件)\n"
+            f"{'='*62}"
         )
+        logger.info(table)
 
         # 異常検知チェック
         should_halt, halt_reason = self.safety.check_anomalies(
@@ -772,6 +837,10 @@ class PaperTrader:
                     self._halted = False
                     self._halt_reason = ""
                     self._ohlcv_cache.clear()  # 日次キャッシュクリア
+                    self._raw_price_cache.clear()
+
+                    # 全銘柄日足を一括プリロード (API呼び出し大幅削減)
+                    await self.preload_bulk_prices(client, days=60)
 
                     logger.info("当日ウォッチリスト構築中...")
                     self.watchlist = await self.build_watchlist(client, tdnet_events)
@@ -804,7 +873,6 @@ class PaperTrader:
                             await self.close_position(ticker, current, "大引け強制決済", features)
                         except Exception as e:
                             logger.error(f"強制決済失敗 {ticker}: {e}")
-                        await asyncio.sleep(0.3)
                     continue
 
                 # 通常トレードサイクル
@@ -832,8 +900,7 @@ class PaperTrader:
                         except Exception as e:
                             logger.warning(f"TDnet取得失敗: {e}")
 
-                    # OHLCV 日中キャッシュクリア (最新データを取得するため)
-                    self._ohlcv_cache.clear()
+                    # 日足データは日中不変のためキャッシュ維持 (一括プリロード済み)
 
                     # 新規エントリースキャン
                     await self.scan_and_trade(client, tdnet_events)

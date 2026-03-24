@@ -22,7 +22,7 @@ from loguru import logger
 
 BASE_URL = "https://api.jquants.com/v2"
 
-_DEFAULT_MAX_CONCURRENT = 10
+_DEFAULT_MAX_CONCURRENT = 5
 _DEFAULT_RETRY_COUNT = 3
 _DEFAULT_RETRY_DELAY = 1.0
 _CACHE_DIR = Path("data/cache")
@@ -236,6 +236,40 @@ class JQuantsClient:
         logger.info("Retrieved {} daily price records for {}", len(results), ticker)
         return results
 
+    async def get_prices_daily_bulk(
+        self,
+        date_str: str,
+    ) -> list[dict[str, Any]]:
+        """指定日の全銘柄日足を一括取得する。V2: /equities/bars/daily?date=YYYY-MM-DD
+
+        1回のAPIコールでその日の全銘柄データを取得できるため、
+        個別銘柄ごとのリクエストより大幅に効率的。
+        """
+        params = {"date": date_str}
+        logger.info("Fetching bulk daily prices for date={}", date_str)
+        data = await self._request("GET", "/equities/bars/daily", params=params)
+        results = data.get("data", data.get("bars_daily", data.get("daily_quotes", [])))
+        logger.info("Retrieved {} records for bulk daily (date={})", len(results), date_str)
+        return results
+
+    async def get_prices_daily_range_bulk(
+        self,
+        from_date: str,
+        to_date: str,
+    ) -> list[dict[str, Any]]:
+        """期間指定で全銘柄日足を一括取得する。日ごとにリクエストしてマージ。"""
+        from datetime import datetime, timedelta
+        start = datetime.strptime(from_date, "%Y-%m-%d").date()
+        end = datetime.strptime(to_date, "%Y-%m-%d").date()
+        all_records: list[dict[str, Any]] = []
+        d = start
+        while d <= end:
+            records = await self.get_prices_daily_bulk(d.isoformat())
+            all_records.extend(records)
+            d += timedelta(days=1)
+        logger.info("Bulk range fetch: {} total records ({} to {})", len(all_records), from_date, to_date)
+        return all_records
+
     async def get_prices_intraday(
         self,
         ticker: str,
@@ -306,7 +340,7 @@ class JQuantsClient:
             results = data.get("data", data.get("trading_calendar", []))
         except aiohttp.ClientResponseError as e:
             if e.status in (403, 404):
-                logger.warning("Trading calendar not available (plan restriction). Using empty list.")
+                logger.warning("Trading calendar endpoint error (status={}). Using empty list.", e.status)
                 results = []
             else:
                 raise

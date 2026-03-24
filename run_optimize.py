@@ -142,7 +142,6 @@ class Optimizer:
                             self.tdnet_events.setdefault(d, {})[disc.ticker + "0"] = disc.disclosure_type.value
                     except Exception:
                         pass
-                    await asyncio.sleep(0.3)
                 d += timedelta(days=1)
 
         # J-Quants

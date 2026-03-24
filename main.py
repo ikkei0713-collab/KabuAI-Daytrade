@@ -51,9 +51,20 @@ async def main() -> None:
     # ---- Dispatch by mode ----
     if args.mode == "trade":
         logger.info("Starting trading loop...")
+        from brokers.paper import PaperBroker
         from execution.engine import ExecutionEngine
+        from scanners.score_engine import ScoreEngine
 
-        engine = ExecutionEngine(db=db)
+        broker = PaperBroker()
+        strategies = StrategyRegistry.get_active()
+        score_engine = ScoreEngine()
+
+        engine = ExecutionEngine(
+            broker=broker,
+            db=db,
+            strategies=strategies,
+            score_engine=score_engine,
+        )
         await engine.run_trading_loop()
 
     elif args.mode == "analyze":

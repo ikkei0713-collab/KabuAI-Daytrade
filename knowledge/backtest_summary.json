@@ -1,36 +1,51 @@
 {
-  "date": "2026-03-23T12:19:09.071054",
-  "total_trades": 12,
-  "wins": 9,
-  "losses": 3,
-  "win_rate": 0.75,
-  "profit_factor": 1.15,
-  "total_pnl_cost_adjusted": 9133.0,
-  "total_pnl_raw": 16800.0,
-  "total_cost": 4406.0,
-  "avg_pnl": 761.0,
+  "date": "2026-03-24T11:37:05.245053",
+  "total_trades": 58,
+  "wins": 25,
+  "losses": 33,
+  "win_rate": 0.431,
+  "profit_factor": 0.51,
+  "total_pnl_cost_adjusted": -174346.0,
+  "total_pnl_raw": -137280.0,
+  "total_cost": 22614.0,
+  "avg_pnl": -3006.0,
   "in_sample": {
-    "trades": 10,
-    "win_rate": 0.9,
-    "pf": 12.33,
-    "pnl": 64488.0
+    "trades": 41,
+    "win_rate": 0.415,
+    "pf": 0.25,
+    "pnl": -236147.0
   },
   "out_of_sample": {
-    "trades": 2,
-    "win_rate": 0.0,
-    "pf": 0.0,
-    "pnl": -55355.0
+    "trades": 17,
+    "win_rate": 0.471,
+    "pf": 2.33,
+    "pnl": 61801.0
   },
   "strategy_regime": {
     "vwap_reclaim_range": {
-      "trades": 9,
-      "win_rate": 0.889,
-      "pf": 8.53
+      "trades": 32,
+      "win_rate": 0.406,
+      "pf": 0.21
     },
     "vwap_reclaim_trend_down": {
+      "trades": 4,
+      "win_rate": 0.25,
+      "pf": 0.18
+    },
+    "vwap_reclaim_volatile": {
+      "trades": 5,
+      "win_rate": 0.8,
+      "pf": 17.5
+    },
+    "vwap_reclaim_trend_up": {
+      "trades": 14,
+      "win_rate": 0.357,
+      "pf": 0.96
+    },
+    "vwap_reclaim_low_vol": {
       "trades": 3,
-      "win_rate": 0.333,
-      "pf": 0.39
+      "win_rate": 0.667,
+      "pf": 8.33
     }
   },
   "proxy_summary": {

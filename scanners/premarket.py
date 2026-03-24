@@ -26,7 +26,7 @@ GAP_UP_THRESHOLD_PCT = 2.0      # 2% gap up
 GAP_DOWN_THRESHOLD_PCT = -2.0   # 2% gap down
 VOLUME_SPIKE_RATIO = 2.0        # 平均の2倍以上
 EVENT_LOOKBACK_DAYS = 3         # TDnet events within 3 days
-MAX_WATCHLIST_SIZE = 20          # Maximum tickers in final watchlist
+MAX_WATCHLIST_SIZE = 50          # 有料プラン: 広範囲スクリーニング
 
 
 @dataclass
@@ -58,12 +58,13 @@ class PreMarketScanner:
         self,
         jquants_client: JQuantsClient,
         lookback_days: int = 20,
+        price_cache: Optional[dict[str, list[dict[str, Any]]]] = None,
     ) -> None:
         self._client = jquants_client
         self._lookback_days = lookback_days
-        self._price_cache: dict[str, list[dict[str, Any]]] = {}
-        # J-Quants 無料プランのレートリミット対策
-        self._api_semaphore = asyncio.Semaphore(2)  # 同時2リクエストまで
+        self._price_cache: dict[str, list[dict[str, Any]]] = price_cache or {}
+        # 個別API呼び出し用: 同時2リクエスト + sleep で429回避
+        self._api_semaphore = asyncio.Semaphore(2)
 
     # ------------------------------------------------------------------
     # Public scanning methods
@@ -167,7 +168,7 @@ class PreMarketScanner:
                     statements = await self._client.get_financial_statements(
                         ticker, report_date=ref.isoformat(),
                     )
-                    await asyncio.sleep(0.3)  # レートリミット対策
+                    await asyncio.sleep(0.5)  # 財務API throttle
             except Exception as e:
                 logger.debug("Failed to fetch statements for {}: {}", ticker, e)
                 continue
@@ -315,11 +316,12 @@ class PreMarketScanner:
             "PreMarketScanner: generating combined watchlist from {} tickers", len(tickers),
         )
 
-        # Run scans sequentially to avoid J-Quants rate limit explosion
-        # gap → volume (shares price cache) → events (separate endpoint)
+        # gap・volume はキャッシュ済みデータで全銘柄スキャン可
+        # events は個別APIのため上位100銘柄に限定して429回避
         gap_results = await self.scan_gaps(tickers, ref)
         volume_results = await self.scan_volume(tickers, ref)  # price cache hit
-        event_results = await self.scan_events(tickers, ref)
+        event_tickers = tickers[:100]  # 財務API呼び出しを上位100に限定
+        event_results = await self.scan_events(event_tickers, ref)
 
         # Merge results by ticker, combining scores and reasons
         ticker_map: dict[str, ScanResult] = {}
@@ -394,7 +396,6 @@ class PreMarketScanner:
                 except Exception as e:
                     logger.warning("Failed to fetch prices for {}: {}", ticker, e)
                     self._price_cache[ticker] = []
-                await asyncio.sleep(0.3)  # レートリミット対策
         return self._price_cache[ticker]
 
     @staticmethod

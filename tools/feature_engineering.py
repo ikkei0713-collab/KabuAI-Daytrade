@@ -9,11 +9,15 @@ so there is no hard dependency on external TA libraries.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime, time, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
 from loguru import logger
+
+JST = ZoneInfo("Asia/Tokyo")
 
 
 @dataclass
@@ -57,11 +61,19 @@ class FeatureEngineer:
     # Top-level entry point
     # ------------------------------------------------------------------
 
-    def calculate_all_features(self, ohlcv: pd.DataFrame) -> dict[str, Any]:
+    def calculate_all_features(
+        self,
+        ohlcv: pd.DataFrame,
+        *,
+        clock: datetime | None = None,
+        intraday_ohlcv: pd.DataFrame | None = None,
+    ) -> dict[str, Any]:
         """Compute every feature category and return a flat dict.
 
         Args:
             ohlcv: DataFrame with columns open/high/low/close/volume.
+            clock: 評価時刻 (JST)。後場 PM 特徴量に使用。省略時は PM 時間帯フラグは False 寄り。
+            intraday_ohlcv: 当日分足 (優先)。列は DateTime または Time + OHLCV。
 
         Returns:
             A flat ``{feature_name: value}`` dictionary suitable for
@@ -138,6 +150,12 @@ class FeatureEngineer:
         out.setdefault("news_sentiment", 0.0)
         out.setdefault("price_acceleration", 0.0)
         out.setdefault("historical_catalyst_response", 0.0)
+
+        # 後場 PM-VWAP 系 (intraday 優先、無い場合は日足ベース proxy)
+        pm_extra = self._compute_pm_session_features(
+            df, clock=clock, intraday_df=intraday_ohlcv
+        )
+        out.update(pm_extra)
 
         # Proxy feature metadata: 各特徴量が proxy (擬似) か real かを記録
         out["_proxy_features"] = self.get_proxy_features()
@@ -275,6 +293,267 @@ class FeatureEngineer:
             if k in self.PROXY_FEATURES:
                 proxy_count += 1
         return round(proxy_count / max(total, 1), 3)
+
+    # ------------------------------------------------------------------
+    # 後場 PM-VWAP reclaim 特徴量
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def intraday_records_to_df(records: list[dict]) -> pd.DataFrame:
+        """J-Quants 等の intraday レコードを正規化 DataFrame に変換する."""
+        if not records:
+            return pd.DataFrame()
+        raw = pd.DataFrame(records)
+        cols = {c.lower(): c for c in raw.columns}
+        # 時刻列
+        ts_col = None
+        for key in ("datetime", "date_time"):
+            if key in cols:
+                ts_col = cols[key]
+                break
+        if ts_col is None and "date" in cols and "time" in cols:
+            raw["_ts"] = pd.to_datetime(
+                raw[cols["date"]].astype(str) + " " + raw[cols["time"]].astype(str),
+                errors="coerce",
+            )
+            ts_col = "_ts"
+        elif "date" in cols and "time" not in cols:
+            ts_col = cols["date"]
+        if ts_col is None:
+            for c in raw.columns:
+                if "time" in c.lower() or c.lower() == "date":
+                    ts_col = c
+                    break
+        if ts_col is None:
+            return pd.DataFrame()
+        df = raw.copy()
+        df["ts"] = pd.to_datetime(df[ts_col], errors="coerce")
+        df = df.dropna(subset=["ts"])
+        # OHLCV
+        rename = {}
+        for src, dst in {
+            "open": "open", "o": "open", "adjopen": "open",
+            "high": "high", "h": "high", "adjhigh": "high",
+            "low": "low", "l": "low", "adjlow": "low",
+            "close": "close", "c": "close", "adjclose": "close",
+            "volume": "volume", "vo": "volume", "adjvo": "volume", "vol": "volume",
+        }.items():
+            for col in raw.columns:
+                if col.lower() == src.lower():
+                    rename[col] = dst
+                    break
+        df = df.rename(columns=rename)
+        need = {"open", "high", "low", "close", "volume"}
+        if not need.issubset(set(c.lower() for c in df.columns)):
+            # 列名がそのままの場合
+            for c in list(df.columns):
+                cl = c.lower()
+                if cl in need:
+                    df.rename(columns={c: cl}, inplace=True)
+        for c in ("open", "high", "low", "close", "volume"):
+            if c in df.columns:
+                df[c] = pd.to_numeric(df[c], errors="coerce")
+        df = df.dropna(subset=["open", "high", "low", "close", "volume"])
+        df = df.sort_values("ts").reset_index(drop=True)
+        return df[["ts", "open", "high", "low", "close", "volume"]]
+
+    def _parse_hhmm(self, s: str) -> tuple[int, int]:
+        parts = s.strip().split(":")
+        return int(parts[0]), int(parts[1])
+
+    def _normalize_intraday_dataframe(
+        self, raw: pd.DataFrame | list[dict]
+    ) -> pd.DataFrame | None:
+        """intraday を ts + OHLCV に正規化。失敗時は None。"""
+        if isinstance(raw, list):
+            return self.intraday_records_to_df(raw)
+        idf = raw.copy()
+        if "ts" not in idf.columns:
+            for cand in ("DateTime", "datetime", "Date"):
+                if cand in idf.columns:
+                    idf["ts"] = pd.to_datetime(idf[cand], errors="coerce")
+                    break
+        if "ts" not in idf.columns or idf["ts"].isna().all():
+            rec = idf.to_dict("records")
+            return self.intraday_records_to_df(rec)
+        idf = idf.sort_values("ts").dropna(subset=["ts"])
+        colmap = {}
+        for c in idf.columns:
+            cl = c.lower()
+            if cl in ("open", "high", "low", "close", "volume"):
+                colmap[c] = cl
+        idf = idf.rename(columns=colmap)
+        for c in ("open", "high", "low", "close", "volume"):
+            if c not in idf.columns:
+                return None
+            idf[c] = pd.to_numeric(idf[c], errors="coerce")
+        idf = idf.dropna(subset=["open", "high", "low", "close", "volume"])
+        if idf.empty:
+            return None
+        return idf[["ts", "open", "high", "low", "close", "volume"]].reset_index(drop=True)
+
+    def _compute_pm_session_features(
+        self,
+        df: pd.DataFrame,
+        *,
+        clock: datetime | None,
+        intraday_df: pd.DataFrame | None,
+    ) -> dict[str, Any]:
+        from core.config import settings
+
+        out: dict[str, Any] = {}
+        last_close = float(df["close"].iloc[-1])
+        last_vol = float(df["volume"].iloc[-1])
+        vol_ma20 = float(df["volume"].tail(20).mean()) if len(df) >= 20 else last_vol
+
+        # 時計 (JST)
+        if clock is not None:
+            if clock.tzinfo is None:
+                ck = clock.replace(tzinfo=JST)
+            else:
+                ck = clock.astimezone(JST)
+        else:
+            ck = None
+
+        pm_sh, pm_sm = self._parse_hhmm(settings.PM_SESSION_START)
+        fx_h, fx_m = self._parse_hhmm(settings.PM_FORCE_EXIT)
+
+        pm_session_active = False
+        pm_minutes_from_open = 0.0
+        pm_force_exit_near = False
+
+        if ck is not None:
+            d = ck.date()
+            pm_start = datetime(d.year, d.month, d.day, pm_sh, pm_sm, tzinfo=JST)
+            pm_force = datetime(d.year, d.month, d.day, fx_h, fx_m, tzinfo=JST)
+            mclose = datetime(d.year, d.month, d.day, 15, 30, tzinfo=JST)
+            pm_session_active = pm_start <= ck <= mclose
+            pm_minutes_from_open = max(0.0, (ck - pm_start).total_seconds() / 60.0)
+            # 強制決済 15 分前から「引け近い」
+            pm_force_exit_near = ck >= pm_force - timedelta(minutes=15)
+
+        pm_intraday_is_proxy = True
+        pm_vwap = float("nan")
+        pm_price_to_vwap_pct = 0.0
+        pm_vwap_reclaim_flag = False
+        pm_vwap_hold_count = 0
+        pm_relative_volume = 1.0
+        pm_turnover = 0.0
+        pm_break_above_lunch_reference = False
+        pm_intraday_quality_score = 0.35
+        pm_low_price_bonus = 0.0
+        pm_spread_ok = True
+        pm_vwap_slope = 0.0
+        lunch_ref = float("nan")
+
+        idf = self._normalize_intraday_dataframe(intraday_df) if intraday_df is not None else None
+
+        if idf is not None and len(idf) >= 2:
+            idf = idf.sort_values("ts").reset_index(drop=True)
+            ts0 = idf["ts"].iloc[0]
+            day0 = ts0.date() if hasattr(ts0, "date") else pd.Timestamp(ts0).date()
+            pm_start_dt = datetime(day0.year, day0.month, day0.day, pm_sh, pm_sm, tzinfo=JST)
+            if idf["ts"].iloc[0].tzinfo is None:
+                idf = idf.copy()
+                idf["ts"] = pd.to_datetime(idf["ts"]).dt.tz_localize(
+                    JST, ambiguous="infer", nonexistent="shift_forward"
+                )
+            pm_mask = idf["ts"] >= pm_start_dt
+            pm_bars = idf.loc[pm_mask].reset_index(drop=True)
+            if len(pm_bars) >= 2:
+                pm_intraday_is_proxy = False
+                typ = (pm_bars["high"] + pm_bars["low"] + pm_bars["close"]) / 3.0
+                cv = (typ * pm_bars["volume"]).cumsum()
+                vv = pm_bars["volume"].cumsum()
+                pm_vwap_series = cv / vv.replace(0, np.nan)
+                pm_vwap = float(pm_vwap_series.iloc[-1])
+                last_pm_close = float(pm_bars["close"].iloc[-1])
+                pm_price_to_vwap_pct = (
+                    (last_pm_close - pm_vwap) / pm_vwap * 100.0 if pm_vwap > 0 else 0.0
+                )
+                prev_c = pm_bars["close"].shift(1)
+                prev_v = pm_vwap_series.shift(1)
+                reclaim = (prev_c < prev_v) & (pm_bars["close"] >= pm_vwap_series)
+                pm_vwap_reclaim_flag = bool(reclaim.fillna(False).any())
+                hold = 0
+                for i in range(len(pm_bars) - 1, -1, -1):
+                    if float(pm_bars["close"].iloc[i]) >= float(pm_vwap_series.iloc[i]):
+                        hold += 1
+                    else:
+                        break
+                pm_vwap_hold_count = hold
+                pm_vol_sum = float(pm_bars["volume"].sum())
+                baseline = max(vol_ma20 * settings.PM_EXPECTED_PM_VOLUME_FRACTION, 1.0)
+                pm_relative_volume = pm_vol_sum / baseline
+                pm_turnover = float((pm_bars["close"] * pm_bars["volume"]).sum())
+                am_bars = idf.loc[idf["ts"] < pm_start_dt]
+                if not am_bars.empty:
+                    lunch_ref = float(am_bars["high"].max())
+                    pm_break_above_lunch_reference = last_pm_close > lunch_ref
+                else:
+                    lunch_ref = float(idf["close"].iloc[0])
+                    pm_break_above_lunch_reference = last_pm_close > lunch_ref
+                n = len(pm_bars)
+                pm_intraday_quality_score = min(1.0, 0.35 + 0.05 * n + (0.15 if n >= 8 else 0.0))
+                if len(pm_vwap_series) >= 3:
+                    vs = pm_vwap_series.iloc[-3:].values
+                    pm_vwap_slope = float((vs[-1] - vs[0]) / max(last_pm_close, 1.0))
+                atr_est = float(df["close"].iloc[-1]) * 0.01
+                pm_spread_ok = atr_est < last_pm_close * 0.02
+            else:
+                pm_intraday_is_proxy = True
+
+        # --- 日足 proxy (intraday 無し or 不足) ---
+        if pm_intraday_is_proxy or np.isnan(pm_vwap):
+            typical = (df["high"] + df["low"] + df["close"]) / 3.0
+            cv = (typical * df["volume"]).cumsum()
+            vv = df["volume"].cumsum()
+            day_vwap = float(cv.iloc[-1] / max(vv.iloc[-1], 1e-9))
+            pm_vwap = day_vwap
+            pm_price_to_vwap_pct = (last_close - pm_vwap) / pm_vwap * 100.0 if pm_vwap > 0 else 0.0
+            # 単純 proxy: 始値が VWAP 下で終値が上
+            o0 = float(df["open"].iloc[-1])
+            if o0 < pm_vwap and last_close >= pm_vwap * 1.0001:
+                pm_vwap_reclaim_flag = True
+                pm_vwap_hold_count = max(pm_vwap_hold_count, 1)
+            pm_relative_volume = last_vol / max(vol_ma20 * settings.PM_EXPECTED_PM_VOLUME_FRACTION, 1.0)
+            pm_turnover = last_close * last_vol
+            prev_high = float(df["high"].iloc[-2]) if len(df) >= 2 else float(df["high"].iloc[-1])
+            lunch_ref = prev_high
+            pm_break_above_lunch_reference = last_close > prev_high
+            pm_intraday_quality_score = 0.35
+            pm_vwap_slope = 0.0
+            pm_intraday_is_proxy = True
+
+        # 低位株 bonus (任意)
+        if settings.LOW_PRICE_BONUS_ENABLED:
+            if settings.LOW_PRICE_BONUS_MIN <= last_close <= settings.LOW_PRICE_BONUS_MAX:
+                pm_low_price_bonus = min(
+                    settings.PM_LOW_PRICE_BONUS_MAX,
+                    settings.LOW_PRICE_BONUS_WEIGHT,
+                )
+
+        pm_vwap_out = float(last_close) if (isinstance(pm_vwap, float) and np.isnan(pm_vwap)) else float(pm_vwap)
+
+        out.update({
+            "pm_session_active": pm_session_active,
+            "pm_minutes_from_open": round(pm_minutes_from_open, 2),
+            "pm_vwap": pm_vwap_out,
+            "pm_price_to_vwap_pct": round(pm_price_to_vwap_pct, 4),
+            "pm_vwap_reclaim_flag": bool(pm_vwap_reclaim_flag),
+            "pm_vwap_hold_count": int(pm_vwap_hold_count),
+            "pm_relative_volume": round(pm_relative_volume, 4),
+            "pm_turnover": round(pm_turnover, 2),
+            "pm_break_above_lunch_reference": bool(pm_break_above_lunch_reference),
+            "pm_intraday_quality_score": round(pm_intraday_quality_score, 4),
+            "pm_low_price_bonus": round(pm_low_price_bonus, 4),
+            "pm_spread_ok": bool(pm_spread_ok),
+            "pm_force_exit_near": bool(pm_force_exit_near),
+            "pm_intraday_is_proxy": bool(pm_intraday_is_proxy),
+            "pm_vwap_slope": round(pm_vwap_slope, 6),
+            "pm_lunch_reference_price": float(lunch_ref) if not np.isnan(lunch_ref) else last_close,
+        })
+        return out
 
     # ------------------------------------------------------------------
     # Convergence / compression features (v3.3)

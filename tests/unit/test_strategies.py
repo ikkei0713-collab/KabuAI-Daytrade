@@ -492,37 +492,31 @@ class TestPositionSizing:
     def test_basic_position_size(
         self, momentum_strategy: MockMomentumStrategy
     ) -> None:
-        # price=2500, atr=50, capital=3M
-        # risk = 3M * 0.01 = 30,000
-        # shares = 30,000 / (50 * 2) = 300
-        # rounded to 100-unit = 300
+        # BaseStrategy: 1株単位、max_notional = min(capital, 30_000)
         shares = momentum_strategy.calculate_position_size(2500.0, 50.0, 3_000_000)
-        assert shares % 100 == 0  # must be 100-unit multiple
-        assert shares >= 100  # minimum trading unit
-        assert shares * 2500 <= 500_000  # hard cap
+        assert shares >= 1
+        assert shares * 2500 <= 30_000
 
     def test_minimum_unit(
         self, momentum_strategy: MockMomentumStrategy
     ) -> None:
-        """Even with tiny capital, minimum is 100 shares."""
+        """単元株ではなく 1 株単位の最小。"""
         shares = momentum_strategy.calculate_position_size(5000.0, 200.0, 100_000)
-        assert shares == 100
+        assert shares == 6
 
     def test_max_notional_cap(
         self, momentum_strategy: MockMomentumStrategy
     ) -> None:
-        """Position capped at 500,000 JPY notional."""
-        # With very low ATR (tight stop), shares would be huge without cap
+        """名義金額は 30,000 円上限付近で打ち切り。"""
         shares = momentum_strategy.calculate_position_size(1000.0, 5.0, 10_000_000)
-        assert shares * 1000 <= 500_000
+        assert shares * 1000 <= 30_000
 
     def test_high_price_stock(
         self, momentum_strategy: MockMomentumStrategy
     ) -> None:
-        """Expensive stock (like Keyence ~60,000 JPY)."""
+        """高値株は max_shares = int(max_notional/price) で株数が抑えられる。"""
         shares = momentum_strategy.calculate_position_size(60000.0, 1200.0, 3_000_000)
-        assert shares == 100  # can only afford 100 shares
-        assert shares * 60000 <= 6_000_000  # within capital
+        assert shares == 1
 
 
 # ------------------------------------------------------------------

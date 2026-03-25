@@ -14,6 +14,8 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
+from core.config import settings
+
 
 @dataclass
 class StockScore:
@@ -31,6 +33,8 @@ class StockScore:
     excluded: bool = False
     exclude_reason: str = ""
     score_breakdown: dict = field(default_factory=dict)
+    pm_setup_bonus: float = 0.0
+    low_price_bonus_applied: float = 0.0
 
 
 class StockSelector:
@@ -168,9 +172,59 @@ class StockSelector:
             score.score_breakdown[k] * self.WEIGHTS[k]
             for k in self.WEIGHTS
         )
-        score.total_score = round(score.total_score, 4)
+        # 後場セットアップ加点（流動性・出来高主軸、低位株は bonus のみ）
+        pm_bonus, lp_bonus = self._pm_watchlist_bonus(
+            df, close_col, close, score, has_event
+        )
+        score.pm_setup_bonus = round(pm_bonus, 4)
+        score.low_price_bonus_applied = round(lp_bonus, 4)
+        score.total_score = round(min(1.0, score.total_score + pm_bonus + lp_bonus), 4)
 
         return score
+
+    def _pm_watchlist_bonus(
+        self,
+        df: pd.DataFrame,
+        close_col: str,
+        close: float,
+        score: StockScore,
+        has_event: bool,
+    ) -> tuple[float, float]:
+        """後場 PM 候補の軽い加点。低流動性は illiquidity で打ち消し。"""
+        pm = 0.0
+        lp = 0.0
+        if score.liquidity_tier == "C":
+            return 0.0, 0.0
+
+        vol_col = "volume" if "volume" in df.columns else "Volume"
+        high_col = "high" if "high" in df.columns else "High"
+        low_col = "low" if "low" in df.columns else "Low"
+
+        typical = (df[high_col] + df[low_col] + df[close_col]) / 3.0
+        vv = float(df[vol_col].sum())
+        vwap_day = float((typical * df[vol_col]).sum() / max(vv, 1e-9))
+        near_vwap = abs(close - vwap_day) / max(vwap_day, 1e-9) < 0.025
+
+        if score.relative_volume >= 1.5 and score.turnover >= settings.PM_TURNOVER_THRESHOLD * 0.5:
+            pm += settings.PM_SETUP_WEIGHT * 0.55
+        if near_vwap and score.relative_volume >= 1.3:
+            pm += settings.PM_SETUP_WEIGHT * 0.35
+        if has_event:
+            pm += settings.PM_SETUP_WEIGHT * 0.25
+        pm = min(settings.PM_SETUP_WEIGHT, pm)
+
+        if settings.LOW_PRICE_BONUS_ENABLED:
+            if settings.LOW_PRICE_BONUS_MIN <= close <= settings.LOW_PRICE_BONUS_MAX:
+                lp = min(settings.LOW_PRICE_BONUS_WEIGHT, settings.PM_LOW_PRICE_BONUS_MAX)
+
+        if score.liquidity_tier == "B":
+            pm *= 0.85
+        return pm, lp
+</think>
+
+
+<｜tool▁calls▁begin｜><｜tool▁call▁begin｜>
+Read
 
     @staticmethod
     def _calc_convergence_score(df: pd.DataFrame, close_col: str,

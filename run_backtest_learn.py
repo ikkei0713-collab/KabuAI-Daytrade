@@ -9,7 +9,8 @@
 import asyncio
 import json
 import sys
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 import numpy as np
@@ -103,7 +104,7 @@ CANDIDATE_CODES = [
     "94320",  # NTT
 ]
 
-DEFAULT_CAPITAL = 10_000_000  # 1000万円
+DEFAULT_CAPITAL = 30_000  # 3万円 (目標: 月利100%)
 
 
 def _clean_features(features: dict) -> dict:
@@ -317,7 +318,8 @@ class BacktestLearner:
             next_mask = full_df["Date"].dt.date > sim_date
             next_rows = full_df[next_mask]
 
-            features = self.fe.calculate_all_features(df)
+            bt_clock = datetime.combine(sim_date, time(13, 15)).replace(tzinfo=ZoneInfo("Asia/Tokyo"))
+            features = self.fe.calculate_all_features(df, clock=bt_clock)
             current_close = float(df["close"].iloc[-1])
             features["current_price"] = current_close
 

@@ -317,11 +317,13 @@ class PreMarketScanner:
         )
 
         # gap・volume はキャッシュ済みデータで全銘柄スキャン可
-        # events は個別APIのため上位100銘柄に限定して429回避
+        # events は個別APIのため gap/volume で検出された銘柄のみに限定
         gap_results = await self.scan_gaps(tickers, ref)
         volume_results = await self.scan_volume(tickers, ref)  # price cache hit
-        event_tickers = tickers[:100]  # 財務API呼び出しを上位100に限定
-        event_results = await self.scan_events(event_tickers, ref)
+        # gap/volumeで検出された銘柄のみeventスキャン (API節約)
+        detected_tickers = list({r.ticker for r in gap_results + volume_results})
+        logger.info("Events scan: gap/volume検出 {}銘柄のみスキャン", len(detected_tickers))
+        event_results = await self.scan_events(detected_tickers, ref)
 
         # Merge results by ticker, combining scores and reasons
         ticker_map: dict[str, ScanResult] = {}

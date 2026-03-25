@@ -55,6 +55,51 @@ class TrendFollowStrategy(BaseStrategy):
         return False, "none", 0.0
 
     @staticmethod
+    def pm_trend_filter(features: dict) -> tuple[bool, str]:
+        """後場 PM-VWAP reclaim 用フィルタ（単独エントリーには使わない）。
+
+        EMA9>EMA21, 終値>日次VWAP, trend_strength / volume_trend 閾値、
+        価格>PM-VWAP、PM-VWAP 下落傾きすぎを拒否、地合い極端悪化を軽く拒否。
+        """
+        from core.config import settings
+
+        ema_9 = float(features.get("ema_9") or 0)
+        ema_21 = float(features.get("ema_21") or 0)
+        vwap = float(features.get("vwap") or 0)
+        close = float(
+            features.get("current_price")
+            or features.get("close")
+            or features.get("last_close")
+            or 0
+        )
+        trend_str = float(features.get("trend_strength") or 0)
+        vol_trend = float(features.get("volume_trend") or 1.0)
+        pm_vwap = float(features.get("pm_vwap") or 0)
+
+        buf = max(ema_9 * 0.0005, 0.01)
+        if ema_9 <= ema_21 + buf:
+            return False, "ema9_not_above_ema21"
+        if vwap > 0 and close <= vwap + buf * 0.1:
+            return False, "close_not_above_vwap"
+        if abs(trend_str) <= 0.45:
+            return False, "trend_strength_low"
+        if vol_trend <= 1.2:
+            return False, "volume_trend_low"
+        if pm_vwap > 0 and close <= pm_vwap + buf * 0.1:
+            return False, "close_not_above_pm_vwap"
+        slope = float(features.get("pm_vwap_slope") or 0)
+        if slope < -settings.PM_VWAP_SLOPE_MAX_NEG:
+            return False, "pm_vwap_slope_down"
+        regime_result = features.get("regime_result")
+        if regime_result is not None:
+            if (
+                getattr(regime_result, "regime", "") == "trend_down"
+                and float(getattr(regime_result, "confidence", 0) or 0) > 0.55
+            ):
+                return False, "regime_trend_down"
+        return True, "ok"
+
+    @staticmethod
     def convergence_filter(features: dict) -> tuple[bool, float, str]:
         """収束フィルタ: 拡散飛び乗りを拒否し、収束後のみ許可する.
 

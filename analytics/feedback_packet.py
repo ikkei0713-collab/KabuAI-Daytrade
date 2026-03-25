@@ -215,8 +215,11 @@ class FeedbackPacketGenerator:
         # Anomaly summary
         anomaly = self._anomaly_summary()
 
+        # 後場 PM-VWAP reclaim 分析（recommendation_hints より先に計算）
+        pm_session_analysis = self._pm_session_analysis()
+
         # Recommendation hints
-        hints = self._recommendation_hints(strategy_metrics, m_all, m_is, m_oos)
+        hints = self._recommendation_hints(strategy_metrics, m_all, m_is, m_oos, pm_session_analysis)
 
         # Confidence vs PnL data
         conf_pnl = []
@@ -269,6 +272,7 @@ class FeedbackPacketGenerator:
             "ic_icir": ic_icir,
             "net_exposure": net_exposure,
             "convergence_analysis": convergence_analysis,
+            "pm_session_analysis": pm_session_analysis,
             "anomaly_summary": anomaly,
             "recommendation_hints": hints,
             "plot_paths": plot_paths,
@@ -335,6 +339,8 @@ class FeedbackPacketGenerator:
             "range_compression_score", "volatility_compression_score",
             "extension_from_ma_score", "price_ma_cluster_score",
             "pullback_to_ma_score",
+            "pm_relative_volume", "pm_turnover", "pm_intraday_quality_score",
+            "pm_vwap_hold_count", "pm_low_price_bonus",
         }
 
         for t in self.all_trades:
@@ -569,6 +575,110 @@ class FeedbackPacketGenerator:
             "squeeze_breakout_metrics": _group_metrics(squeeze_trades),
         }
 
+    def _pm_session_analysis(self) -> dict:
+        """後場 PM-VWAP reclaim 関連の成績・分布。"""
+        if not self.all_trades:
+            return {}
+
+        def _is_pm_reclaim(t) -> bool:
+            fe = t.features_at_entry or {}
+            if fe.get("_pm_vwap_reclaim"):
+                return True
+            return "PM-VWAP" in (t.entry_reason or "")
+
+        def _has_event(t) -> bool:
+            fe = t.features_at_entry or {}
+            et = fe.get("event_type", "")
+            return bool(et and str(et) not in ("", "0"))
+
+        def _relvol_spike(t) -> bool:
+            fe = t.features_at_entry or {}
+            return float(fe.get("pm_relative_volume") or 0) >= 1.8
+
+        pm_trades = [t for t in self.all_trades if _is_pm_reclaim(t)]
+        vr_pf = _calc(pm_trades)
+        with_ev = [t for t in pm_trades if _has_event(t)]
+        without_ev = [t for t in pm_trades if not _has_event(t)]
+        rv_on = [t for t in pm_trades if _relvol_spike(t)]
+        rv_off = [t for t in pm_trades if not _relvol_spike(t)]
+
+        oos_pm = [t for t in self.oos_trades if _is_pm_reclaim(t)]
+
+        low_bonus_wins = 0
+        low_bonus_total = 0
+        for t in self.all_trades:
+            fe = t.features_at_entry or {}
+            b = float(fe.get("pm_low_price_bonus") or 0)
+            if b > 0:
+                low_bonus_total += 1
+                if t.pnl > 0:
+                    low_bonus_wins += 1
+
+        iq_vals: list[float] = []
+        for t in self.all_trades:
+            fe = t.features_at_entry or {}
+            q = fe.get("pm_intraday_quality_score")
+            if q is not None:
+                try:
+                    iq_vals.append(float(q))
+                except (TypeError, ValueError):
+                    pass
+
+        non_pm = [t for t in self.all_trades if not _is_pm_reclaim(t)]
+
+        def _entry_after_13(t) -> bool:
+            fe = t.features_at_entry or {}
+            return float(fe.get("pm_minutes_from_open") or 0) >= 30.0
+
+        after13 = [t for t in self.all_trades if _entry_after_13(t)]
+        before13 = [t for t in self.all_trades if not _entry_after_13(t)]
+
+        sym_pnl: dict[str, list] = {}
+        for t in pm_trades:
+            sym_pnl.setdefault(t.ticker, []).append(t.pnl)
+
+        strongest = sorted(
+            sym_pnl.keys(),
+            key=lambda s: sum(sym_pnl[s]),
+            reverse=True,
+        )[:5]
+        weakest = sorted(sym_pnl.keys(), key=lambda s: sum(sym_pnl[s]))[:5]
+
+        return {
+            "pm_vwap_reclaim_trades": vr_pf["total"],
+            "pm_vwap_reclaim_win_rate": vr_pf["win_rate"],
+            "pm_vwap_reclaim_pf": vr_pf["pf"],
+            "pm_vwap_reclaim_avg_pnl": vr_pf["avg"],
+            "pm_vwap_reclaim_oos_pf": _calc(oos_pm)["pf"] if oos_pm else 0,
+            "pm_reclaim_with_event_vs_without_event": {
+                "with_event": _calc(with_ev),
+                "without_event": _calc(without_ev),
+            },
+            "pm_reclaim_with_relvol_spike_vs_without": {
+                "relvol_ge_1_8": _calc(rv_on),
+                "relvol_lt_1_8": _calc(rv_off),
+            },
+            "low_price_bonus_applied_count": low_bonus_total,
+            "low_price_bonus_applied_win_rate": round(
+                low_bonus_wins / low_bonus_total, 3
+            ) if low_bonus_total else 0,
+            "pm_intraday_quality_distribution": {
+                "n": len(iq_vals),
+                "mean": round(float(np.mean(iq_vals)), 4) if iq_vals else None,
+                "p50": round(float(np.percentile(iq_vals, 50)), 4) if iq_vals else None,
+            },
+            "pm_reclaim_vs_non_reclaim": {
+                "pm_reclaim": _calc(pm_trades),
+                "non_pm": _calc(non_pm),
+            },
+            "session_split_13h": {
+                "after_pm_entry_window": _calc(after13),
+                "before_pm_entry_window": _calc(before13),
+            },
+            "strongest_pm_symbols": strongest,
+            "weakest_pm_symbols": weakest,
+        }
+
     # ------------------------------------------------------------------
     # Anomaly summary
     # ------------------------------------------------------------------
@@ -607,7 +717,12 @@ class FeedbackPacketGenerator:
     # ------------------------------------------------------------------
 
     def _recommendation_hints(
-        self, strategy_metrics: list, m_all: dict, m_is: dict, m_oos: dict,
+        self,
+        strategy_metrics: list,
+        m_all: dict,
+        m_is: dict,
+        m_oos: dict,
+        pm_analysis: dict | None = None,
     ) -> dict:
         weak = []
         strong = []
@@ -641,7 +756,20 @@ class FeedbackPacketGenerator:
                 convergence_helped = True
             expansion_loss_rate = round(1.0 - conv_exp.get("win_rate", 0), 3)
 
-        return {
+        pm = pm_analysis or {}
+        pm_helped = None
+        if pm.get("pm_reclaim_vs_non_reclaim"):
+            pr = pm["pm_reclaim_vs_non_reclaim"].get("pm_reclaim", {})
+            nr = pm["pm_reclaim_vs_non_reclaim"].get("non_pm", {})
+            if pr.get("total", 0) >= 3 and nr.get("total", 0) >= 3:
+                pm_helped = pr.get("pf", 0) > nr.get("pf", 0)
+
+        lp_help = None
+        if pm.get("low_price_bonus_applied_count", 0) >= 5:
+            wr = pm.get("low_price_bonus_applied_win_rate", 0)
+            lp_helped = wr >= 0.45
+
+        hints_dict = {
             "weakest_strategies": weak,
             "strongest_strategies": strong,
             "overfitting_signals": overfitting,
@@ -654,7 +782,12 @@ class FeedbackPacketGenerator:
                 "OOS PF > IS PF の場合はサンプルサイズ不足の可能性",
                 "収束系特徴量は日足から直接計算 (proxy ではない) だが intraday 精度は限定的",
             ],
+            "pm_vwap_reclaim_helped": pm_helped,
+            "low_price_bonus_helped_or_hurt": lp_help,
+            "best_pm_rel_volume_threshold_candidates": [1.6, 1.8, 2.0],
+            "best_pm_hold_count_candidates": [2, 3],
         }
+        return hints_dict
 
     # ------------------------------------------------------------------
     # Markdown builder
@@ -791,6 +924,21 @@ class FeedbackPacketGenerator:
                 lines.append("- **収束フィルタは有効** (収束後 PF > 拡散 PF)")
             if hints.get("expansion_chasing_loss_rate", 0) > 0.5:
                 lines.append(f"- 拡散飛び乗り損失率: {hints['expansion_chasing_loss_rate']:.0%}")
+
+        pm = packet.get("pm_session_analysis") or {}
+        if pm:
+            lines += [
+                "",
+                "## 後場 PM-VWAP reclaim",
+                f"- PM reclaim トレード数: {pm.get('pm_vwap_reclaim_trades', 0)}",
+                f"- PM reclaim PF: {pm.get('pm_vwap_reclaim_pf', 0):.2f}",
+                f"- OOS PM PF: {pm.get('pm_vwap_reclaim_oos_pf', 0):.2f}",
+                f"- 低位株 bonus 適用: {pm.get('low_price_bonus_applied_count', 0)}件",
+            ]
+            if hints.get("pm_vwap_reclaim_helped") is True:
+                lines.append("- **PM-VWAP reclaim は非PM より PF が高い傾向**")
+            elif hints.get("pm_vwap_reclaim_helped") is False:
+                lines.append("- PM-VWAP reclaim は要モニタ（PF比較）")
 
         lines += [
             "",

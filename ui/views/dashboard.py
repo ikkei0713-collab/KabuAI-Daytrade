@@ -230,6 +230,26 @@ def render():
         if feedback_packet_path.exists():
             try:
                 fb_packet = json.loads(feedback_packet_path.read_text())
+                pm_a = fb_packet.get("pm_session_analysis") or {}
+                if pm_a:
+                    with st.expander("後場 PM-VWAP 成績要約"):
+                        p1, p2, p3 = st.columns(3)
+                        with p1:
+                            st.metric(
+                                "PM reclaim 件数",
+                                f"{pm_a.get('pm_vwap_reclaim_trades', 0)}",
+                                f"PF {pm_a.get('pm_vwap_reclaim_pf', 0):.2f}",
+                            )
+                        with p2:
+                            st.metric(
+                                "OOS PM PF",
+                                f"{pm_a.get('pm_vwap_reclaim_oos_pf', 0):.2f}",
+                            )
+                        with p3:
+                            st.caption(
+                                "最強シンボル: "
+                                + ", ".join(pm_a.get("strongest_pm_symbols") or [])[:80]
+                            )
                 conv = fb_packet.get("convergence_analysis", {})
                 if conv:
                     with st.expander("収束フィルタ分析 (v3.3)"):
@@ -390,6 +410,22 @@ def render():
                         conv_tag = " [収束後候補]"
                     elif conv_score is not None and conv_score < 0.3:
                         conv_tag = " [拡散注意]"
+                    pm_rel = w.get("pm_relative_volume")
+                    pm_rel_s = f"{pm_rel:.2f}" if pm_rel is not None else "-"
+                    pm_to = w.get("pm_turnover")
+                    pm_to_s = f"{pm_to/1e8:.1f}億" if pm_to is not None else "-"
+                    pm_rc = w.get("pm_vwap_reclaim_flag")
+                    pm_rc_s = "○" if pm_rc else ("×" if pm_rc is not None else "-")
+                    pm_hc = w.get("pm_vwap_hold_count")
+                    pm_hc_s = str(pm_hc) if pm_hc is not None else "-"
+                    lp_b = w.get("pm_low_price_bonus")
+                    lp_s = f"{lp_b:.3f}" if lp_b is not None else "-"
+                    iq = w.get("pm_intraday_quality_score")
+                    iq_warn = ""
+                    if w.get("pm_intraday_is_proxy"):
+                        iq_warn = " [proxy]"
+                    elif iq is not None and float(iq) < 0.6:
+                        iq_warn = " [低品質]"
                     wl_data.append({
                         "銘柄": format_ticker(w.get("code", "")),
                         "スコア": f"{w.get('combined', 0):.3f}",
@@ -397,6 +433,12 @@ def render():
                         "出来高比": f"{w.get('relative_volume', 0):.1f}x",
                         "収束": f"{conv_label}{conv_tag}",
                         "イベント": "有" if w.get("has_event") else "-",
+                        "PM相対出来高": pm_rel_s,
+                        "PM売買代金": pm_to_s,
+                        "PM reclaim": pm_rc_s,
+                        "PM上確保": pm_hc_s,
+                        "低位bonus": lp_s,
+                        "PM品質": f"{iq:.2f}{iq_warn}" if iq is not None else "-",
                         "業種バイアス": f"{bias_label} ({bias_val:+.3f})" if bias_val else "-",
                         "採用理由": w.get("reason", "")[:50],
                     })

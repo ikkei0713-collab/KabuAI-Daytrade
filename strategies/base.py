@@ -62,12 +62,14 @@ class BaseStrategy(ABC):
         the standard 100-share trading unit (単元株).  A hard cap of
         500,000 JPY notional per position is applied.
         """
-        risk_per_trade = capital * 0.005  # 0.5% risk (1%→0.5%: 最大損失抑制)
+        risk_per_trade = capital * 0.05  # 5% risk: 攻撃的 (3万円で1,500円リスク)
         shares = int(risk_per_trade / (atr * 2))
-        unit = 100  # Japanese stock trading unit
-        shares = max(unit, (shares // unit) * unit)
-        max_shares = int(250_000 / price / unit) * unit  # 500k→250k: POSITION_SIZE と統一
-        return min(shares, max(unit, max_shares))
+        # 1株単位取引対応 (SBI/楽天のS株・かぶミニ等)
+        unit = 1
+        shares = max(unit, shares)
+        max_notional = min(capital, 30_000)  # 資金全額まで
+        max_shares = max(unit, int(max_notional / price))
+        return min(shares, max_shares)
 
     # ------------------------------------------------------------------
     # Convenience helpers available to all strategies

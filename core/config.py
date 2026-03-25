@@ -21,11 +21,12 @@ class Settings(BaseSettings):
     JQUANTS_PASSWORD: str = ""
     JQUANTS_REFRESH_TOKEN: str = ""
 
-    # Trading params – 保守的チューニング (2026-03-19)
-    MAX_POSITIONS: int = 2             # 5→2: 同時保有を絞りリスク集中を回避
-    MAX_POSITION_SIZE: float = 250000  # 50万→25万: 1件あたり損失上限を半減
-    TOTAL_CAPITAL: float = 3000000     # 300万円
-    MAX_LOSS_PER_DAY: float = -15000   # -5万→-1.5万: 日次損失0.5%で停止
+    # Trading params – 攻撃的チューニング (2026-03-25)
+    # 目標: 3万円→6万円/月 (月利100%)
+    MAX_POSITIONS: int = 3             # 同時3ポジション: 機会最大化
+    MAX_POSITION_SIZE: float = 30000   # 3万円: 全資金1ポジションもあり
+    TOTAL_CAPITAL: float = 30000       # 3万円
+    MAX_LOSS_PER_DAY: float = -3000    # -3,000円: 資金の10%で日次停止
     MAX_HOLDING_MINUTES: int = 360     # 6時間=当日完結
 
     # Market hours (JST)
@@ -34,8 +35,27 @@ class Settings(BaseSettings):
     PRE_MARKET_SCAN: str = "08:30"
     FORCE_CLOSE_TIME: str = "14:50"  # 強制決済 15:20→14:50 余裕を持って決済
 
+    # 後場 PM-VWAP reclaim (vwap_reclaim 強化用, JST)
+    PM_SESSION_START: str = "12:30"
+    PM_ENTRY_START: str = "13:00"
+    PM_FORCE_EXIT: str = "14:45"
+    PM_RECLAIM_MIN_HOLD_COUNT: int = 2
+    PM_RELATIVE_VOLUME_THRESHOLD: float = 1.8
+    PM_TURNOVER_THRESHOLD: float = 1_000_000_000.0
+    PM_INTRADAY_QUALITY_MIN: float = 0.60
+    PM_CONFIDENCE_BOOST: float = 0.08
+    PM_EVENT_BOOST: float = 0.05
+    PM_LOW_PRICE_BONUS_MAX: float = 0.03
+    PM_EXPECTED_PM_VOLUME_FRACTION: float = 0.45
+    PM_VWAP_SLOPE_MAX_NEG: float = 0.0008
+    PM_SETUP_WEIGHT: float = 0.08
+    LOW_PRICE_BONUS_ENABLED: bool = True
+    LOW_PRICE_BONUS_MIN: int = 100
+    LOW_PRICE_BONUS_MAX: int = 500
+    LOW_PRICE_BONUS_WEIGHT: float = 0.03
+
     # Strategy
-    MIN_CONFIDENCE: float = 0.65   # 0.6→0.65: 高確信シグナルのみ通過
+    MIN_CONFIDENCE: float = 0.30   # 0.30: 機会最大化
     STRATEGY_SCORE_THRESHOLD: float = 0.5
 
     # Convergence filter (v3.3)

@@ -36,7 +36,7 @@ from strategies.registry import StrategyRegistry
 from strategies.base import BaseStrategy
 from strategies.momentum.trend_follow import TrendFollowStrategy
 from strategies.orderbook.spread_entry import SpreadEntryStrategy
-from tools.feature_engineering import FeatureEngineer
+from tools.feature_engineering import FeatureEngineer, JST
 from tools.market_regime import RegimeDetector
 from scanners.premarket import PreMarketScanner
 from scanners.stock_selector import StockSelector
@@ -44,12 +44,13 @@ from tools.sector_bias import SectorBiasCalculator, SectorBiasResult
 from tools.disclosure_analyzer import DisclosureAnalyzer
 from core.ticker_map import update_from_jquants, format_ticker
 
-# ── 設定 ── 有料プラン対応 (2026-03-24) ──────────────────────────────────
-SCAN_INTERVAL = 90        # 90秒間隔: 有料プランで高頻度スキャン
-TOP_UNIVERSE = 30         # 30銘柄: 有料プランで広範囲スクリーニング
-MAX_POSITIONS = 2         # 5→2: config.MAX_POSITIONS と同期
-POSITION_SIZE = 250_000   # 50万→25万: config.MAX_POSITION_SIZE と同期
-MIN_CONFIDENCE = 0.65     # 0.3→0.65: 高確信シグナルのみ通過
+# ── 設定 ── 攻撃的チューニング (2026-03-25) ──────────────────────────────
+# 目標: 3万円→6万円/月 (月利100%)
+SCAN_INTERVAL = 90        # 90秒間隔
+TOP_UNIVERSE = 30         # 30銘柄
+MAX_POSITIONS = 3         # 同時3ポジション: 機会最大化
+POSITION_SIZE = 30_000    # 3万円: 1ポジション=全資金
+MIN_CONFIDENCE = 0.30     # 0.30: シグナルを広く拾う
 
 # 戦略階層: vwap_reclaim 一本に集中
 # NOTE: 他戦略は registry で off にするが、priority は残す（将来用）
@@ -144,6 +145,9 @@ class PaperTrader:
                     bias_adj = self.sector_bias_calc.get_watchlist_adjustment(self.sector_bias, s33)
                     bias_label = self.sector_bias.get_bias_label(s33)
 
+                wl_clk = datetime.now(JST)
+                wl_feat = self.fe.calculate_all_features(df, clock=wl_clk)
+
                 base_combined = result.score * 0.4 + stock_score.total_score * 0.6
                 scored.append({
                     "code": code,
@@ -157,6 +161,14 @@ class PaperTrader:
                     "s33": s33,
                     "sector_bias": round(bias_adj, 4),
                     "sector_bias_label": bias_label,
+                    "pm_relative_volume": wl_feat.get("pm_relative_volume"),
+                    "pm_turnover": wl_feat.get("pm_turnover"),
+                    "pm_vwap_reclaim_flag": wl_feat.get("pm_vwap_reclaim_flag"),
+                    "pm_vwap_hold_count": wl_feat.get("pm_vwap_hold_count"),
+                    "pm_low_price_bonus": wl_feat.get("pm_low_price_bonus"),
+                    "pm_intraday_quality_score": wl_feat.get("pm_intraday_quality_score"),
+                    "pm_intraday_is_proxy": wl_feat.get("pm_intraday_is_proxy"),
+                    "pm_setup_bonus": stock_score.pm_setup_bonus,
                 })
             except Exception as e:
                 logger.debug(f"銘柄選定失敗 {code}: {e}")
@@ -199,6 +211,8 @@ class PaperTrader:
                     if self.sector_bias and self.sector_bias.fetch_success and s33:
                         bias_adj = self.sector_bias_calc.get_watchlist_adjustment(self.sector_bias, s33)
                         bias_label = self.sector_bias.get_bias_label(s33)
+                    wl_clk = datetime.now(JST)
+                    wl_feat = self.fe.calculate_all_features(df, clock=wl_clk)
                     scored.append({
                         "code": code,
                         "scan_score": 0.0,
@@ -211,6 +225,14 @@ class PaperTrader:
                         "s33": s33,
                         "sector_bias": round(bias_adj, 4),
                         "sector_bias_label": bias_label,
+                        "pm_relative_volume": wl_feat.get("pm_relative_volume"),
+                        "pm_turnover": wl_feat.get("pm_turnover"),
+                        "pm_vwap_reclaim_flag": wl_feat.get("pm_vwap_reclaim_flag"),
+                        "pm_vwap_hold_count": wl_feat.get("pm_vwap_hold_count"),
+                        "pm_low_price_bonus": wl_feat.get("pm_low_price_bonus"),
+                        "pm_intraday_quality_score": wl_feat.get("pm_intraday_quality_score"),
+                        "pm_intraday_is_proxy": wl_feat.get("pm_intraday_is_proxy"),
+                        "pm_setup_bonus": stock_score.pm_setup_bonus,
                     })
                 except Exception as e:
                     logger.debug(f"フォールバック銘柄取得失敗 {code}: {e}")
@@ -288,6 +310,18 @@ class PaperTrader:
             df = df[["Date", "open", "high", "low", "close", "volume"]].dropna()
         return df
 
+    async def fetch_intraday_today(self, client: JQuantsClient, code: str) -> pd.DataFrame | None:
+        """当日の分足（後場 PM-VWAP 用）。取得失敗時は None。"""
+        try:
+            raw = await client.get_prices_intraday(code, date.today().isoformat())
+            if not raw:
+                return None
+            idf = FeatureEngineer.intraday_records_to_df(raw)
+            return idf if not idf.empty else None
+        except Exception as e:
+            logger.debug(f"intraday取得失敗 {code}: {e}")
+            return None
+
     async def fetch_ohlcv(self, client: JQuantsClient, code: str, days: int = 60) -> pd.DataFrame:
         """日足OHLCVを取得してDataFrameに変換 (プリロードキャッシュ優先)"""
         cache_key = f"{code}_{days}"
@@ -332,7 +366,13 @@ class PaperTrader:
                 if len(df) < 20:
                     continue
 
-                features = self.fe.calculate_all_features(df)
+                now = datetime.now(JST)
+                idf = await self.fetch_intraday_today(client, code)
+                features = self.fe.calculate_all_features(
+                    df,
+                    clock=now,
+                    intraday_ohlcv=idf,
+                )
                 # 日足終値をそのまま使用（simulate_current_price廃止）
                 current_price = float(df["close"].iloc[-1])
                 features["current_price"] = current_price
@@ -373,6 +413,8 @@ class PaperTrader:
                 for strategy in strategies:
                     try:
                         signal = await strategy.scan(code, df, features)
+                        if signal:
+                            logger.info(f"  [{strategy.name}] {code} conf={signal.confidence:.3f} (min={MIN_CONFIDENCE})")
                         if signal and signal.confidence >= MIN_CONFIDENCE:
                             # 戦略優先度とフィルタを適用
                             priority = STRATEGY_PRIORITY.get(strategy.name, 1.0)
@@ -423,7 +465,7 @@ class PaperTrader:
 
     async def open_position(self, signal: TradeSignal, strategy: BaseStrategy):
         """ポジションを開く"""
-        quantity = max(100, int(POSITION_SIZE / signal.entry_price / 100) * 100)
+        quantity = max(1, int(POSITION_SIZE / signal.entry_price))  # 1株単位
         slippage = signal.entry_price * 0.001 * (1 if signal.direction == "long" else -1)
         fill_price = round(signal.entry_price + slippage, 1)
 
@@ -457,7 +499,10 @@ class PaperTrader:
         )
         logger.info(table)
 
-        await self.db.save_signal_skipped(signal, reason="EXECUTED")
+        try:
+            await self.db.save_signal_skipped(signal, reason="EXECUTED")
+        except Exception as e:
+            logger.debug(f"シグナル保存スキップ: {e}")
 
     async def check_exits(self, client: JQuantsClient):
         """保有ポジションの決済判断"""
@@ -471,7 +516,7 @@ class PaperTrader:
 
                 # 日足終値で判断（simulate_current_price廃止）
                 current = float(df["close"].iloc[-1])
-                features = self.fe.calculate_all_features(df)
+                features = self.fe.calculate_all_features(df, clock=datetime.now(JST))
                 features["current_price"] = current
 
                 holding_min = int((datetime.now() - pos["entry_time"]).total_seconds() / 60)
@@ -723,7 +768,8 @@ class PaperTrader:
                 for ticker, pos in self.positions.items()
             },
             "data_quality_warnings": [
-                "intraday proxy features are estimated from daily OHLCV",
+                "intraday proxy features are estimated from daily OHLCV when minute bars unavailable",
+                "PM-VWAP reclaim requires real intraday for full quality; check pm_intraday_is_proxy",
                 "proxy-dependent strategies have limited evaluation reliability",
             ],
         }
@@ -868,7 +914,7 @@ class PaperTrader:
                             if df.empty:
                                 continue
                             current = float(df["close"].iloc[-1])
-                            features = self.fe.calculate_all_features(df)
+                            features = self.fe.calculate_all_features(df, clock=datetime.now(JST))
                             features["current_price"] = current
                             await self.close_position(ticker, current, "大引け強制決済", features)
                         except Exception as e:

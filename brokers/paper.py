@@ -30,7 +30,7 @@ from brokers.base import (
 )
 
 # Default configuration
-_DEFAULT_INITIAL_BALANCE = 10_000_000.0  # 10 million JPY
+_DEFAULT_INITIAL_BALANCE = 30_000.0  # 3万円
 _DEFAULT_SLIPPAGE_PCT = 0.001  # 0.1%
 _TRADE_LOG_DIR = Path("data/processed")
 

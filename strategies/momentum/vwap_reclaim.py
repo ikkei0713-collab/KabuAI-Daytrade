@@ -11,13 +11,15 @@ NOTE: 擬似特徴量の限界
 - 本戦略が主力なのは他戦略がより proxy 依存が高いため (相対的に最良)
 """
 
-from typing import Optional
+from typing import Any, Optional
 
 import pandas as pd
 from loguru import logger
 
+from core.config import settings
 from core.models import StrategyConfig, TradeSignal
 from strategies.base import BaseStrategy
+from strategies.momentum.trend_follow import TrendFollowStrategy
 
 
 class VWAPReclaimStrategy(BaseStrategy):
@@ -47,6 +49,14 @@ class VWAPReclaimStrategy(BaseStrategy):
                 "target_atr_multiple": 1.5,
                 "reclaim_buffer_pct": 0.20,
                 "max_distance_from_vwap_pct": 2.0,
+                # 後場 PM-VWAP reclaim（intraday 品質が十分なときのみ）
+                "pm_reclaim_min_hold_count": 2,
+                "pm_rel_volume_threshold": 1.8,
+                "pm_turnover_threshold": 1_000_000_000.0,
+                "pm_confidence_boost": 0.08,
+                "pm_event_boost": 0.05,
+                "pm_intraday_quality_min": 0.60,
+                "pm_selector_score_min": 0.40,
             },
         )
 
@@ -58,6 +68,14 @@ class VWAPReclaimStrategy(BaseStrategy):
         if not self._validate_features(features, self.REQUIRED_FEATURES):
             return None
 
+        classic = await self._scan_classic_vwap_reclaim(ticker, data, features)
+        if classic is not None:
+            return classic
+        return await self._scan_pm_vwap_reclaim(ticker, data, features)
+
+    async def _scan_classic_vwap_reclaim(
+        self, ticker: str, data: pd.DataFrame, features: dict
+    ) -> Optional[TradeSignal]:
         params = self.config.parameter_set
         vwap: float = features["vwap"]
         vwap_dist: float = features["vwap_distance"]
@@ -136,34 +154,22 @@ class VWAPReclaimStrategy(BaseStrategy):
             else:
                 confidence += 0.05  # neutral event: 軽い加点
 
-        # Regime alignment
-        # BT結果(2026-03-24): volatile PF=7.06, low_vol PF=8.33,
-        #   range PF=0.25(-242k), trend_down PF=0.29(-19k) → range/downを強力に抑制
+        # Regime alignment — 攻撃的チューニング (2026-03-25)
+        # 日足ベースのレジーム判定は限界があるため、軽い調整に留める
+        # 全レジームでエントリー可能にし、得意レジームでブースト
         regime_result = features.get("regime_result")
         if regime_result is not None:
             regime = regime_result.regime
-            vwap_weight = regime_result.strategy_weights.get("vwap_reclaim", 0.5)
-
             if regime in ("volatile", "low_vol"):
                 confidence += 0.10  # 得意レジーム: 積極エントリー
-            elif regime == "range":
-                confidence -= 0.15  # range は減点（ただし他条件良ければ通過可能）
-                logger.debug(f"[vwap_reclaim] {ticker}: range regime → -0.15")
-            elif regime == "trend_down":
-                confidence -= 0.10  # trend_down は減点（日足ベース判定の限界を考慮）
-                conv_score = features.get("ma_convergence_score", 0)
-                if conv_score is not None and conv_score < 0.65:
-                    confidence -= 0.05
-                    logger.debug(f"[vwap_reclaim] {ticker}: trend_down + low convergence → -0.15 total")
             elif regime == "trend_up":
-                if vwap_weight >= 0.7:
-                    confidence += 0.05
-                elif vwap_weight < 0.3:
-                    confidence -= 0.10
+                confidence += 0.05  # 上昇トレンド: 加点
+            elif regime == "range":
+                confidence -= 0.03  # range: 微減点のみ
+            elif regime == "trend_down":
+                confidence -= 0.05  # trend_down: 軽い減点のみ
 
-        # Trend follow filter gate (保守的チューニング)
-        # EMA9>EMA21, close>VWAP, strength>0.45, vol_trend>1.2 で加点
-        # 不通過時は大幅減点 → MIN_CONFIDENCE 0.65 で実質ブロック
+        # Trend follow filter — 攻撃的: ボーナスのみ、減点なし
         is_trending = features.get("_is_trending", False)
         trend_dir = features.get("_trend_direction", "none")
         if is_trending and trend_dir == "up":
@@ -172,16 +178,13 @@ class VWAPReclaimStrategy(BaseStrategy):
             if trend_str > 0.45 and vol_trend > 1.2:
                 confidence += 0.10  # trend filter 完全通過
             else:
-                confidence += 0.03  # 部分通過
-        else:
-            confidence -= 0.15  # trend 不通過 → 厳しく減点
+                confidence += 0.05  # 部分通過
+        # trend 不通過でも減点しない（機会を逃さない）
 
-        # Convergence filter gate (v3.3)
-        # MA収束後の再拡大を狙い、拡散飛び乗りを抑制する
-        from strategies.momentum.trend_follow import TrendFollowStrategy
+        # Convergence filter — 攻撃的: ボーナスのみ
         conv_passed, conv_adj, conv_reason = TrendFollowStrategy.convergence_filter(features)
         if not conv_passed:
-            confidence -= abs(conv_adj)
+            pass  # 不通過でも減点しない
             logger.debug(f"[vwap_reclaim] {ticker}: convergence filter blocked: {conv_reason}")
         else:
             confidence += conv_adj
@@ -190,29 +193,17 @@ class VWAPReclaimStrategy(BaseStrategy):
                 confidence += 0.05
                 logger.debug(f"[vwap_reclaim] {ticker}: squeeze_breakout_ready → +0.05")
 
-        # selector_score フィルタ: 上位銘柄のみ許可
+        # selector_score: ボーナスのみ (減点なし)
         selector_score = features.get("selector_score", 0)
-        if selector_score < 0.25:
-            confidence -= 0.10
+        if selector_score > 0.5:
+            confidence += 0.05
 
-        # Sector bias: 米国→日本セクター lead-lag signal
-        # bullish sector: +0.05, bearish: -0.05, neutral: 0
-        # event ありの場合は sector bias より event を優先 (event > sector)
+        # Sector bias: ボーナスのみ
         sector_bias_score = features.get("_sector_bias_score", 0.0)
-        if sector_bias_score != 0.0:
-            has_event = event_type and event_type not in ("", 0, 0.0)
-            if has_event:
-                # event 銘柄は sector bias の影響を半減
-                confidence += sector_bias_score * 0.5
-            else:
-                confidence += sector_bias_score
+        if sector_bias_score > 0:
+            confidence += sector_bias_score
 
-        # Proxy penalty: time_below_vwap, volume_at_reclaim は擬似値
-        # proxy 依存度に応じて confidence を減点
-        from tools.feature_engineering import FeatureEngineer
-        proxy_penalty = FeatureEngineer.get_proxy_penalty(self.name)
-        if proxy_penalty > 0:
-            confidence -= proxy_penalty
+        # Proxy penalty: 無効化 (日足ベースの限界を受容)
 
         confidence = min(confidence, 0.90)
 
@@ -239,6 +230,105 @@ class VWAPReclaimStrategy(BaseStrategy):
         )
         return signal
 
+    @staticmethod
+    def _position_entry_reason(position: Any) -> str:
+        if isinstance(position, dict):
+            sig = position.get("signal")
+            if sig is not None and hasattr(sig, "entry_reason"):
+                return str(sig.entry_reason or "")
+        return ""
+
+    async def _scan_pm_vwap_reclaim(
+        self, ticker: str, data: pd.DataFrame, features: dict
+    ) -> Optional[TradeSignal]:
+        """後場 12:30 以降の PM-VWAP を再計算し、13:00以降の再定着初動のみ。"""
+        params = self.config.parameter_set
+        if not features.get("pm_session_active"):
+            return None
+        if features.get("pm_intraday_is_proxy"):
+            logger.debug(f"[vwap_reclaim] {ticker}: PM skip — intraday proxy")
+            return None
+        qmin = params.get("pm_intraday_quality_min", settings.PM_INTRADAY_QUALITY_MIN)
+        if float(features.get("pm_intraday_quality_score") or 0) < qmin:
+            logger.debug(f"[vwap_reclaim] {ticker}: PM skip — low intraday quality")
+            return None
+        if features.get("pm_force_exit_near"):
+            return None
+        if float(features.get("pm_minutes_from_open") or 0) < 30.0:
+            return None
+        if not features.get("pm_vwap_reclaim_flag"):
+            return None
+        min_hold = int(params.get("pm_reclaim_min_hold_count", settings.PM_RECLAIM_MIN_HOLD_COUNT))
+        if int(features.get("pm_vwap_hold_count") or 0) < min_hold:
+            logger.debug(f"[vwap_reclaim] {ticker}: PM hold_count insufficient")
+            return None
+        rv_th = float(params.get("pm_rel_volume_threshold", settings.PM_RELATIVE_VOLUME_THRESHOLD))
+        if float(features.get("pm_relative_volume") or 0) < rv_th:
+            return None
+        to_th = float(params.get("pm_turnover_threshold", settings.PM_TURNOVER_THRESHOLD))
+        if float(features.get("pm_turnover") or 0) < to_th:
+            return None
+        if not features.get("pm_spread_ok", True):
+            return None
+
+        sel_min = float(params.get("pm_selector_score_min", 0.40))
+        if float(features.get("selector_score") or 0) < sel_min:
+            return None
+
+        ok, why = TrendFollowStrategy.pm_trend_filter(features)
+        if not ok:
+            logger.debug(f"[vwap_reclaim] {ticker}: PM trend filter: {why}")
+            return None
+
+        latest = data.iloc[-1]
+        current_price = float(latest["close"])
+        atr: float = features["atr"]
+        vwap: float = features["vwap"]
+        pm_vwap = float(features.get("pm_vwap") or 0)
+
+        lookback = min(len(data), 6)
+        recent_low = float(data.iloc[-lookback:]["low"].min())
+        day_high = float(data["high"].max())
+        entry_price = current_price
+        stop_price = min(recent_low - 1.0, pm_vwap * 0.995) if pm_vwap > 0 else recent_low - 1.0
+        atr_target = entry_price + atr * params.get("target_atr_multiple", 1.5)
+        target_price = max(day_high, atr_target)
+
+        if stop_price >= entry_price:
+            return None
+
+        confidence = 0.52
+        confidence += float(params.get("pm_confidence_boost", settings.PM_CONFIDENCE_BOOST))
+        event_type = features.get("event_type", "")
+        if event_type and event_type not in ("", 0, 0.0):
+            confidence += float(params.get("pm_event_boost", settings.PM_EVENT_BOOST))
+        if float(features.get("selector_score") or 0) > 0.55:
+            confidence += 0.04
+        confidence += float(features.get("pm_low_price_bonus") or 0.0)
+        confidence = min(confidence, 0.90)
+
+        snap = {**features, "_pm_vwap_reclaim": True}
+        signal = TradeSignal(
+            ticker=ticker,
+            direction="long",
+            strategy_name=self.name,
+            entry_price=round(entry_price, 1),
+            stop_loss=round(stop_price, 1),
+            take_profit=round(target_price, 1),
+            confidence=round(confidence, 2),
+            entry_reason=(
+                f"PM-VWAP奪回: 後場VWAP再定着 relVol={features.get('pm_relative_volume'):.2f} "
+                f"turnover={features.get('pm_turnover'):.0f} hold={features.get('pm_vwap_hold_count')} "
+                f"dayVWAP={vwap:.0f} pmVWAP={pm_vwap:.0f}"
+            ),
+            features_snapshot=snap,
+        )
+        logger.info(
+            f"[vwap_reclaim] PM SIGNAL {ticker} long entry={entry_price:.0f} "
+            f"stop={stop_price:.0f} target={target_price:.0f}"
+        )
+        return signal
+
     def should_exit(
         self, position, current_data: pd.DataFrame, features: dict
     ) -> tuple[bool, str]:
@@ -249,6 +339,12 @@ class VWAPReclaimStrategy(BaseStrategy):
         current_price = float(latest["close"])
         vwap = features.get("vwap", 0)
         atr = features.get("atr", 0)
+
+        if (
+            features.get("pm_force_exit_near")
+            and "PM-VWAP" in self._position_entry_reason(position)
+        ):
+            return True, "PM引け前 — 強制決済ゾーン"
 
         # Stop
         if current_price <= position.stop_loss:

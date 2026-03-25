@@ -367,11 +367,9 @@ class PaperTrader:
                     continue
 
                 now = datetime.now(JST)
-                idf = await self.fetch_intraday_today(client, code)
                 features = self.fe.calculate_all_features(
                     df,
                     clock=now,
-                    intraday_ohlcv=idf,
                 )
                 # 日足終値をそのまま使用（simulate_current_price廃止）
                 current_price = float(df["close"].iloc[-1])

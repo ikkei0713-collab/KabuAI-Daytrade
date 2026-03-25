@@ -220,11 +220,6 @@ class StockSelector:
         if score.liquidity_tier == "B":
             pm *= 0.85
         return pm, lp
-</think>
-
-
-<｜tool▁calls▁begin｜><｜tool▁call▁begin｜>
-Read
 
     @staticmethod
     def _calc_convergence_score(df: pd.DataFrame, close_col: str,

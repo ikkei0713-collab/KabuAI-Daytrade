@@ -42,6 +42,7 @@ from scanners.premarket import PreMarketScanner
 from scanners.stock_selector import StockSelector
 from tools.sector_bias import SectorBiasCalculator, SectorBiasResult
 from tools.disclosure_analyzer import DisclosureAnalyzer
+from tools.telegram_notify import TelegramNotifier
 from core.ticker_map import update_from_jquants, format_ticker
 
 # ── 設定 ── 攻撃的チューニング (2026-03-25) ──────────────────────────────
@@ -76,6 +77,7 @@ class PaperTrader:
         self.stock_selector = StockSelector()
         self.safety = SafetyGuard()
         self.sector_bias_calc = SectorBiasCalculator()
+        self.notifier = TelegramNotifier()
         self.sector_bias: SectorBiasResult | None = None
         self.positions: dict[str, dict] = {}  # ticker -> position info
         self.trades: list[TradeResult] = []
@@ -502,6 +504,17 @@ class PaperTrader:
         except Exception as e:
             logger.debug(f"シグナル保存スキップ: {e}")
 
+        await self.notifier.notify_entry(
+            ticker=format_ticker(signal.ticker),
+            direction=signal.direction,
+            price=fill_price,
+            quantity=quantity,
+            strategy=strategy.name,
+            stop_loss=signal.stop_loss,
+            take_profit=signal.take_profit,
+            reason=signal.entry_reason,
+        )
+
     async def check_exits(self, client: JQuantsClient):
         """保有ポジションの決済判断"""
         to_close = []
@@ -629,6 +642,20 @@ class PaperTrader:
             f"{'='*62}"
         )
         logger.info(table)
+
+        await self.notifier.notify_exit(
+            ticker=format_ticker(ticker),
+            direction=pos["direction"],
+            entry_price=pos["entry_price"],
+            exit_price=fill_price,
+            quantity=pos["quantity"],
+            pnl=pnl,
+            pnl_pct=pnl_pct,
+            reason=reason,
+            daily_pnl=self.daily_pnl,
+            win_rate=win_rate,
+            trade_count=self.trade_count,
+        )
 
         # 異常検知チェック
         should_halt, halt_reason = self.safety.check_anomalies(

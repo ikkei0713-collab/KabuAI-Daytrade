@@ -1,64 +1,225 @@
 {
-  "date": "2026-03-24T11:37:05.243724",
+  "date": "2026-03-30T10:43:02.653100",
   "regime_performance": {
-    "vwap_reclaim_range": {
-      "trades": 32,
-      "win_rate": 0.406,
-      "pf": 0.21,
-      "total_pnl": -235679.0
+    "orderbook_imbalance_range": {
+      "trades": 168,
+      "win_rate": 0.417,
+      "pf": 0.79,
+      "total_pnl": -8399.0
     },
-    "vwap_reclaim_trend_down": {
-      "trades": 4,
-      "win_rate": 0.25,
-      "pf": 0.18,
-      "total_pnl": -18307.0
+    "spread_entry_range": {
+      "trades": 13,
+      "win_rate": 0.462,
+      "pf": 1.0,
+      "total_pnl": 7.0
+    },
+    "vwap_reclaim_range": {
+      "trades": 31,
+      "win_rate": 0.419,
+      "pf": 0.66,
+      "total_pnl": -2282.0
+    },
+    "open_drive_range": {
+      "trades": 30,
+      "win_rate": 0.433,
+      "pf": 1.23,
+      "total_pnl": 876.0
+    },
+    "vwap_bounce_range": {
+      "trades": 6,
+      "win_rate": 0.833,
+      "pf": 235.77,
+      "total_pnl": 3052.0
+    },
+    "trend_follow_range": {
+      "trades": 7,
+      "win_rate": 0.286,
+      "pf": 0.19,
+      "total_pnl": -1288.0
+    },
+    "open_drive_volatile": {
+      "trades": 17,
+      "win_rate": 0.353,
+      "pf": 1.3,
+      "total_pnl": 491.0
+    },
+    "orderbook_imbalance_volatile": {
+      "trades": 107,
+      "win_rate": 0.486,
+      "pf": 1.01,
+      "total_pnl": 320.0
+    },
+    "spread_entry_volatile": {
+      "trades": 9,
+      "win_rate": 0.444,
+      "pf": 0.33,
+      "total_pnl": -2218.0
     },
     "vwap_reclaim_volatile": {
-      "trades": 5,
-      "win_rate": 0.8,
-      "pf": 17.5,
-      "total_pnl": 66295.0
+      "trades": 7,
+      "win_rate": 0.571,
+      "pf": 1.38,
+      "total_pnl": 426.0
+    },
+    "trend_follow_volatile": {
+      "trades": 9,
+      "win_rate": 0.556,
+      "pf": 3.07,
+      "total_pnl": 1626.0
+    },
+    "orderbook_imbalance_trend_down": {
+      "trades": 98,
+      "win_rate": 0.347,
+      "pf": 0.53,
+      "total_pnl": -11197.0
+    },
+    "open_drive_trend_down": {
+      "trades": 17,
+      "win_rate": 0.412,
+      "pf": 1.01,
+      "total_pnl": 19.0
+    },
+    "trend_follow_trend_down": {
+      "trades": 7,
+      "win_rate": 1.0,
+      "pf": 99.0,
+      "total_pnl": 1886.0
+    },
+    "vwap_reclaim_trend_down": {
+      "trades": 6,
+      "win_rate": 0.5,
+      "pf": 0.24,
+      "total_pnl": -1824.0
+    },
+    "orderbook_imbalance_trend_up": {
+      "trades": 148,
+      "win_rate": 0.493,
+      "pf": 1.17,
+      "total_pnl": 4504.0
+    },
+    "trend_follow_trend_up": {
+      "trades": 9,
+      "win_rate": 0.333,
+      "pf": 0.99,
+      "total_pnl": -27.0
+    },
+    "open_drive_trend_up": {
+      "trades": 19,
+      "win_rate": 0.368,
+      "pf": 0.29,
+      "total_pnl": -2311.0
     },
     "vwap_reclaim_trend_up": {
-      "trades": 14,
-      "win_rate": 0.357,
-      "pf": 0.96,
-      "total_pnl": -1282.0
+      "trades": 16,
+      "win_rate": 0.312,
+      "pf": 0.62,
+      "total_pnl": -2005.0
+    },
+    "spread_entry_trend_up": {
+      "trades": 24,
+      "win_rate": 0.625,
+      "pf": 3.85,
+      "total_pnl": 10179.0
     },
     "vwap_reclaim_low_vol": {
-      "trades": 3,
-      "win_rate": 0.667,
-      "pf": 8.33,
-      "total_pnl": 14627.0
+      "trades": 2,
+      "win_rate": 0.5,
+      "pf": 2.49,
+      "total_pnl": 235.0
+    },
+    "trend_follow_low_vol": {
+      "trades": 2,
+      "win_rate": 0.0,
+      "pf": 0.0,
+      "total_pnl": -707.0
+    },
+    "open_drive_low_vol": {
+      "trades": 9,
+      "win_rate": 0.222,
+      "pf": 0.32,
+      "total_pnl": -1430.0
+    },
+    "orderbook_imbalance_low_vol": {
+      "trades": 35,
+      "win_rate": 0.457,
+      "pf": 0.68,
+      "total_pnl": -1993.0
+    },
+    "spread_entry_low_vol": {
+      "trades": 5,
+      "win_rate": 0.4,
+      "pf": 0.23,
+      "total_pnl": -1463.0
+    },
+    "spread_entry_trend_down": {
+      "trades": 5,
+      "win_rate": 0.4,
+      "pf": 0.35,
+      "total_pnl": -1196.0
     }
   },
   "adjustments_applied": [
     {
-      "target": "vwap_reclaim_range",
+      "target": "vwap_bounce_range",
+      "action": "boost_regime",
+      "reason": "PF=235.77, 勝率83%"
+    },
+    {
+      "target": "trend_follow_range",
       "action": "suppress_regime",
-      "reason": "PF=0.21, 32件で損失"
+      "reason": "PF=0.19, 7件で損失"
     },
     {
-      "target": "vwap_reclaim_volatile",
-      "action": "boost_regime",
-      "reason": "PF=17.50, 勝率80%"
+      "target": "spread_entry_volatile",
+      "action": "suppress_regime",
+      "reason": "PF=0.33, 9件で損失"
     },
     {
-      "target": "vwap_reclaim_low_vol",
+      "target": "trend_follow_trend_down",
       "action": "boost_regime",
-      "reason": "PF=8.33, 勝率67%"
+      "reason": "PF=99.00, 勝率100%"
+    },
+    {
+      "target": "vwap_reclaim_trend_down",
+      "action": "suppress_regime",
+      "reason": "PF=0.24, 6件で損失"
+    },
+    {
+      "target": "open_drive_trend_up",
+      "action": "suppress_regime",
+      "reason": "PF=0.29, 19件で損失"
+    },
+    {
+      "target": "spread_entry_trend_up",
+      "action": "boost_regime",
+      "reason": "PF=3.85, 勝率62%"
+    },
+    {
+      "target": "open_drive_low_vol",
+      "action": "suppress_regime",
+      "reason": "PF=0.32, 9件で損失"
+    },
+    {
+      "target": "spread_entry_low_vol",
+      "action": "suppress_regime",
+      "reason": "PF=0.23, 5件で損失"
+    },
+    {
+      "target": "spread_entry_trend_down",
+      "action": "suppress_regime",
+      "reason": "PF=0.35, 5件で損失"
     }
   ],
   "oos_summary": {
-    "trades": 17,
-    "win_rate": 0.471,
-    "pf": 2.33,
-    "total_pnl": 61801.0
+    "trades": 428,
+    "win_rate": 0.472,
+    "pf": 1.14,
+    "total_pnl": 11696.0
   },
   "worst_trade": {
     "ticker": "61460",
     "strategy": "vwap_reclaim",
-    "pnl": -221324.0,
+    "pnl": -2169.0,
     "regime": "range",
     "exit_reason": "ストップロス(intraday)"
   }

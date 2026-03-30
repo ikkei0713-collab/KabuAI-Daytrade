@@ -43,6 +43,7 @@ class CrashReboundStrategy(BaseStrategy):
                 "retracement_target": 0.50,
                 "max_drop_minutes": 30,
                 "stop_buffer_pct": 0.5,
+                "blocked_regimes": [],  # crash_rebound はどのレジームでも発火可能
             },
         )
 
@@ -55,6 +56,10 @@ class CrashReboundStrategy(BaseStrategy):
             return None
 
         params = self.config.parameter_set
+
+        if not self._check_regime_filter(features):
+            return None
+
         drop_pct: float = features["intraday_drop_pct"]
         vol_surge: float = features["volume_surge"]
         sell_exhaust: float = features["selling_exhaustion"]

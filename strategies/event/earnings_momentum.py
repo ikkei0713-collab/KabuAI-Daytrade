@@ -43,6 +43,7 @@ class EarningsMomentumStrategy(BaseStrategy):
                 "trailing_atr_multiple": 2.0,
                 "stop_below_post_earnings_low": True,
                 "guidance_weight": 1.5,
+                "blocked_regimes": [],  # 決算イベントはレジーム不問
             },
         )
 
@@ -55,6 +56,10 @@ class EarningsMomentumStrategy(BaseStrategy):
             return None
 
         params = self.config.parameter_set
+
+        if not self._check_regime_filter(features):
+            return None
+
         surprise: float = features["earnings_surprise_pct"]
         rev_growth: float = features["revenue_growth"]
         guidance: float = features["guidance_change"]

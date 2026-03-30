@@ -43,12 +43,14 @@ class VWAPReclaimStrategy(BaseStrategy):
             feature_requirements=self.REQUIRED_FEATURES,
             expected_market_condition="bull",
             parameter_set={
-                # 最適化結果 (2026-03-23, 6ヶ月データ, 219回試行, OOS PF=1.92)
-                "min_time_below_vwap_min": 10,
-                "min_volume_at_reclaim": 1.0,
-                "target_atr_multiple": 1.5,
-                "reclaim_buffer_pct": 0.20,
-                "max_distance_from_vwap_pct": 2.0,
+                # 大規模BT (2026-03-27, 168パターン, OOS PF=1.42 trend_up/range)
+                "min_time_below_vwap_min": 30,
+                "min_volume_at_reclaim": 1.8,
+                "target_atr_multiple": 2.0,
+                "reclaim_buffer_pct": 0.30,
+                "max_distance_from_vwap_pct": 1.0,
+                # レジームフィルタ: trend_down/volatile で損失が大きい
+                "blocked_regimes": ["trend_down", "volatile"],
                 # 後場 PM-VWAP reclaim（intraday 品質が十分なときのみ）
                 "pm_reclaim_min_hold_count": 2,
                 "pm_rel_volume_threshold": 1.8,
@@ -77,6 +79,10 @@ class VWAPReclaimStrategy(BaseStrategy):
         self, ticker: str, data: pd.DataFrame, features: dict
     ) -> Optional[TradeSignal]:
         params = self.config.parameter_set
+
+        if not self._check_regime_filter(features):
+            return None
+
         vwap: float = features["vwap"]
         vwap_dist: float = features["vwap_distance"]
         time_below: float = features["time_below_vwap"]

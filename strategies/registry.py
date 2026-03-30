@@ -27,23 +27,24 @@ class StrategyRegistry:
     _strategies: dict[str, BaseStrategy] = {}
 
     # 戦略 status 定義: active/filter/supplement/watch/off
+    # 2026-03-30 全戦略起動 (レジームフィルタで安全弁、auto_toggleで自動制御)
     STRATEGY_STATUS: dict[str, str] = {
-        "vwap_reclaim":        "active",       # 唯一の主戦略
-        "trend_follow":        "filter",       # is_trending() のみ使用
-        "spread_entry":        "supplement",   # get_spread_boost() のみ使用
-        "orb":                 "watch",        # intraday proxy 信頼性不足
-        "tdnet_event":         "watch",        # イベント時参考
-        "gap_go":              "watch",        # 擬似特徴量依存
-        "vwap_bounce":         "off",          # データ不足
-        "orderbook_imbalance": "off",          # ダミーデータ依存
-        "large_absorption":    "off",          # ダミーデータ依存
-        "open_drive":          "off",          # PF 0.23
-        "gap_fade":            "off",          # 逆張り系リスク高
-        "overextension":       "off",          # 擬似 intraday 依存
-        "rsi_reversal":        "off",          # 擬似 intraday 依存
-        "crash_rebound":       "off",          # 擬似 intraday 依存
-        "earnings_momentum":   "off",          # データ不足
-        "catalyst_initial":    "off",          # データ不足
+        "vwap_reclaim":        "active",       # OOS PF=1.42, blocked: trend_down/volatile
+        "trend_follow":        "active",       # OOS PF=2.63, blocked: trend_down/volatile
+        "spread_entry":        "active",       # OOS PF=5.62, blocked: trend_down/volatile/low_vol
+        "orb":                 "active",       # blocked: trend_down
+        "tdnet_event":         "active",       # イベント駆動、レジーム不問
+        "gap_go":              "active",       # blocked: trend_down
+        "gap_fade":            "active",       # blocked: trend_down
+        "vwap_bounce":         "active",       # OOS PF=99(3件), blocked: trend_down/volatile
+        "orderbook_imbalance": "active",       # OOS PF=1.50, blocked: trend_down/volatile/low_vol
+        "large_absorption":    "active",       # blocked: trend_down
+        "open_drive":          "active",       # blocked: trend_down/low_vol
+        "overextension":       "active",       # blocked: trend_down
+        "rsi_reversal":        "active",       # blocked: trend_down
+        "crash_rebound":       "active",       # レジーム不問 (急落時こそ必要)
+        "earnings_momentum":   "active",       # レジーム不問 (決算イベント)
+        "catalyst_initial":    "active",       # レジーム不問 (カタリスト)
     }
 
     @classmethod
@@ -142,31 +143,9 @@ class StrategyRegistry:
             CatalystInitialStrategy(),
         ]
 
-        # 保守的チューニング (2026-03-19): vwap_reclaim 主軸運用
-        # 擬似intraday依存が強い戦略、OOS信頼性が低い戦略を全面停止
-        # trend_follow: filter専用 (is_trending() のみ使用、単独発火しない)
-        # spread_entry: supplement専用 (get_spread_boost() のみ使用)
-        disabled = {
-            "orderbook_imbalance",  # ダミーデータ依存
-            "large_absorption",     # ダミーデータ依存
-            "open_drive",           # PF 0.23
-            "orb",                  # watch降格: intraday proxy信頼性不足
-            "gap_go",              # watch降格: 擬似特徴量依存
-            "gap_fade",            # off: 逆張り系リスク高
-            "vwap_bounce",         # off: データ不足 (3件)
-            "overextension",       # off: 擬似intraday依存
-            "rsi_reversal",        # off: 擬似intraday依存
-            "crash_rebound",       # off: 擬似intraday依存
-            "trend_follow",        # off (filter専用: is_trending() は static で呼べる)
-            "spread_entry",        # off (supplement専用: get_spread_boost() は static)
-            "earnings_momentum",   # off: データ不足
-            "catalyst_initial",    # off: データ不足
-            "tdnet_event",         # watch: 単独発火しない (イベント情報はfeatures経由で供給)
-        }
-
+        # 2026-03-30 全戦略起動 (レジームフィルタ + auto_toggle で制御)
+        # disabled は空: 全戦略をactive状態で起動
         for strategy in default_strategies:
-            if strategy.name in disabled:
-                strategy.config.is_active = False
             cls.register(strategy)
 
         active = [s.name for s in default_strategies if s.config.is_active]
@@ -207,12 +186,8 @@ class StrategyRegistry:
         return result
 
     # 恒久停止リスト（auto_toggleで再開しない）
-    _PERMANENTLY_DISABLED = {
-        "orderbook_imbalance", "large_absorption", "open_drive",
-        "gap_fade", "overextension", "rsi_reversal", "crash_rebound",
-        "vwap_bounce", "earnings_momentum", "catalyst_initial",
-        "trend_follow", "spread_entry",  # filter/supplement専用
-    }
+    # 2026-03-30: 全戦略起動のため空。auto_toggleが自動で制御する
+    _PERMANENTLY_DISABLED: set[str] = set()
 
     @classmethod
     def auto_toggle(cls, recent_trades: list, min_trades: int = 12) -> list[str]:

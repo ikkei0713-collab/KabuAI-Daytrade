@@ -42,6 +42,7 @@ class LargeAbsorptionStrategy(BaseStrategy):
                 "stop_atr_multiple": 0.8,
                 "min_volume_ratio": 1.5,
                 "confirmation_bars": 2,
+                "blocked_regimes": ["trend_down"],
             },
         )
 
@@ -54,6 +55,10 @@ class LargeAbsorptionStrategy(BaseStrategy):
             return None
 
         params = self.config.parameter_set
+
+        if not self._check_regime_filter(features):
+            return None
+
         vp_div: float = features["volume_price_divergence"]
         large_td: float = features["large_trade_detection"]
         atr: float = features["atr"]

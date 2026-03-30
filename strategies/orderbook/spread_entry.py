@@ -58,12 +58,15 @@ class SpreadEntryStrategy(BaseStrategy):
             feature_requirements=self.REQUIRED_FEATURES,
             expected_market_condition="range",
             parameter_set={
+                # 大規模BT (2026-03-27, 168パターン, OOS PF=5.62, 20件)
                 "spread_percentile_max": 20,
-                "min_volume_building": 1.8,  # 最適化結果: 2.0→1.8 (OOS PF 1.68)
-                "min_price_compression": 0.5,
-                "target_atr_multiple": 1.5,  # 最適化結果: 1.0→1.5
-                "stop_atr_multiple": 0.5,    # 最適化結果: 0.7→0.5
-                "breakout_threshold_pct": 0.3,  # 最適化結果: 0.15→0.3
+                "min_volume_building": 1.5,
+                "min_price_compression": 0.6,
+                "target_atr_multiple": 1.0,
+                "stop_atr_multiple": 0.5,
+                "breakout_threshold_pct": 0.3,
+                # レジームフィルタ: trend_down/volatile/low_vol で損失
+                "blocked_regimes": ["trend_down", "volatile", "low_vol"],
             },
         )
 
@@ -76,6 +79,10 @@ class SpreadEntryStrategy(BaseStrategy):
             return None
 
         params = self.config.parameter_set
+
+        if not self._check_regime_filter(features):
+            return None
+
         spread_pct: float = features["spread_percentile"]
         vol_build: float = features["volume_building"]
         price_comp: float = features["price_compression"]

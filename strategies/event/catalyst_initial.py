@@ -54,6 +54,7 @@ class CatalystInitialStrategy(BaseStrategy):
                 "stop_pct": 1.5,
                 "max_chase_pct": 5.0,
                 "catalyst_type_key": "catalyst_type",
+                "blocked_regimes": [],  # カタリストはレジーム不問
             },
         )
 
@@ -66,6 +67,10 @@ class CatalystInitialStrategy(BaseStrategy):
             return None
 
         params = self.config.parameter_set
+
+        if not self._check_regime_filter(features):
+            return None
+
         sentiment: float = features["news_sentiment"]
         vol_surge: float = features["volume_surge"]
         price_accel: float = features["price_acceleration"]

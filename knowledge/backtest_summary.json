@@ -1,51 +1,156 @@
 {
-  "date": "2026-03-24T11:37:05.245053",
-  "total_trades": 58,
-  "wins": 25,
-  "losses": 33,
-  "win_rate": 0.431,
-  "profit_factor": 0.51,
-  "total_pnl_cost_adjusted": -174346.0,
-  "total_pnl_raw": -137280.0,
-  "total_cost": 22614.0,
-  "avg_pnl": -3006.0,
+  "date": "2026-03-30T10:43:02.655756",
+  "total_trades": 806,
+  "wins": 357,
+  "losses": 449,
+  "win_rate": 0.443,
+  "profit_factor": 0.91,
+  "total_pnl_cost_adjusted": -14719.0,
+  "total_pnl_raw": 5055.0,
+  "total_cost": 9892.0,
+  "avg_pnl": -18.0,
   "in_sample": {
-    "trades": 41,
-    "win_rate": 0.415,
-    "pf": 0.25,
-    "pnl": -236147.0
+    "trades": 378,
+    "win_rate": 0.41,
+    "pf": 0.68,
+    "pnl": -26415.0
   },
   "out_of_sample": {
-    "trades": 17,
-    "win_rate": 0.471,
-    "pf": 2.33,
-    "pnl": 61801.0
+    "trades": 428,
+    "win_rate": 0.472,
+    "pf": 1.14,
+    "pnl": 11696.0
   },
   "strategy_regime": {
-    "vwap_reclaim_range": {
-      "trades": 32,
-      "win_rate": 0.406,
-      "pf": 0.21
+    "orderbook_imbalance_range": {
+      "trades": 168,
+      "win_rate": 0.417,
+      "pf": 0.79
     },
-    "vwap_reclaim_trend_down": {
-      "trades": 4,
-      "win_rate": 0.25,
-      "pf": 0.18
+    "spread_entry_range": {
+      "trades": 13,
+      "win_rate": 0.462,
+      "pf": 1.0
+    },
+    "vwap_reclaim_range": {
+      "trades": 31,
+      "win_rate": 0.419,
+      "pf": 0.66
+    },
+    "open_drive_range": {
+      "trades": 30,
+      "win_rate": 0.433,
+      "pf": 1.23
+    },
+    "vwap_bounce_range": {
+      "trades": 6,
+      "win_rate": 0.833,
+      "pf": 235.77
+    },
+    "trend_follow_range": {
+      "trades": 7,
+      "win_rate": 0.286,
+      "pf": 0.19
+    },
+    "open_drive_volatile": {
+      "trades": 17,
+      "win_rate": 0.353,
+      "pf": 1.3
+    },
+    "orderbook_imbalance_volatile": {
+      "trades": 107,
+      "win_rate": 0.486,
+      "pf": 1.01
+    },
+    "spread_entry_volatile": {
+      "trades": 9,
+      "win_rate": 0.444,
+      "pf": 0.33
     },
     "vwap_reclaim_volatile": {
-      "trades": 5,
-      "win_rate": 0.8,
-      "pf": 17.5
+      "trades": 7,
+      "win_rate": 0.571,
+      "pf": 1.38
+    },
+    "trend_follow_volatile": {
+      "trades": 9,
+      "win_rate": 0.556,
+      "pf": 3.07
+    },
+    "orderbook_imbalance_trend_down": {
+      "trades": 98,
+      "win_rate": 0.347,
+      "pf": 0.53
+    },
+    "open_drive_trend_down": {
+      "trades": 17,
+      "win_rate": 0.412,
+      "pf": 1.01
+    },
+    "trend_follow_trend_down": {
+      "trades": 7,
+      "win_rate": 1.0,
+      "pf": 99.0
+    },
+    "vwap_reclaim_trend_down": {
+      "trades": 6,
+      "win_rate": 0.5,
+      "pf": 0.24
+    },
+    "orderbook_imbalance_trend_up": {
+      "trades": 148,
+      "win_rate": 0.493,
+      "pf": 1.17
+    },
+    "trend_follow_trend_up": {
+      "trades": 9,
+      "win_rate": 0.333,
+      "pf": 0.99
+    },
+    "open_drive_trend_up": {
+      "trades": 19,
+      "win_rate": 0.368,
+      "pf": 0.29
     },
     "vwap_reclaim_trend_up": {
-      "trades": 14,
-      "win_rate": 0.357,
-      "pf": 0.96
+      "trades": 16,
+      "win_rate": 0.312,
+      "pf": 0.62
+    },
+    "spread_entry_trend_up": {
+      "trades": 24,
+      "win_rate": 0.625,
+      "pf": 3.85
     },
     "vwap_reclaim_low_vol": {
-      "trades": 3,
-      "win_rate": 0.667,
-      "pf": 8.33
+      "trades": 2,
+      "win_rate": 0.5,
+      "pf": 2.49
+    },
+    "trend_follow_low_vol": {
+      "trades": 2,
+      "win_rate": 0.0,
+      "pf": 0.0
+    },
+    "open_drive_low_vol": {
+      "trades": 9,
+      "win_rate": 0.222,
+      "pf": 0.32
+    },
+    "orderbook_imbalance_low_vol": {
+      "trades": 35,
+      "win_rate": 0.457,
+      "pf": 0.68
+    },
+    "spread_entry_low_vol": {
+      "trades": 5,
+      "win_rate": 0.4,
+      "pf": 0.23
+    },
+    "spread_entry_trend_down": {
+      "trades": 5,
+      "win_rate": 0.4,
+      "pf": 0.35
     }
   },
   "proxy_summary": {
@@ -55,108 +160,104 @@
       "proxy_penalty": 0.05
     },
     "trend_follow": {
-      "status": "filter",
+      "status": "active",
       "proxy_usage_rate": 0.0,
       "proxy_penalty": 0.0
     },
     "spread_entry": {
-      "status": "supplement",
+      "status": "active",
       "proxy_usage_rate": 0.3333333333333333,
-      "proxy_penalty": 0.05
+      "proxy_penalty": 0.017
     },
     "orb": {
-      "status": "watch",
+      "status": "active",
       "proxy_usage_rate": 1.0,
-      "proxy_penalty": 0.15
+      "proxy_penalty": 0.05
     },
     "tdnet_event": {
-      "status": "watch",
+      "status": "active",
       "proxy_usage_rate": 0.0,
       "proxy_penalty": 0.0
     },
     "gap_go": {
-      "status": "watch",
+      "status": "active",
+      "proxy_usage_rate": 0.0,
+      "proxy_penalty": 0.0
+    },
+    "gap_fade": {
+      "status": "active",
       "proxy_usage_rate": 0.0,
       "proxy_penalty": 0.0
     },
     "vwap_bounce": {
-      "status": "off",
+      "status": "active",
       "proxy_usage_rate": 1.0,
-      "proxy_penalty": 0.15
+      "proxy_penalty": 0.05
     },
     "orderbook_imbalance": {
-      "status": "off",
+      "status": "active",
       "proxy_usage_rate": 1.0,
-      "proxy_penalty": 0.15
+      "proxy_penalty": 0.05
     },
     "large_absorption": {
-      "status": "off",
+      "status": "active",
       "proxy_usage_rate": 1.0,
-      "proxy_penalty": 0.15
+      "proxy_penalty": 0.05
     },
     "open_drive": {
-      "status": "off",
+      "status": "active",
       "proxy_usage_rate": 1.0,
-      "proxy_penalty": 0.15
-    },
-    "gap_fade": {
-      "status": "off",
-      "proxy_usage_rate": 0.0,
-      "proxy_penalty": 0.0
+      "proxy_penalty": 0.05
     },
     "overextension": {
-      "status": "off",
+      "status": "active",
       "proxy_usage_rate": 1.0,
-      "proxy_penalty": 0.15
+      "proxy_penalty": 0.05
     },
     "rsi_reversal": {
-      "status": "off",
+      "status": "active",
       "proxy_usage_rate": 1.0,
-      "proxy_penalty": 0.15
+      "proxy_penalty": 0.05
     },
     "crash_rebound": {
-      "status": "off",
+      "status": "active",
       "proxy_usage_rate": 1.0,
-      "proxy_penalty": 0.15
+      "proxy_penalty": 0.05
     },
     "earnings_momentum": {
-      "status": "off",
+      "status": "active",
       "proxy_usage_rate": 1.0,
-      "proxy_penalty": 0.15
+      "proxy_penalty": 0.05
     },
     "catalyst_initial": {
-      "status": "off",
+      "status": "active",
       "proxy_usage_rate": 1.0,
-      "proxy_penalty": 0.15
+      "proxy_penalty": 0.05
     }
   },
   "strategy_status": {
     "active": [
-      "vwap_reclaim"
-    ],
-    "filter": [
-      "trend_follow"
-    ],
-    "supplement": [
-      "spread_entry"
-    ],
-    "watch": [
+      "vwap_reclaim",
+      "trend_follow",
+      "spread_entry",
       "orb",
       "tdnet_event",
-      "gap_go"
-    ],
-    "off": [
+      "gap_go",
+      "gap_fade",
       "vwap_bounce",
       "orderbook_imbalance",
       "large_absorption",
       "open_drive",
-      "gap_fade",
       "overextension",
       "rsi_reversal",
       "crash_rebound",
       "earnings_momentum",
       "catalyst_initial"
-    ]
+    ],
+    "filter": [],
+    "supplement": [],
+    "watch": [],
+    "off": []
   },
   "data_quality_warnings": [
     "intraday proxy features are estimated from daily OHLCV",

@@ -36,13 +36,15 @@ class ImbalanceStrategy(BaseStrategy):
             feature_requirements=self.REQUIRED_FEATURES,
             expected_market_condition="bull",
             parameter_set={
+                # 大規模BT: OOS PF=1.50, 129件 (only_trend_up_range)
                 "long_ratio_threshold": 2.0,
                 "short_ratio_threshold": 0.5,
                 "max_spread_pct": 0.3,
-                "min_depth_imbalance": 0.3,
-                "target_atr_multiple": 1.0,
+                "min_depth_imbalance": 0.4,
+                "target_atr_multiple": 1.5,
                 "stop_atr_multiple": 0.8,
                 "min_volume_ratio": 1.0,
+                "blocked_regimes": ["trend_down", "volatile", "low_vol"],
             },
         )
 
@@ -55,6 +57,10 @@ class ImbalanceStrategy(BaseStrategy):
             return None
 
         params = self.config.parameter_set
+
+        if not self._check_regime_filter(features):
+            return None
+
         ba_ratio: float = features["bid_ask_ratio"]
         spread: float = features["spread"]
         depth_imb: float = features["depth_imbalance"]

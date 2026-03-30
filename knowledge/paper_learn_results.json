@@ -1,0 +1,5157 @@
+{
+  "timestamp": "2026-03-30T10:43:03.083441",
+  "total_iterations": 99,
+  "duration_minutes": 53.2,
+  "best_oos_pf": 1.14,
+  "best_iteration": 1,
+  "history": [
+    {
+      "iteration": 1,
+      "elapsed_min": 0.0,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 2,
+      "elapsed_min": 0.4,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 3,
+      "elapsed_min": 0.9,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 4,
+      "elapsed_min": 1.4,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 5,
+      "elapsed_min": 1.8,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 6,
+      "elapsed_min": 2.2,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 7,
+      "elapsed_min": 2.7,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 8,
+      "elapsed_min": 3.2,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 9,
+      "elapsed_min": 3.7,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 10,
+      "elapsed_min": 4.1,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 11,
+      "elapsed_min": 4.6,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 12,
+      "elapsed_min": 5.1,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 13,
+      "elapsed_min": 5.7,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 14,
+      "elapsed_min": 6.2,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 15,
+      "elapsed_min": 6.7,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 16,
+      "elapsed_min": 7.1,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 17,
+      "elapsed_min": 7.6,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 18,
+      "elapsed_min": 8.0,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 19,
+      "elapsed_min": 8.4,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 20,
+      "elapsed_min": 8.9,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 21,
+      "elapsed_min": 9.4,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 22,
+      "elapsed_min": 9.8,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 23,
+      "elapsed_min": 10.4,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 24,
+      "elapsed_min": 10.9,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 25,
+      "elapsed_min": 11.5,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 26,
+      "elapsed_min": 12.0,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 27,
+      "elapsed_min": 12.5,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 28,
+      "elapsed_min": 13.1,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 29,
+      "elapsed_min": 13.6,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 30,
+      "elapsed_min": 14.1,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 31,
+      "elapsed_min": 14.6,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 32,
+      "elapsed_min": 15.1,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 33,
+      "elapsed_min": 15.6,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 34,
+      "elapsed_min": 16.2,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 35,
+      "elapsed_min": 16.9,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 36,
+      "elapsed_min": 17.5,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 37,
+      "elapsed_min": 18.0,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 38,
+      "elapsed_min": 18.5,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 39,
+      "elapsed_min": 19.0,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 40,
+      "elapsed_min": 19.5,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 41,
+      "elapsed_min": 20.1,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 42,
+      "elapsed_min": 20.6,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 43,
+      "elapsed_min": 21.1,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 44,
+      "elapsed_min": 21.8,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 45,
+      "elapsed_min": 22.4,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 46,
+      "elapsed_min": 22.9,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 47,
+      "elapsed_min": 23.7,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 48,
+      "elapsed_min": 24.4,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 49,
+      "elapsed_min": 25.3,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 50,
+      "elapsed_min": 26.0,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 51,
+      "elapsed_min": 26.7,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 52,
+      "elapsed_min": 27.3,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 53,
+      "elapsed_min": 27.8,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 54,
+      "elapsed_min": 28.3,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 55,
+      "elapsed_min": 28.9,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 56,
+      "elapsed_min": 29.4,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 57,
+      "elapsed_min": 30.0,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 58,
+      "elapsed_min": 30.5,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 59,
+      "elapsed_min": 31.2,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 60,
+      "elapsed_min": 31.8,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 61,
+      "elapsed_min": 32.5,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 62,
+      "elapsed_min": 33.1,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 63,
+      "elapsed_min": 33.8,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 64,
+      "elapsed_min": 34.6,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 65,
+      "elapsed_min": 35.3,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 66,
+      "elapsed_min": 35.9,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 67,
+      "elapsed_min": 36.5,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 68,
+      "elapsed_min": 37.1,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 69,
+      "elapsed_min": 37.7,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 70,
+      "elapsed_min": 38.3,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 71,
+      "elapsed_min": 38.8,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 72,
+      "elapsed_min": 39.3,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 73,
+      "elapsed_min": 39.9,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 74,
+      "elapsed_min": 40.5,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 75,
+      "elapsed_min": 41.0,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 76,
+      "elapsed_min": 41.5,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 77,
+      "elapsed_min": 42.0,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 78,
+      "elapsed_min": 42.6,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 79,
+      "elapsed_min": 43.1,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 80,
+      "elapsed_min": 43.6,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 81,
+      "elapsed_min": 44.2,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 82,
+      "elapsed_min": 44.7,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 83,
+      "elapsed_min": 45.2,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 84,
+      "elapsed_min": 45.9,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 85,
+      "elapsed_min": 46.4,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 86,
+      "elapsed_min": 46.9,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 87,
+      "elapsed_min": 47.3,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 88,
+      "elapsed_min": 47.8,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 89,
+      "elapsed_min": 48.2,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 90,
+      "elapsed_min": 48.7,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 91,
+      "elapsed_min": 49.1,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 92,
+      "elapsed_min": 49.6,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 93,
+      "elapsed_min": 50.1,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 94,
+      "elapsed_min": 50.5,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 95,
+      "elapsed_min": 51.0,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 96,
+      "elapsed_min": 51.4,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 97,
+      "elapsed_min": 51.9,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 98,
+      "elapsed_min": 52.4,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    },
+    {
+      "iteration": 99,
+      "elapsed_min": 52.8,
+      "active_strategies": 16,
+      "all": {
+        "trades": 806,
+        "pf": 0.91,
+        "pnl": -14719.0
+      },
+      "is": {
+        "trades": 378,
+        "pf": 0.68,
+        "pnl": -26415.0
+      },
+      "oos": {
+        "trades": 428,
+        "pf": 1.14,
+        "pnl": 11696.0
+      },
+      "strategy_oos": {
+        "open_drive": {
+          "trades": 34,
+          "pf": 0.68,
+          "pnl": -1536.0
+        },
+        "orderbook_imbalance": {
+          "trades": 317,
+          "pf": 1.02,
+          "pnl": 1557.0
+        },
+        "trend_follow": {
+          "trades": 20,
+          "pf": 2.22,
+          "pnl": 2788.0
+        },
+        "spread_entry": {
+          "trades": 34,
+          "pf": 1.92,
+          "pnl": 7597.0
+        },
+        "vwap_reclaim": {
+          "trades": 21,
+          "pf": 1.16,
+          "pnl": 776.0
+        },
+        "vwap_bounce": {
+          "trades": 2,
+          "pf": 99.0,
+          "pnl": 514.0
+        }
+      }
+    }
+  ]
+}

@@ -197,12 +197,15 @@ class TrendFollowStrategy(BaseStrategy):
             feature_requirements=self.REQUIRED_FEATURES,
             expected_market_condition="bull",
             parameter_set={
-                "min_trend_strength": 0.2,   # 最適化結果: 0.4→0.2 (OOS PF 1.83)
-                "min_volume_trend": 1.0,
-                "trailing_atr_multiple": 1.5,
+                # 大規模BT (2026-03-27, 168パターン, OOS PF=2.63, 27件)
+                "min_trend_strength": 0.1,
+                "min_volume_trend": 1.2,
+                "trailing_atr_multiple": 1.0,
                 "pullback_ema": "ema_9",
                 "stop_ema": "ema_21",
                 "ema_alignment_buffer_pct": 0.05,
+                # レジームフィルタ: trend_down/volatile で損失
+                "blocked_regimes": ["trend_down", "volatile"],
             },
         )
 
@@ -215,6 +218,10 @@ class TrendFollowStrategy(BaseStrategy):
             return None
 
         params = self.config.parameter_set
+
+        if not self._check_regime_filter(features):
+            return None
+
         ema_9: float = features["ema_9"]
         ema_21: float = features["ema_21"]
         vwap: float = features["vwap"]

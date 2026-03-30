@@ -94,3 +94,26 @@ class BaseStrategy(ABC):
             )
             return False
         return True
+
+    def _check_regime_filter(self, features: dict) -> bool:
+        """Return True if current regime is allowed (not blocked).
+
+        Uses ``blocked_regimes`` list from parameter_set.
+        Strategies that don't set blocked_regimes always pass.
+        """
+        blocked = self.config.parameter_set.get("blocked_regimes")
+        if not blocked:
+            return True
+        blocked_set = set(blocked)
+        regime_result = features.get("regime_result")
+        current_regime = (
+            getattr(regime_result, "regime", "")
+            if regime_result
+            else features.get("market_condition", "")
+        )
+        if current_regime in blocked_set:
+            logger.debug(
+                f"[{self.name}] Regime blocked: {current_regime}"
+            )
+            return False
+        return True

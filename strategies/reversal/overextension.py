@@ -43,6 +43,7 @@ class OverextensionStrategy(BaseStrategy):
                 "required_patterns": ["hammer", "engulfing", "doji_star", "pin_bar"],
                 "min_volume_climax": 2.0,
                 "stop_buffer_atr": 0.5,
+                "blocked_regimes": ["trend_down"],
             },
         )
 
@@ -55,6 +56,10 @@ class OverextensionStrategy(BaseStrategy):
             return None
 
         params = self.config.parameter_set
+
+        if not self._check_regime_filter(features):
+            return None
+
         atr_dist: float = features["atr_distance_from_vwap"]
         rsi_14: float = features["rsi_14"]
         candle_pat: str = features["candle_pattern"]

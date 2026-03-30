@@ -70,6 +70,7 @@ class ORBStrategy(BaseStrategy):
                 "min_confidence": 0.45,          # minimum confidence to generate signal
                 "regime_weight_threshold": 0.3,  # skip if regime weight for orb < this
                 "min_selector_score": 0.0,       # minimum StockSelector score (0=no filter)
+                "blocked_regimes": ["trend_down"],
             },
         )
 
@@ -82,6 +83,10 @@ class ORBStrategy(BaseStrategy):
             return None
 
         params = self.config.parameter_set
+
+        if not self._check_regime_filter(features):
+            return None
+
         or_high: float = features["opening_range_high"]
         or_low: float = features["opening_range_low"]
         volume_ratio: float = features["volume_ratio"]

@@ -41,6 +41,7 @@ class OpenDriveStrategy(BaseStrategy):
                 "target_range_multiple": 1.75,
                 "max_pullback_pct": 0.5,
                 "min_tick_direction": 0.6,
+                "blocked_regimes": ["trend_down", "low_vol"],
             },
         )
 
@@ -53,6 +54,10 @@ class OpenDriveStrategy(BaseStrategy):
             return None
 
         params = self.config.parameter_set
+
+        if not self._check_regime_filter(features):
+            return None
+
         or_size: float = features["opening_range_size"]
         vol_5min: float = features["volume_first_5min"]
         tick_dir: float = features["tick_direction"]

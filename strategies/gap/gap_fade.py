@@ -45,7 +45,8 @@ class GapFadeStrategy(BaseStrategy):
                 "rsi_exhaustion": 75.0,
                 "vwap_fail_minutes": 15,
                 "min_volume_ratio": 1.2,
-                "target_type": "vwap",  # "vwap" or "prev_close"
+                "target_type": "vwap",
+                "blocked_regimes": ["trend_down"],
             },
         )
 
@@ -58,6 +59,10 @@ class GapFadeStrategy(BaseStrategy):
             return None
 
         params = self.config.parameter_set
+
+        if not self._check_regime_filter(features):
+            return None
+
         gap_pct: float = features["gap_pct"]
         volume_ratio: float = features["volume_ratio"]
         rsi_5: float = features["rsi_5"]

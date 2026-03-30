@@ -61,7 +61,15 @@
       "relative_volume": 0.8429527083107791,
       "s33": "3550",
       "sector_bias": 0.0,
-      "sector_bias_label": "neutral"
+      "sector_bias_label": "neutral",
+      "pm_relative_volume": 1.8732,
+      "pm_turnover": 12255098550.0,
+      "pm_vwap_reclaim_flag": false,
+      "pm_vwap_hold_count": 0,
+      "pm_low_price_bonus": 0.0,
+      "pm_intraday_quality_score": 0.35,
+      "pm_intraday_is_proxy": true,
+      "pm_setup_bonus": 0.0
     },
     {
       "code": "63010",
@@ -74,7 +82,15 @@
       "relative_volume": 0.8544387577776913,
       "s33": "3600",
       "sector_bias": 0.0,
-      "sector_bias_label": "neutral"
+      "sector_bias_label": "neutral",
+      "pm_relative_volume": 1.8988,
+      "pm_turnover": 21304459300.0,
+      "pm_vwap_reclaim_flag": false,
+      "pm_vwap_hold_count": 0,
+      "pm_low_price_bonus": 0.0,
+      "pm_intraday_quality_score": 0.35,
+      "pm_intraday_is_proxy": true,
+      "pm_setup_bonus": 0.0
     },
     {
       "code": "63260",
@@ -87,7 +103,15 @@
       "relative_volume": 0.9063216711385029,
       "s33": "3600",
       "sector_bias": 0.0,
-      "sector_bias_label": "neutral"
+      "sector_bias_label": "neutral",
+      "pm_relative_volume": 2.014,
+      "pm_turnover": 10247282000.0,
+      "pm_vwap_reclaim_flag": false,
+      "pm_vwap_hold_count": 0,
+      "pm_low_price_bonus": 0.0,
+      "pm_intraday_quality_score": 0.35,
+      "pm_intraday_is_proxy": true,
+      "pm_setup_bonus": 0.0
     },
     {
       "code": "40630",
@@ -100,7 +124,15 @@
       "relative_volume": 0.7872042152979487,
       "s33": "3200",
       "sector_bias": 0.0,
-      "sector_bias_label": "neutral"
+      "sector_bias_label": "neutral",
+      "pm_relative_volume": 1.7493,
+      "pm_turnover": 49903494000.0,
+      "pm_vwap_reclaim_flag": false,
+      "pm_vwap_hold_count": 0,
+      "pm_low_price_bonus": 0.0,
+      "pm_intraday_quality_score": 0.35,
+      "pm_intraday_is_proxy": true,
+      "pm_setup_bonus": 0.0
     },
     {
       "code": "77350",
@@ -113,7 +145,15 @@
       "relative_volume": 0.5504875854685507,
       "s33": "3650",
       "sector_bias": 0.0,
-      "sector_bias_label": "neutral"
+      "sector_bias_label": "neutral",
+      "pm_relative_volume": 1.2233,
+      "pm_turnover": 15454263500.0,
+      "pm_vwap_reclaim_flag": false,
+      "pm_vwap_hold_count": 0,
+      "pm_low_price_bonus": 0.0,
+      "pm_intraday_quality_score": 0.35,
+      "pm_intraday_is_proxy": true,
+      "pm_setup_bonus": 0.0
     },
     {
       "code": "69810",
@@ -126,7 +166,15 @@
       "relative_volume": 0.5904564238747786,
       "s33": "3650",
       "sector_bias": 0.0,
-      "sector_bias_label": "neutral"
+      "sector_bias_label": "neutral",
+      "pm_relative_volume": 1.3121,
+      "pm_turnover": 21529748100.0,
+      "pm_vwap_reclaim_flag": false,
+      "pm_vwap_hold_count": 0,
+      "pm_low_price_bonus": 0.0,
+      "pm_intraday_quality_score": 0.35,
+      "pm_intraday_is_proxy": true,
+      "pm_setup_bonus": 0.0
     },
     {
       "code": "70130",
@@ -139,7 +187,15 @@
       "relative_volume": 0.8512003361342807,
       "s33": "3600",
       "sector_bias": 0.0,
-      "sector_bias_label": "neutral"
+      "sector_bias_label": "neutral",
+      "pm_relative_volume": 1.8916,
+      "pm_turnover": 56519489000.0,
+      "pm_vwap_reclaim_flag": false,
+      "pm_vwap_hold_count": 0,
+      "pm_low_price_bonus": 0.0,
+      "pm_intraday_quality_score": 0.35,
+      "pm_intraday_is_proxy": true,
+      "pm_setup_bonus": 0.0
     },
     {
       "code": "99840",
@@ -152,7 +208,15 @@
       "relative_volume": 0.8559478040443923,
       "s33": "5250",
       "sector_bias": 0.0,
-      "sector_bias_label": "neutral"
+      "sector_bias_label": "neutral",
+      "pm_relative_volume": 1.9021,
+      "pm_turnover": 124404966000.0,
+      "pm_vwap_reclaim_flag": false,
+      "pm_vwap_hold_count": 0,
+      "pm_low_price_bonus": 0.0,
+      "pm_intraday_quality_score": 0.35,
+      "pm_intraday_is_proxy": true,
+      "pm_setup_bonus": 0.0
     },
     {
       "code": "69200",
@@ -165,7 +229,15 @@
       "relative_volume": 0.6843360766809679,
       "s33": "3650",
       "sector_bias": 0.0,
-      "sector_bias_label": "neutral"
+      "sector_bias_label": "neutral",
+      "pm_relative_volume": 1.5207,
+      "pm_turnover": 100753818000.0,
+      "pm_vwap_reclaim_flag": false,
+      "pm_vwap_hold_count": 0,
+      "pm_low_price_bonus": 0.0,
+      "pm_intraday_quality_score": 0.35,
+      "pm_intraday_is_proxy": true,
+      "pm_setup_bonus": 0.0
     },
     {
       "code": "80580",
@@ -178,7 +250,15 @@
       "relative_volume": 0.8295126493988672,
       "s33": "6050",
       "sector_bias": 0.0,
-      "sector_bias_label": "neutral"
+      "sector_bias_label": "neutral",
+      "pm_relative_volume": 1.8434,
+      "pm_turnover": 58529176800.0,
+      "pm_vwap_reclaim_flag": false,
+      "pm_vwap_hold_count": 0,
+      "pm_low_price_bonus": 0.0,
+      "pm_intraday_quality_score": 0.35,
+      "pm_intraday_is_proxy": true,
+      "pm_setup_bonus": 0.0
     },
     {
       "code": "79740",
@@ -191,7 +271,15 @@
       "relative_volume": 1.1318724840103407,
       "s33": "3800",
       "sector_bias": 0.0,
-      "sector_bias_label": "neutral"
+      "sector_bias_label": "neutral",
+      "pm_relative_volume": 2.5153,
+      "pm_turnover": 135824604000.0,
+      "pm_vwap_reclaim_flag": false,
+      "pm_vwap_hold_count": 0,
+      "pm_low_price_bonus": 0.0,
+      "pm_intraday_quality_score": 0.35,
+      "pm_intraday_is_proxy": true,
+      "pm_setup_bonus": 0.0
     },
     {
       "code": "87660",
@@ -204,7 +292,15 @@
       "relative_volume": 0.4087875135469103,
       "s33": "7150",
       "sector_bias": 0.0,
-      "sector_bias_label": "neutral"
+      "sector_bias_label": "neutral",
+      "pm_relative_volume": 0.9084,
+      "pm_turnover": 15221168600.0,
+      "pm_vwap_reclaim_flag": false,
+      "pm_vwap_hold_count": 0,
+      "pm_low_price_bonus": 0.0,
+      "pm_intraday_quality_score": 0.35,
+      "pm_intraday_is_proxy": true,
+      "pm_setup_bonus": 0.0
     },
     {
       "code": "60980",
@@ -217,7 +313,15 @@
       "relative_volume": 0.7350449554157038,
       "s33": "9050",
       "sector_bias": 0.0,
-      "sector_bias_label": "neutral"
+      "sector_bias_label": "neutral",
+      "pm_relative_volume": 1.6334,
+      "pm_turnover": 33673234400.0,
+      "pm_vwap_reclaim_flag": false,
+      "pm_vwap_hold_count": 0,
+      "pm_low_price_bonus": 0.0,
+      "pm_intraday_quality_score": 0.35,
+      "pm_intraday_is_proxy": true,
+      "pm_setup_bonus": 0.0
     },
     {
       "code": "28020",
@@ -230,7 +334,15 @@
       "relative_volume": 0.8506804896439655,
       "s33": "3050",
       "sector_bias": 0.0,
-      "sector_bias_label": "neutral"
+      "sector_bias_label": "neutral",
+      "pm_relative_volume": 1.8904,
+      "pm_turnover": 14675191200.0,
+      "pm_vwap_reclaim_flag": false,
+      "pm_vwap_hold_count": 0,
+      "pm_low_price_bonus": 0.0,
+      "pm_intraday_quality_score": 0.35,
+      "pm_intraday_is_proxy": true,
+      "pm_setup_bonus": 0.0
     },
     {
       "code": "63670",
@@ -243,7 +355,15 @@
       "relative_volume": 0.9845625668700693,
       "s33": "3600",
       "sector_bias": 0.0,
-      "sector_bias_label": "neutral"
+      "sector_bias_label": "neutral",
+      "pm_relative_volume": 2.1879,
+      "pm_turnover": 24305535000.0,
+      "pm_vwap_reclaim_flag": true,
+      "pm_vwap_hold_count": 1,
+      "pm_low_price_bonus": 0.0,
+      "pm_intraday_quality_score": 0.35,
+      "pm_intraday_is_proxy": true,
+      "pm_setup_bonus": 0.0
     },
     {
       "code": "98430",
@@ -256,7 +376,15 @@
       "relative_volume": 1.0493985587021566,
       "s33": "6100",
       "sector_bias": 0.0,
-      "sector_bias_label": "neutral"
+      "sector_bias_label": "neutral",
+      "pm_relative_volume": 2.332,
+      "pm_turnover": 8265950000.0,
+      "pm_vwap_reclaim_flag": false,
+      "pm_vwap_hold_count": 0,
+      "pm_low_price_bonus": 0.0,
+      "pm_intraday_quality_score": 0.35,
+      "pm_intraday_is_proxy": true,
+      "pm_setup_bonus": 0.0
     },
     {
       "code": "83160",
@@ -269,7 +397,15 @@
       "relative_volume": 0.7580057932788545,
       "s33": "7050",
       "sector_bias": 0.0,
-      "sector_bias_label": "neutral"
+      "sector_bias_label": "neutral",
+      "pm_relative_volume": 1.6845,
+      "pm_turnover": 62137389600.0,
+      "pm_vwap_reclaim_flag": false,
+      "pm_vwap_hold_count": 0,
+      "pm_low_price_bonus": 0.0,
+      "pm_intraday_quality_score": 0.35,
+      "pm_intraday_is_proxy": true,
+      "pm_setup_bonus": 0.0
     },
     {
       "code": "67580",
@@ -282,7 +418,15 @@
       "relative_volume": 0.8014964697804217,
       "s33": "3650",
       "sector_bias": 0.0,
-      "sector_bias_label": "neutral"
+      "sector_bias_label": "neutral",
+      "pm_relative_volume": 1.7811,
+      "pm_turnover": 60814604800.0,
+      "pm_vwap_reclaim_flag": false,
+      "pm_vwap_hold_count": 0,
+      "pm_low_price_bonus": 0.0,
+      "pm_intraday_quality_score": 0.35,
+      "pm_intraday_is_proxy": true,
+      "pm_setup_bonus": 0.0
     },
     {
       "code": "91010",
@@ -295,7 +439,15 @@
       "relative_volume": 0.7589254350806212,
       "s33": "5100",
       "sector_bias": 0.0,
-      "sector_bias_label": "neutral"
+      "sector_bias_label": "neutral",
+      "pm_relative_volume": 1.6865,
+      "pm_turnover": 23929840000.0,
+      "pm_vwap_reclaim_flag": false,
+      "pm_vwap_hold_count": 0,
+      "pm_low_price_bonus": 0.0,
+      "pm_intraday_quality_score": 0.35,
+      "pm_intraday_is_proxy": true,
+      "pm_setup_bonus": 0.0
     },
     {
       "code": "83060",
@@ -308,7 +460,15 @@
       "relative_volume": 0.6948685860422394,
       "s33": "7050",
       "sector_bias": 0.0,
-      "sector_bias_label": "neutral"
+      "sector_bias_label": "neutral",
+      "pm_relative_volume": 1.5442,
+      "pm_turnover": 88820031300.0,
+      "pm_vwap_reclaim_flag": false,
+      "pm_vwap_hold_count": 0,
+      "pm_low_price_bonus": 0.0,
+      "pm_intraday_quality_score": 0.35,
+      "pm_intraday_is_proxy": true,
+      "pm_setup_bonus": 0.0
     }
   ],
   "active_strategies": [
@@ -446,23 +606,24 @@
       "strategy": "vwap_reclaim",
       "direction": "long",
       "entry_price": 19369.3,
-      "entry_time": "2026-03-25T10:48:21.250749"
+      "entry_time": "2026-03-25T15:29:43.161519"
     },
     "34360": {
       "strategy": "vwap_reclaim",
       "direction": "long",
       "entry_price": 1641.1,
-      "entry_time": "2026-03-25T10:48:21.251063"
+      "entry_time": "2026-03-25T15:29:43.161844"
     },
     "28020": {
       "strategy": "vwap_reclaim",
       "direction": "long",
       "entry_price": 4297.3,
-      "entry_time": "2026-03-25T10:48:21.251339"
+      "entry_time": "2026-03-25T15:29:43.162130"
     }
   },
   "data_quality_warnings": [
-    "intraday proxy features are estimated from daily OHLCV",
+    "intraday proxy features are estimated from daily OHLCV when minute bars unavailable",
+    "PM-VWAP reclaim requires real intraday for full quality; check pm_intraday_is_proxy",
     "proxy-dependent strategies have limited evaluation reliability"
   ]
 }

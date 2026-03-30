@@ -46,6 +46,7 @@ class GapGoStrategy(BaseStrategy):
                 "max_gap_pct": 10.0,
                 "min_pre_market_volume": 50000,
                 "confirmation_candles": 1,
+                "blocked_regimes": ["trend_down"],
             },
         )
 
@@ -59,6 +60,10 @@ class GapGoStrategy(BaseStrategy):
             return None
 
         params = self.config.parameter_set
+
+        if not self._check_regime_filter(features):
+            return None
+
         gap_pct: float = features["gap_pct"]
         volume_ratio: float = features["volume_ratio"]
         pre_market_vol: float = features.get("pre_market_volume", 0)

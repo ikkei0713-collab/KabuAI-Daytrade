@@ -35,13 +35,15 @@ class VWAPBounceStrategy(BaseStrategy):
             feature_requirements=self.REQUIRED_FEATURES,
             expected_market_condition="bull",
             parameter_set={
+                # 大規模BT (2026-03-27): OOS PF=99 (3件全勝) block_down_vol
                 "max_vwap_touches": 4,
                 "min_vwap_touches": 1,
-                "trend_direction_min": 0.3,
+                "trend_direction_min": 0.2,
                 "min_volume_ratio": 1.2,
-                "target_atr_multiple": 1.0,
-                "stop_atr_below_vwap": 0.5,
+                "target_atr_multiple": 0.8,
+                "stop_atr_below_vwap": 0.8,
                 "bounce_proximity_pct": 0.3,
+                "blocked_regimes": ["trend_down", "volatile"],
             },
         )
 
@@ -54,6 +56,10 @@ class VWAPBounceStrategy(BaseStrategy):
             return None
 
         params = self.config.parameter_set
+
+        if not self._check_regime_filter(features):
+            return None
+
         vwap: float = features["vwap"]
         touches: int = features["vwap_touches_today"]
         trend: float = features["trend_direction"]

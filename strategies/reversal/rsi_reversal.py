@@ -42,6 +42,7 @@ class RSIReversalStrategy(BaseStrategy):
                 "min_volume_spike": 2.0,
                 "stop_atr_multiple": 1.0,
                 "bollinger_confirmation": True,
+                "blocked_regimes": ["trend_down"],
             },
         )
 
@@ -54,6 +55,10 @@ class RSIReversalStrategy(BaseStrategy):
             return None
 
         params = self.config.parameter_set
+
+        if not self._check_regime_filter(features):
+            return None
+
         rsi_5: float = features["rsi_5"]
         vol_spike: float = features["volume_spike"]
         bb_pos: float = features["price_vs_bollinger"]  # -1 to 1 scale

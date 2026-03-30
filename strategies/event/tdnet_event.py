@@ -81,6 +81,7 @@ class TDnetEventStrategy(BaseStrategy):
                 "max_market_cap_billion": 5000.0,
                 "min_event_magnitude": 0.3,
                 "min_historical_response": 0.0,
+                "blocked_regimes": [],  # イベント駆動はレジーム不問
             },
         )
 
@@ -93,6 +94,10 @@ class TDnetEventStrategy(BaseStrategy):
             return None
 
         params = self.config.parameter_set
+
+        if not self._check_regime_filter(features):
+            return None
+
         event_type: str = features["event_type"]
         event_mag: float = features["event_magnitude"]
         market_cap: float = features["market_cap"]  # in billions of yen

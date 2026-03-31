@@ -740,14 +740,14 @@ class LiveTrader:
                 await self._close_position(ticker, "ストップロス")
                 self.daily_pnl += pnl
 
-            # 利確ターゲット
+            # 利確ターゲット（指値で有利に決済）
             elif live_price >= target:
                 pnl = (live_price - entry) * pos["quantity"]
                 logger.info(
                     f"★ 利確: {ticker} ¥{entry:,.0f}→¥{live_price:,.1f} "
-                    f"PnL=¥{pnl:+,.0f} [{price_source}]"
+                    f"PnL=¥{pnl:+,.0f} [{price_source}] → 指値¥{target:,.0f}で決済"
                 )
-                await self._close_position(ticker, "利確ターゲット到達")
+                await self._close_position(ticker, "利確ターゲット到達", limit_price=target)
                 self.daily_pnl += pnl
 
             else:
@@ -757,20 +757,31 @@ class LiveTrader:
                     f"含み¥{pnl:+,.0f} (SL=¥{stop:,.1f} TP=¥{target:,.0f}) [{price_source}]"
                 )
 
-    async def _close_position(self, ticker: str, reason: str):
-        """個別ポジション決済"""
+    async def _close_position(self, ticker: str, reason: str, limit_price: float = None):
+        """個別ポジション決済。limit_price指定で指値、なければ成行。"""
         pos = self.open_positions.get(ticker)
         if not pos:
             return
 
-        logger.info(f"決済: {ticker} {pos['quantity']}株 ({reason})")
-        order = Order(
-            ticker=ticker,
-            side=OrderSide.SELL,
-            quantity=pos["quantity"],
-            order_type=OrderType.MARKET,
-            strategy_name=pos["strategy"],
-        )
+        if limit_price:
+            logger.info(f"決済(指値): {ticker} {pos['quantity']}株 @¥{limit_price:,.0f} ({reason})")
+            order = Order(
+                ticker=ticker,
+                side=OrderSide.SELL,
+                quantity=pos["quantity"],
+                order_type=OrderType.LIMIT,
+                limit_price=limit_price,
+                strategy_name=pos["strategy"],
+            )
+        else:
+            logger.info(f"決済(成行): {ticker} {pos['quantity']}株 ({reason})")
+            order = Order(
+                ticker=ticker,
+                side=OrderSide.SELL,
+                quantity=pos["quantity"],
+                order_type=OrderType.MARKET,
+                strategy_name=pos["strategy"],
+            )
         result = await self.broker.place_order(order)
         logger.info(f"  → {result.status.value} {result.notes}")
 

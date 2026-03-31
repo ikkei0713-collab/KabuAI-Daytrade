@@ -430,9 +430,15 @@ class LiveTrader:
     async def _refresh_intraday_data(self):
         """J-Quantsから日中足（分足）を取得（キャッシュ無効で鮮度優先）"""
         self._last_intraday_refresh = time.time()
+
+        # J-Quantsプランで日中足が403なら以降スキップ
+        if getattr(self, "_intraday_forbidden", False):
+            return
+
         today_str = date.today().isoformat()
         updated = 0
 
+        first_attempt = True
         for code_5 in self._scan_candidates:
             if code_5 not in self.stock_data:
                 continue
@@ -440,6 +446,12 @@ class LiveTrader:
                 raw = await self._jquants_client.get_prices_intraday(
                     code_5, today_str, use_cache=False
                 )
+                # 最初の銘柄で0件なら403プラン制限と判断
+                if first_attempt and not raw:
+                    logger.warning("日中足API: プラン制限の可能性 → 以降スキップ")
+                    self._intraday_forbidden = True
+                    return
+                first_attempt = False
                 if not raw:
                     continue
                 df = pd.DataFrame(raw)
@@ -472,10 +484,17 @@ class LiveTrader:
                 self.intraday_data[code_5] = df
                 updated += 1
             except Exception as e:
+                err_str = str(e)
+                if "403" in err_str or "Forbidden" in err_str:
+                    logger.warning("日中足API: 403 Forbidden（プラン制限）→ 以降スキップ")
+                    self._intraday_forbidden = True
+                    return
                 logger.debug(f"  {code_5}: 日中足取得失敗 {e}")
 
         if updated > 0:
             logger.info(f"日中足更新: {updated}銘柄 (キャッシュ無効)")
+        else:
+            logger.debug("日中足: 更新なし")
 
     # ------------------------------------------------------------------
     # TDnet適時開示ライブ監視

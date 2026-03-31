@@ -491,7 +491,6 @@ class TachibanaBroker(BaseBroker):
                         return power
 
             logger.info("買付余力: ¥0 (未入金)")
-            return power
             return 0.0
 
     # ------------------------------------------------------------------
@@ -526,31 +525,27 @@ class TachibanaBroker(BaseBroker):
     # ------------------------------------------------------------------
 
     async def get_current_price(self, ticker: str) -> float:
-        """銘柄の現在値を取得"""
+        """銘柄の現在値を取得（保有銘柄一覧から評価単価を取得）"""
         if not self._logged_in:
             return 0.0
 
-        issue_code = ticker if len(ticker) >= 5 else ticker + "0"
+        issue_code = ticker[:4] if len(ticker) >= 5 else ticker
 
-        data = await self._api_request(
-            CLMID_MARKET_PRICE,
-            {
-                "sTargetIssueCode": issue_code,
-                "sTargetSizyouC": "00",
-                "sTargetColumn": "sGenzaiKabuka,sZenzituOwarine,sBaibaiTakane,sBaibaiYasune",
-            },
-            url_type="price",
-        )
-
-        items = data.get("aCLMMfdsMarketPrice", [])
+        # 保有銘柄一覧（CLMGenbutuKabuList）から評価単価を取得
+        data = await self._api_request(CLMID_GENBUTSU_LIST, {})
+        items = data.get("aGenbutuKabuList", [])
         if items and isinstance(items, list):
-            item = items[0]
-            # 現在値 → 前日終値 の順で探す
-            for field in ("sGenzaiKabuka", "sZenzituOwarine"):
-                val = item.get(field, "")
-                if val and val not in ("0", "*", ""):
-                    return float(val)
+            for item in items:
+                code = item.get("sUriOrderIssueCode", "")[:4]
+                if code == issue_code:
+                    # 評価単価（リアルタイム）
+                    val = item.get("sUriOrderHyoukaTanka", "")
+                    if val and val not in ("0", ""):
+                        price = float(val)
+                        logger.debug("時価取得成功 [{}]: 評価単価 ¥{:,.1f}", issue_code, price)
+                        return price
 
+        logger.debug("保有銘柄に {} なし", issue_code)
         return 0.0
 
     # ------------------------------------------------------------------

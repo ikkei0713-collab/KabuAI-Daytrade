@@ -274,8 +274,13 @@ class JQuantsClient:
         self,
         ticker: str,
         date_str: str,
+        use_cache: bool = True,
     ) -> list[dict[str, Any]]:
-        """分足の株価データを取得する。 V2: /equities/bars/daily/am, /pm"""
+        """分足の株価データを取得する。 V2: /equities/bars/daily/am, /pm
+
+        Args:
+            use_cache: Falseにするとキャッシュを無視して最新データを取得
+        """
         params = {
             "code": ticker,
             "date": date_str,
@@ -284,7 +289,7 @@ class JQuantsClient:
 
         am_quotes: list = []
         try:
-            data = await self._request("GET", "/equities/bars/daily/am", params=params, use_cache=True)
+            data = await self._request("GET", "/equities/bars/daily/am", params=params, use_cache=use_cache)
             am_quotes = data.get("data", data.get("bars_daily_am", data.get("prices_am", [])))
         except aiohttp.ClientResponseError as e:
             if e.status in (400, 403, 404):
@@ -294,7 +299,7 @@ class JQuantsClient:
 
         pm_quotes: list = []
         try:
-            data = await self._request("GET", "/equities/bars/daily/pm", params=params, use_cache=True)
+            data = await self._request("GET", "/equities/bars/daily/pm", params=params, use_cache=use_cache)
             pm_quotes = data.get("data", data.get("bars_daily_pm", data.get("prices_pm", [])))
         except aiohttp.ClientResponseError as e:
             if e.status in (400, 403, 404):

@@ -37,8 +37,8 @@ class StrategyRegistry:
         "gap_go":              "active",       # blocked: trend_down
         "gap_fade":            "active",       # blocked: trend_down
         "vwap_bounce":         "active",       # OOS PF=99(3件), blocked: trend_down/volatile
-        "orderbook_imbalance": "active",       # OOS PF=1.50, blocked: trend_down/volatile/low_vol
-        "large_absorption":    "active",       # blocked: trend_down
+        "orderbook_imbalance": "off",           # 板データなし（proxy依存100%）→ 無効化
+        "large_absorption":    "off",           # 板データなし（proxy依存100%）→ 無効化
         "open_drive":          "active",       # blocked: trend_down/low_vol
         "overextension":       "active",       # blocked: trend_down
         "rsi_reversal":        "active",       # blocked: trend_down
@@ -143,9 +143,11 @@ class StrategyRegistry:
             CatalystInitialStrategy(),
         ]
 
-        # 2026-03-30 全戦略起動 (レジームフィルタ + auto_toggle で制御)
-        # disabled は空: 全戦略をactive状態で起動
+        # status に基づいて is_active を設定
         for strategy in default_strategies:
+            status = cls.STRATEGY_STATUS.get(strategy.name, "active")
+            if status in ("off", "watch"):
+                strategy.config.is_active = False
             cls.register(strategy)
 
         active = [s.name for s in default_strategies if s.config.is_active]

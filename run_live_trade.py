@@ -134,9 +134,9 @@ class LiveTrader:
         self._yahoo_client = YahooFinanceClient()
 
         try:
-            # 取引カレンダーで今日が営業日か確認
-            if not await self._is_trading_day():
-                logger.info("本日は非営業日です。待機します。")
+            # 営業日チェック（土日のみ。J-QuantsライトプランではカレンダーAPI使用不可）
+            if date.today().weekday() >= 5:
+                logger.info("本日は土日です。待機します。")
                 await asyncio.sleep(3600)
                 return
 

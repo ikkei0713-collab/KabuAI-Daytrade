@@ -48,6 +48,7 @@ from tools.market_regime import RegimeDetector
 from data_sources.jquants import JQuantsClient
 from data_sources.tdnet import TDnetClient
 from data_sources.yahoo_finance import YahooFinanceClient
+from tools.telegram_notify import TelegramNotifier
 
 logger.remove()
 logger.add(sys.stderr, level="INFO", format="{time:HH:mm:ss} | {level:<7} | {message}")
@@ -79,7 +80,10 @@ STRATEGY_TIME_WINDOWS = {
     "crash_rebound":(9, 0, 14, 50),   # 急落はいつでも
 }
 
+SCREENING_FILE = Path("knowledge/screening_candidates.json")
 SESSION_FILE = Path("data/tachibana_session.json")
+ORDER_CHECK_INTERVAL = 60     # 未約定チェック間隔（秒）
+ORDER_STALE_MINUTES = 10      # 指値注文がこの時間未約定なら取消
 
 
 class LiveTrader:
@@ -99,7 +103,11 @@ class LiveTrader:
         self._last_intraday_refresh = 0.0
         self._jquants_client = None
         self._yahoo_client = None
+        self._notifier = TelegramNotifier()
         self._scan_candidates = []  # 動的に構築
+        self._last_order_check = 0.0
+        self._morning_report_sent = False
+        self._afternoon_report_sent = False
 
     async def start(self):
         """メインループ"""
@@ -140,7 +148,7 @@ class LiveTrader:
                 await asyncio.sleep(3600)
                 return
 
-            # 銘柄候補を動的に構築
+            # 銘柄候補を構築（前日スクリーニング結果があれば優先）
             await self._build_scan_candidates()
 
             # 銘柄データ一括取得（日足）
@@ -161,6 +169,12 @@ class LiveTrader:
 
                 # 場が閉まったら待機
                 if now.hour >= MARKET_CLOSE_HOUR or now.hour < 9:
+                    # 大引けレポート（15時台に1回）
+                    if now.hour == 15 and not self._afternoon_report_sent:
+                        await self._send_session_report("大引け")
+                        self._afternoon_report_sent = True
+                        # 大引け後スクリーニング（翌日候補を保存）
+                        await self._run_evening_screening()
                     if self.open_positions:
                         logger.info(f"場外: {len(self.open_positions)}ポジション保有中（スイング）")
                     await asyncio.sleep(300)
@@ -180,6 +194,15 @@ class LiveTrader:
                 # TDnet適時開示スキャン（5分ごと）
                 if time.time() - self._last_tdnet_scan >= TDNET_SCAN_INTERVAL:
                     await self._scan_tdnet()
+
+                # 未約定注文管理（1分ごと）
+                if time.time() - self._last_order_check >= ORDER_CHECK_INTERVAL:
+                    await self._manage_orders()
+
+                # 前場引けレポート（11:30）
+                if now.hour == 11 and now.minute >= 30 and not self._morning_report_sent:
+                    await self._send_session_report("前場引け")
+                    self._morning_report_sent = True
 
                 # ポジション監視（ストップ/利確/トレーリングストップ）
                 await self._check_positions()
@@ -357,7 +380,20 @@ class LiveTrader:
     # ------------------------------------------------------------------
 
     async def _build_scan_candidates(self):
-        """J-Quantsから買える銘柄を動的に発見"""
+        """銘柄候補を構築。前日スクリーニング結果があれば優先使用。"""
+        # 前日スクリーニング結果を読み込み
+        if SCREENING_FILE.exists():
+            try:
+                screening = json.loads(SCREENING_FILE.read_text(encoding="utf-8"))
+                if screening.get("for_date") == date.today().isoformat():
+                    codes = [c["code"] for c in screening.get("candidates", [])]
+                    if codes:
+                        self._scan_candidates = codes
+                        logger.info(f"前日スクリーニング結果を使用: {len(codes)}銘柄")
+                        return
+            except Exception as e:
+                logger.warning(f"スクリーニング結果読み込み失敗: {e}")
+
         logger.info("銘柄候補を動的構築中...")
 
         # 現在の余力で買える上限価格
@@ -689,8 +725,15 @@ class LiveTrader:
                 "strategy": best["strategy"],
                 "order_time": datetime.now(JST).isoformat(),
                 "tachibana_order": result.notes,
-                "highest_price": best["entry"],  # トレーリングストップ用
+                "highest_price": best["entry"],
             }
+            await self._notifier.notify_entry(
+                ticker=best["code_4"], direction="long",
+                price=best["entry"], quantity=100,
+                strategy=best["strategy"],
+                stop_loss=best["stop"], take_profit=best["target"],
+                reason=best["reason"][:60],
+            )
         else:
             logger.warning(f"注文失敗: {best['code_4']} {result.notes}")
 
@@ -782,6 +825,192 @@ class LiveTrader:
                     f"含み¥{pnl:+,.0f} (SL=¥{stop:,.1f} TP=¥{target:,.0f}) [{price_source}]"
                 )
 
+    # ------------------------------------------------------------------
+    # 未約定注文管理
+    # ------------------------------------------------------------------
+
+    async def _manage_orders(self):
+        """未約定注文を確認し、古い指値注文は取消す"""
+        self._last_order_check = time.time()
+        try:
+            orders = await self.broker.get_orders()
+            if not orders:
+                return
+
+            now = datetime.now(JST)
+            for order in orders:
+                # 約定済みはスキップ
+                if hasattr(order, 'status') and order.status and order.status.value in ("filled", "cancelled"):
+                    continue
+
+                # 指値注文で一定時間経過 → 取消し
+                order_id = getattr(order, 'order_id', '') or ''
+                notes = getattr(order, 'notes', '') or ''
+                tachibana_id = notes if notes else order_id
+
+                if tachibana_id:
+                    logger.info(f"未約定注文: {order.ticker} {order.side.value} {order.quantity}株 (ID: {tachibana_id})")
+
+                    # ORDER_STALE_MINUTES分以上経過した指値は取消し
+                    if hasattr(order, 'order_type') and order.order_type == OrderType.LIMIT:
+                        ok = await self.broker.cancel_order(tachibana_id)
+                        if ok:
+                            logger.info(f"  → 未約定指値取消: {order.ticker} (ID: {tachibana_id})")
+                            await self._notifier.send(
+                                f"⚠️ 未約定取消: {order.ticker} {order.quantity}株 指値注文をキャンセル"
+                            )
+        except Exception as e:
+            logger.warning(f"注文管理エラー: {e}")
+
+    # ------------------------------------------------------------------
+    # セッションレポート（前場引け/大引け）
+    # ------------------------------------------------------------------
+
+    async def _send_session_report(self, session_name: str):
+        """前場引け/大引けのセッションレポートをTelegram通知"""
+        unrealized = 0.0
+        for ticker, pos in self.open_positions.items():
+            price = await self._yahoo_client.get_current_price(ticker)
+            if price > 0:
+                unrealized += (price - pos["entry_price"]) * pos["quantity"]
+
+        win_count = sum(1 for t in self.trades_today if t.get("pnl", 0) > 0)
+
+        msg = (
+            f"📊 {session_name}レポート\n"
+            f"{'='*30}\n"
+            f"確定損益: ¥{self.daily_pnl:+,.0f}\n"
+            f"含み損益: ¥{unrealized:+,.0f}\n"
+            f"取引数: {len(self.trades_today)}件\n"
+            f"保有中: {len(self.open_positions)}件\n"
+            f"買付余力: ¥{self.initial_balance:,.0f}\n"
+        )
+        for ticker, pos in self.open_positions.items():
+            price = await self._yahoo_client.get_current_price(ticker)
+            pnl = (price - pos["entry_price"]) * pos["quantity"] if price > 0 else 0
+            msg += f"  {ticker}: ¥{pos['entry_price']:,.0f}→¥{price:,.1f} ({pnl:+,.0f})\n"
+        msg += f"{'='*30}"
+
+        logger.info(f"{session_name}レポート送信")
+        await self._notifier.send(msg)
+
+    # ------------------------------------------------------------------
+    # 大引け後スクリーニング（翌日候補）
+    # ------------------------------------------------------------------
+
+    async def _run_evening_screening(self):
+        """大引け後に翌日の投資候補を選定してファイル保存"""
+        logger.info("大引け後スクリーニング開始...")
+        try:
+            # 最新の全銘柄データを取得
+            today_str = date.today().isoformat()
+            raw = await self._jquants_client.get_prices_daily_bulk(today_str)
+            if not raw:
+                logger.warning("スクリーニング: 当日データ取得失敗")
+                return
+
+            df = pd.DataFrame(raw)
+            col_map = {}
+            for c in df.columns:
+                cl = c.lower()
+                if "close" in cl or c in ("AdjC", "AdjustmentClose"):
+                    col_map[c] = "close"
+                elif "volume" in cl or c in ("AdjVo", "AdjustmentVolume"):
+                    col_map[c] = "volume"
+                elif "code" in cl or c == "Code":
+                    col_map[c] = "code"
+                elif "open" in cl or c in ("AdjO", "AdjustmentOpen"):
+                    col_map[c] = "open"
+                elif "high" in cl or c in ("AdjH", "AdjustmentHigh"):
+                    col_map[c] = "high"
+                elif "low" in cl or c in ("AdjL", "AdjustmentLow"):
+                    col_map[c] = "low"
+            if col_map:
+                df = df.rename(columns=col_map)
+
+            if "close" not in df.columns or "volume" not in df.columns:
+                logger.warning("スクリーニング: カラム不足")
+                return
+
+            for c in ["open", "high", "low", "close", "volume"]:
+                if c in df.columns:
+                    df[c] = pd.to_numeric(df[c], errors="coerce")
+            df = df.dropna(subset=["close", "volume"])
+
+            # Stage 1: 資金フィルタ（余力で買える銘柄）
+            max_price = self.initial_balance / 100
+            affordable = df[
+                (df["close"] > 50) &
+                (df["close"] <= max_price) &
+                (df["volume"] > 300000)
+            ].copy()
+
+            # Stage 2: シグナルスコアリング
+            if "open" in affordable.columns:
+                affordable["gap_pct"] = ((affordable["close"] - affordable["open"]) / affordable["open"] * 100).abs()
+            else:
+                affordable["gap_pct"] = 0
+
+            vol_avg = affordable["volume"].mean()
+            affordable["vol_ratio"] = affordable["volume"] / vol_avg if vol_avg > 0 else 1
+
+            if "high" in affordable.columns and "low" in affordable.columns:
+                affordable["range_pct"] = (affordable["high"] - affordable["low"]) / affordable["close"] * 100
+            else:
+                affordable["range_pct"] = 0
+
+            # スコア計算
+            affordable["score"] = (
+                affordable["gap_pct"].clip(0, 5) / 5 * 0.3 +
+                affordable["vol_ratio"].clip(0, 5) / 5 * 0.4 +
+                affordable["range_pct"].clip(0, 5) / 5 * 0.3
+            )
+
+            # TDnetイベントボーナス
+            for ticker_4, event in self.tdnet_events.items():
+                mask = affordable["code"].astype(str).str.startswith(ticker_4)
+                affordable.loc[mask, "score"] += 0.2
+
+            # 上位20銘柄
+            candidates = affordable.nlargest(20, "score")
+
+            # ファイル保存
+            result = {
+                "screening_date": today_str,
+                "for_date": (date.today() + timedelta(days=1)).isoformat(),
+                "max_price_per_share": max_price,
+                "total_screened": len(affordable),
+                "candidates": [],
+            }
+            for _, row in candidates.iterrows():
+                result["candidates"].append({
+                    "code": str(row["code"]),
+                    "close": float(row["close"]),
+                    "volume": int(row["volume"]),
+                    "score": round(float(row["score"]), 3),
+                    "gap_pct": round(float(row.get("gap_pct", 0)), 2),
+                    "vol_ratio": round(float(row.get("vol_ratio", 0)), 2),
+                })
+
+            SCREENING_FILE.parent.mkdir(parents=True, exist_ok=True)
+            SCREENING_FILE.write_text(
+                json.dumps(result, indent=2, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            logger.info(f"スクリーニング完了: {len(candidates)}銘柄 → {SCREENING_FILE}")
+            await self._notifier.send(
+                f"📋 翌日スクリーニング完了\n"
+                f"候補: {len(candidates)}銘柄\n"
+                f"上位: {', '.join(str(r['code'])[:4] for _, r in candidates.head(5).iterrows())}"
+            )
+
+        except Exception as e:
+            logger.error(f"スクリーニングエラー: {e}")
+
+    # ------------------------------------------------------------------
+    # ポジション決済
+    # ------------------------------------------------------------------
+
     async def _close_position(self, ticker: str, reason: str, limit_price: float = None):
         """個別ポジション決済。limit_price指定で指値、なければ成行。"""
         pos = self.open_positions.get(ticker)
@@ -810,12 +1039,29 @@ class LiveTrader:
         result = await self.broker.place_order(order)
         logger.info(f"  → {result.status.value} {result.notes}")
 
+        # 決済価格を推定（指値ならlimit_price、成行ならYahoo価格）
+        exit_price = limit_price if limit_price else await self._yahoo_client.get_current_price(ticker)
+        pnl = (exit_price - pos["entry_price"]) * pos["quantity"] if exit_price > 0 else 0
+        pnl_pct = (exit_price / pos["entry_price"] - 1) * 100 if pos["entry_price"] > 0 and exit_price > 0 else 0
+
         self.trades_today.append({
             "ticker": ticker,
             "entry": pos["entry_price"],
+            "exit_price": exit_price,
+            "pnl": pnl,
             "exit_reason": reason,
             "strategy": pos["strategy"],
         })
+
+        win_count = sum(1 for t in self.trades_today if t.get("pnl", 0) > 0)
+        await self._notifier.notify_exit(
+            ticker=ticker, direction="long",
+            entry_price=pos["entry_price"], exit_price=exit_price,
+            quantity=pos["quantity"], pnl=pnl, pnl_pct=pnl_pct,
+            reason=reason, daily_pnl=self.daily_pnl,
+            win_rate=win_count / len(self.trades_today) if self.trades_today else 0,
+            trade_count=len(self.trades_today),
+        )
         del self.open_positions[ticker]
 
     async def _force_close_all(self, reason: str):

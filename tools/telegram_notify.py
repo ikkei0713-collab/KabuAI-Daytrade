@@ -268,19 +268,97 @@ class TelegramNotifier:
                 "・何でも自由に聞いてください"
             )
 
-        # フリーテキスト（キーワードにマッチしない場合）
+        # フリーテキスト → AI応答
         if not trader:
             return "🤖 ボット起動中です。しばらくお待ちください。"
 
-        # デフォルト: 現在の状況サマリーを返す
-        pos_count = len(trader.open_positions)
-        scan_count = len(trader._scan_candidates)
-        trades = len(trader.trades_today)
-        return (
-            f"🤖 KabuAI 稼働中\n"
-            f"保有: {pos_count}件\n"
-            f"監視銘柄: {scan_count}件\n"
-            f"本日取引: {trades}件\n"
-            f"確定損益: ¥{trader.daily_pnl:+,.0f}\n"
-            f"\n「ポジション」「損益」「残高」「候補」等で詳細を聞けます"
-        )
+        return await self._ai_response(text, trader)
+
+    async def _build_context(self, trader) -> str:
+        """トレーダーの現在状況をテキスト化"""
+        lines = []
+        lines.append(f"買付余力: ¥{trader.initial_balance:,.0f}")
+        used = sum(p["entry_price"] * p["quantity"] for p in trader.open_positions.values())
+        lines.append(f"使用中: ¥{used:,.0f}")
+        lines.append(f"残余力: ¥{trader.initial_balance - used:,.0f}")
+        lines.append(f"確定損益: ¥{trader.daily_pnl:+,.0f}")
+        lines.append(f"本日取引: {len(trader.trades_today)}件")
+        lines.append(f"監視銘柄: {len(trader._scan_candidates)}件")
+        lines.append(f"Active戦略: 14個")
+
+        if trader.open_positions:
+            lines.append("\n保有ポジション:")
+            for ticker, pos in trader.open_positions.items():
+                name = get_name(ticker + "0") or get_name(ticker) or ticker
+                yahoo_price = 0.0
+                if trader._yahoo_client:
+                    yahoo_price = await trader._yahoo_client.get_current_price(ticker)
+                pnl = (yahoo_price - pos["entry_price"]) * pos["quantity"] if yahoo_price > 0 else 0
+                lines.append(
+                    f"  {name}({ticker}): ¥{pos['entry_price']:,.0f}→¥{yahoo_price:,.1f} 含み¥{pnl:+,.0f}"
+                )
+        else:
+            lines.append("\n保有ポジション: なし")
+
+        if trader._scan_candidates:
+            lines.append("\nスキャン候補(上位5):")
+            for code in trader._scan_candidates[:5]:
+                name = get_name(code) or get_name(code[:4] + "0") or ""
+                df = trader.stock_data.get(code)
+                price = float(df["close"].iloc[-1]) if df is not None and not df.empty else 0
+                label = f"{name}({code[:4]})" if name else code[:4]
+                lines.append(f"  {label}: ¥{price:,.0f}")
+
+        if trader.tdnet_events:
+            lines.append(f"\nTDnetイベント: {len(trader.tdnet_events)}件")
+            for ticker, ev in list(trader.tdnet_events.items())[:3]:
+                lines.append(f"  {ticker} [{ev.disclosure_type.value}] {ev.title[:30]}")
+
+        return "\n".join(lines)
+
+    async def _ai_response(self, user_text: str, trader) -> str:
+        """OpenAI GPTでフリーテキスト応答"""
+        api_key = os.getenv("OPENAI_API_KEY", "")
+        if not api_key:
+            # AIなしフォールバック
+            pos_count = len(trader.open_positions)
+            return (
+                f"🤖 KabuAI 稼働中\n"
+                f"保有: {pos_count}件 / 監視: {len(trader._scan_candidates)}件\n"
+                f"確定損益: ¥{trader.daily_pnl:+,.0f}\n"
+                f"\n「ポジション」「損益」「残高」「候補」で詳細確認"
+            )
+
+        context = await self._build_context(trader)
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    "https://api.openai.com/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {api_key}"},
+                    json={
+                        "model": "gpt-4o-mini",
+                        "messages": [
+                            {
+                                "role": "system",
+                                "content": (
+                                    "あなたはKabuAI自動トレードボットのアシスタントです。"
+                                    "日本株のデイトレードを自動で行うシステムのTelegram窓口として、"
+                                    "ユーザーの質問に簡潔に日本語で答えてください。"
+                                    "以下がボットの現在の状況です:\n\n"
+                                    f"{context}"
+                                ),
+                            },
+                            {"role": "user", "content": user_text},
+                        ],
+                        "max_tokens": 300,
+                        "temperature": 0.7,
+                    },
+                    timeout=aiohttp.ClientTimeout(total=15),
+                ) as resp:
+                    data = await resp.json()
+                    reply = data["choices"][0]["message"]["content"].strip()
+                    return reply
+        except Exception as e:
+            logger.warning(f"AI応答エラー: {e}")
+            return f"🤖 KabuAI 稼働中（AI応答エラー）\n確定損益: ¥{trader.daily_pnl:+,.0f}"

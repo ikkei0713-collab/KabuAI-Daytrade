@@ -47,6 +47,7 @@ from tools.feature_engineering import FeatureEngineer
 from tools.market_regime import RegimeDetector
 from data_sources.jquants import JQuantsClient
 from data_sources.tdnet import TDnetClient
+from data_sources.yahoo_finance import YahooFinanceClient
 
 logger.remove()
 logger.add(sys.stderr, level="INFO", format="{time:HH:mm:ss} | {level:<7} | {message}")
@@ -97,6 +98,7 @@ class LiveTrader:
         self._last_tdnet_scan = 0.0
         self._last_intraday_refresh = 0.0
         self._jquants_client = None
+        self._yahoo_client = None
         self._scan_candidates = []  # 動的に構築
 
     async def start(self):
@@ -128,7 +130,16 @@ class LiveTrader:
         self._jquants_client = JQuantsClient()
         await self._jquants_client.__aenter__()
 
+        # Yahoo Financeクライアント（リアルタイム価格+1分足）
+        self._yahoo_client = YahooFinanceClient()
+
         try:
+            # 取引カレンダーで今日が営業日か確認
+            if not await self._is_trading_day():
+                logger.info("本日は非営業日です。待機します。")
+                await asyncio.sleep(3600)
+                return
+
             # 銘柄候補を動的に構築
             await self._build_scan_candidates()
 
@@ -194,6 +205,8 @@ class LiveTrader:
             await self.broker.logout()
             if self._jquants_client:
                 await self._jquants_client.__aexit__(None, None, None)
+            if self._yahoo_client:
+                await self._yahoo_client.close()
 
     # ------------------------------------------------------------------
     # セッション管理
@@ -242,6 +255,30 @@ class LiveTrader:
             json.dumps(info, ensure_ascii=False), encoding="utf-8"
         )
         logger.info("セッション保存完了")
+
+    # ------------------------------------------------------------------
+    # 取引カレンダー
+    # ------------------------------------------------------------------
+
+    async def _is_trading_day(self) -> bool:
+        """J-Quantsの取引カレンダーで今日が営業日か確認"""
+        try:
+            today_str = date.today().isoformat()
+            cal = await self._jquants_client.get_trading_calendar(
+                from_date=today_str, to_date=today_str
+            )
+            if cal:
+                entry = cal[0]
+                is_holiday = entry.get("HolidayDivision", "0") != "1"
+                if is_holiday:
+                    logger.info(f"取引カレンダー: {today_str} は営業日")
+                else:
+                    logger.warning(f"取引カレンダー: {today_str} は休場日")
+                return is_holiday
+        except Exception as e:
+            logger.warning(f"取引カレンダー取得失敗: {e}")
+        # フォールバック: 土日チェック
+        return date.today().weekday() < 5
 
     # ------------------------------------------------------------------
     # 残高・ポジション同期
@@ -428,30 +465,16 @@ class LiveTrader:
         logger.info(f"日足データ取得完了: {len(self.stock_data)}銘柄")
 
     async def _refresh_intraday_data(self):
-        """J-Quantsから日中足（分足）を取得（キャッシュ無効で鮮度優先）"""
+        """Yahoo Financeから1分足を取得（J-Quants 403時の代替）"""
         self._last_intraday_refresh = time.time()
-
-        # J-Quantsプランで日中足が403なら以降スキップ
-        if getattr(self, "_intraday_forbidden", False):
-            return
-
-        today_str = date.today().isoformat()
         updated = 0
 
-        first_attempt = True
         for code_5 in self._scan_candidates:
             if code_5 not in self.stock_data:
                 continue
+            code_4 = code_5[:4]
             try:
-                raw = await self._jquants_client.get_prices_intraday(
-                    code_5, today_str, use_cache=False
-                )
-                # 最初の銘柄で0件なら403プラン制限と判断
-                if first_attempt and not raw:
-                    logger.warning("日中足API: プラン制限の可能性 → 以降スキップ")
-                    self._intraday_forbidden = True
-                    return
-                first_attempt = False
+                raw = await self._yahoo_client.get_intraday_ohlcv(code_4)
                 if not raw:
                     continue
                 df = pd.DataFrame(raw)
@@ -484,17 +507,10 @@ class LiveTrader:
                 self.intraday_data[code_5] = df
                 updated += 1
             except Exception as e:
-                err_str = str(e)
-                if "403" in err_str or "Forbidden" in err_str:
-                    logger.warning("日中足API: 403 Forbidden（プラン制限）→ 以降スキップ")
-                    self._intraday_forbidden = True
-                    return
-                logger.debug(f"  {code_5}: 日中足取得失敗 {e}")
+                logger.debug(f"  {code_4}: Yahoo日中足取得失敗 {e}")
 
         if updated > 0:
-            logger.info(f"日中足更新: {updated}銘柄 (キャッシュ無効)")
-        else:
-            logger.debug("日中足: 更新なし")
+            logger.info(f"Yahoo日中足更新: {updated}/{len(self.stock_data)}銘柄")
 
     # ------------------------------------------------------------------
     # TDnet適時開示ライブ監視
@@ -580,8 +596,12 @@ class LiveTrader:
             )
             features["current_price"] = last_close
 
-            # 日中足から最新価格
-            if intraday_df is not None and not intraday_df.empty and "close" in intraday_df.columns:
+            # Yahoo Financeからリアルタイム価格取得
+            yahoo_price = await self._yahoo_client.get_current_price(code_4)
+            if yahoo_price > 0:
+                features["current_price"] = yahoo_price
+                last_close = yahoo_price
+            elif intraday_df is not None and not intraday_df.empty and "close" in intraday_df.columns:
                 intraday_last = float(intraday_df["close"].iloc[-1])
                 if intraday_last > 0:
                     features["current_price"] = intraday_last
@@ -684,8 +704,13 @@ class LiveTrader:
             return
 
         for ticker, pos in list(self.open_positions.items()):
+            # 価格取得: 立花API → Yahoo Finance → 日中足 → 日足
             live_price = await self.broker.get_current_price(ticker)
-            price_source = "LIVE"
+            price_source = "立花"
+
+            if live_price <= 0:
+                live_price = await self._yahoo_client.get_current_price(ticker)
+                price_source = "Yahoo"
 
             if live_price <= 0:
                 code_5 = ticker + "0"
@@ -699,7 +724,7 @@ class LiveTrader:
                         continue
                     live_price = float(df["close"].iloc[-1])
                     price_source = "日足"
-                logger.warning(f"  {ticker}: ライブ価格取得失敗、{price_source}フォールバック ¥{live_price:,.1f}")
+                logger.warning(f"  {ticker}: 立花+Yahoo失敗、{price_source}フォールバック ¥{live_price:,.1f}")
 
             entry = pos["entry_price"]
             stop = pos["stop"]

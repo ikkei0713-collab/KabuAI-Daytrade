@@ -351,3 +351,84 @@ class JQuantsClient:
                 raise
         logger.info("Retrieved {} calendar entries", len(results))
         return results
+
+    async def get_short_selling(
+        self,
+        ticker: str,
+        from_date: Optional[str] = None,
+        to_date: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        """空売り残高データを取得する。 V2: /markets/short_selling"""
+        params: dict[str, Any] = {"code": ticker}
+        if from_date:
+            params["from"] = from_date
+        if to_date:
+            params["to"] = to_date
+
+        logger.info("Fetching short selling data for {}", ticker)
+        try:
+            data = await self._request("GET", "/markets/short_selling", params=params)
+            results = data.get("data", data.get("short_selling", []))
+        except aiohttp.ClientResponseError as e:
+            if e.status in (400, 403, 404):
+                logger.warning("Short selling data not available for {}: {}", ticker, e.status)
+                results = []
+            else:
+                raise
+        logger.info("Retrieved {} short selling records for {}", len(results), ticker)
+        return results
+
+    async def get_index_prices(
+        self,
+        index_code: str = "0000",
+        from_date: Optional[str] = None,
+        to_date: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        """指数データを取得する。 V2: /indices
+
+        index_code: "0000" = TOPIX, "0010" = 日経225
+        """
+        params: dict[str, Any] = {"code": index_code}
+        if from_date:
+            params["from"] = from_date
+        if to_date:
+            params["to"] = to_date
+
+        logger.info("Fetching index prices for {} ({}-{})", index_code, from_date, to_date)
+        try:
+            data = await self._request("GET", "/indices", params=params)
+            results = data.get("data", data.get("indices", []))
+        except aiohttp.ClientResponseError as e:
+            if e.status in (400, 403, 404):
+                logger.warning("Index data not available for {}: {}", index_code, e.status)
+                results = []
+            else:
+                raise
+        logger.info("Retrieved {} index records for {}", len(results), index_code)
+        return results
+
+    async def get_margin_trading(
+        self,
+        ticker: str,
+        from_date: Optional[str] = None,
+        to_date: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        """信用取引残高データを取得する。"""
+        params: dict[str, Any] = {"code": ticker}
+        if from_date:
+            params["from"] = from_date
+        if to_date:
+            params["to"] = to_date
+
+        logger.info("Fetching margin trading data for {}", ticker)
+        try:
+            data = await self._request("GET", "/markets/margin_trading", params=params)
+            results = data.get("data", data.get("margin_trading", []))
+        except aiohttp.ClientResponseError as e:
+            if e.status in (400, 403, 404):
+                logger.warning("Margin trading data not available for {}: {}", ticker, e.status)
+                results = []
+            else:
+                raise
+        logger.info("Retrieved {} margin records for {}", len(results), ticker)
+        return results

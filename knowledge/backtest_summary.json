@@ -1,32 +1,27 @@
 {
-  "date": "2026-03-30T10:43:02.655756",
-  "total_trades": 806,
-  "wins": 357,
-  "losses": 449,
-  "win_rate": 0.443,
-  "profit_factor": 0.91,
-  "total_pnl_cost_adjusted": -14719.0,
-  "total_pnl_raw": 5055.0,
-  "total_cost": 9892.0,
-  "avg_pnl": -18.0,
+  "date": "2026-04-01T09:55:37.686372",
+  "total_trades": 250,
+  "wins": 112,
+  "losses": 138,
+  "win_rate": 0.448,
+  "profit_factor": 1.03,
+  "total_pnl_cost_adjusted": 1376.0,
+  "total_pnl_raw": 7597.0,
+  "total_cost": 3113.0,
+  "avg_pnl": 6.0,
   "in_sample": {
-    "trades": 378,
-    "win_rate": 0.41,
-    "pf": 0.68,
-    "pnl": -26415.0
+    "trades": 139,
+    "win_rate": 0.432,
+    "pf": 0.7,
+    "pnl": -8093.0
   },
   "out_of_sample": {
-    "trades": 428,
-    "win_rate": 0.472,
-    "pf": 1.14,
-    "pnl": 11696.0
+    "trades": 111,
+    "win_rate": 0.468,
+    "pf": 1.47,
+    "pnl": 9469.0
   },
   "strategy_regime": {
-    "orderbook_imbalance_range": {
-      "trades": 168,
-      "win_rate": 0.417,
-      "pf": 0.79
-    },
     "spread_entry_range": {
       "trades": 13,
       "win_rate": 0.462,
@@ -57,11 +52,6 @@
       "win_rate": 0.353,
       "pf": 1.3
     },
-    "orderbook_imbalance_volatile": {
-      "trades": 107,
-      "win_rate": 0.486,
-      "pf": 1.01
-    },
     "spread_entry_volatile": {
       "trades": 9,
       "win_rate": 0.444,
@@ -75,12 +65,7 @@
     "trend_follow_volatile": {
       "trades": 9,
       "win_rate": 0.556,
-      "pf": 3.07
-    },
-    "orderbook_imbalance_trend_down": {
-      "trades": 98,
-      "win_rate": 0.347,
-      "pf": 0.53
+      "pf": 2.22
     },
     "open_drive_trend_down": {
       "trades": 17,
@@ -96,11 +81,6 @@
       "trades": 6,
       "win_rate": 0.5,
       "pf": 0.24
-    },
-    "orderbook_imbalance_trend_up": {
-      "trades": 148,
-      "win_rate": 0.493,
-      "pf": 1.17
     },
     "trend_follow_trend_up": {
       "trades": 9,
@@ -136,11 +116,6 @@
       "trades": 9,
       "win_rate": 0.222,
       "pf": 0.32
-    },
-    "orderbook_imbalance_low_vol": {
-      "trades": 35,
-      "win_rate": 0.457,
-      "pf": 0.68
     },
     "spread_entry_low_vol": {
       "trades": 5,
@@ -195,14 +170,14 @@
       "proxy_penalty": 0.05
     },
     "orderbook_imbalance": {
-      "status": "active",
+      "status": "off",
       "proxy_usage_rate": 1.0,
-      "proxy_penalty": 0.05
+      "proxy_penalty": 0.15
     },
     "large_absorption": {
-      "status": "active",
+      "status": "off",
       "proxy_usage_rate": 1.0,
-      "proxy_penalty": 0.05
+      "proxy_penalty": 0.15
     },
     "open_drive": {
       "status": "active",
@@ -245,8 +220,6 @@
       "gap_go",
       "gap_fade",
       "vwap_bounce",
-      "orderbook_imbalance",
-      "large_absorption",
       "open_drive",
       "overextension",
       "rsi_reversal",
@@ -257,7 +230,10 @@
     "filter": [],
     "supplement": [],
     "watch": [],
-    "off": []
+    "off": [
+      "orderbook_imbalance",
+      "large_absorption"
+    ]
   },
   "data_quality_warnings": [
     "intraday proxy features are estimated from daily OHLCV",

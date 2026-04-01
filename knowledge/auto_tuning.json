@@ -1,12 +1,6 @@
 {
-  "date": "2026-03-30T10:43:02.653100",
+  "date": "2026-04-01T09:55:37.683107",
   "regime_performance": {
-    "orderbook_imbalance_range": {
-      "trades": 168,
-      "win_rate": 0.417,
-      "pf": 0.79,
-      "total_pnl": -8399.0
-    },
     "spread_entry_range": {
       "trades": 13,
       "win_rate": 0.462,
@@ -43,12 +37,6 @@
       "pf": 1.3,
       "total_pnl": 491.0
     },
-    "orderbook_imbalance_volatile": {
-      "trades": 107,
-      "win_rate": 0.486,
-      "pf": 1.01,
-      "total_pnl": 320.0
-    },
     "spread_entry_volatile": {
       "trades": 9,
       "win_rate": 0.444,
@@ -64,14 +52,8 @@
     "trend_follow_volatile": {
       "trades": 9,
       "win_rate": 0.556,
-      "pf": 3.07,
-      "total_pnl": 1626.0
-    },
-    "orderbook_imbalance_trend_down": {
-      "trades": 98,
-      "win_rate": 0.347,
-      "pf": 0.53,
-      "total_pnl": -11197.0
+      "pf": 2.22,
+      "total_pnl": 956.0
     },
     "open_drive_trend_down": {
       "trades": 17,
@@ -90,12 +72,6 @@
       "win_rate": 0.5,
       "pf": 0.24,
       "total_pnl": -1824.0
-    },
-    "orderbook_imbalance_trend_up": {
-      "trades": 148,
-      "win_rate": 0.493,
-      "pf": 1.17,
-      "total_pnl": 4504.0
     },
     "trend_follow_trend_up": {
       "trades": 9,
@@ -138,12 +114,6 @@
       "win_rate": 0.222,
       "pf": 0.32,
       "total_pnl": -1430.0
-    },
-    "orderbook_imbalance_low_vol": {
-      "trades": 35,
-      "win_rate": 0.457,
-      "pf": 0.68,
-      "total_pnl": -1993.0
     },
     "spread_entry_low_vol": {
       "trades": 5,
@@ -211,10 +181,10 @@
     }
   ],
   "oos_summary": {
-    "trades": 428,
-    "win_rate": 0.472,
-    "pf": 1.14,
-    "total_pnl": 11696.0
+    "trades": 111,
+    "win_rate": 0.468,
+    "pf": 1.47,
+    "total_pnl": 9469.0
   },
   "worst_trade": {
     "ticker": "61460",

@@ -141,6 +141,9 @@ class LiveTrader:
         # Yahoo Financeクライアント（リアルタイム価格+1分足）
         self._yahoo_client = YahooFinanceClient()
 
+        # Telegram対話を有効化
+        self._notifier.set_trader(self)
+
         try:
             # 営業日チェック（土日のみ。J-QuantsライトプランではカレンダーAPI使用不可）
             if date.today().weekday() >= 5:
@@ -162,6 +165,9 @@ class LiveTrader:
 
             # 既存ポジション確認（APIから）
             await self._sync_positions_from_api()
+
+            # Telegram対話ポーリングをバックグラウンド起動
+            telegram_task = asyncio.create_task(self._notifier.start_polling())
 
             # メインループ
             while not self.stopped:
@@ -225,6 +231,7 @@ class LiveTrader:
             logger.error(f"エラー: {e}", exc_info=True)
         finally:
             await self._print_summary()
+            self._notifier.stop_polling()
             await self.broker.logout()
             if self._jquants_client:
                 await self._jquants_client.__aexit__(None, None, None)

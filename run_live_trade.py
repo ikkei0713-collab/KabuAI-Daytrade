@@ -49,6 +49,7 @@ from data_sources.jquants import JQuantsClient
 from data_sources.tdnet import TDnetClient
 from data_sources.yahoo_finance import YahooFinanceClient
 from tools.telegram_notify import TelegramNotifier
+from core.ticker_map import format_ticker, get_name, update_from_jquants
 
 logger.remove()
 logger.add(sys.stderr, level="INFO", format="{time:HH:mm:ss} | {level:<7} | {message}")
@@ -463,7 +464,9 @@ class LiveTrader:
                         row = df[df["code"].astype(str).str.startswith(code[:4])]
                         if not row.empty:
                             r = row.iloc[0]
-                            logger.info(f"  {code}: ¥{r['close']:,.0f} 出来高{r['volume']:,.0f}")
+                            name = get_name(code) or get_name(code[:4] + "0") or ""
+                            label = f"{name}({code[:4]})" if name else code
+                            logger.info(f"  {label}: ¥{r['close']:,.0f} 出来高{r['volume']:,.0f}")
                     return
         except Exception as e:
             logger.warning(f"動的銘柄構築失敗: {e}")
@@ -704,8 +707,10 @@ class LiveTrader:
             data_sources.append("TDnet")
         src_str = "+".join(data_sources) if data_sources else "日足のみ"
 
+        sig_name = get_name(best['code_5']) or get_name(best['code_4'] + "0") or ""
+        sig_label = f"{sig_name}({best['code_4']})" if sig_name else best['code_4']
         logger.info(
-            f"シグナル: {best['code_4']} [{best['strategy']}] "
+            f"シグナル: {sig_label} [{best['strategy']}] "
             f"conf={best['confidence']:.2f} entry=¥{best['entry']:,.0f} "
             f"SL=¥{best['stop']:,.0f} TP=¥{best['target']:,.0f} "
             f"[{best['regime']}] [{src_str}] {best['reason'][:40]}"
@@ -827,8 +832,10 @@ class LiveTrader:
 
             else:
                 pnl = (live_price - entry) * pos["quantity"]
+                name = get_name(ticker + "0") or get_name(ticker) or ""
+                label = f"{name}({ticker})" if name else ticker
                 logger.info(
-                    f"  保有中: {ticker} ¥{entry:,.0f}→¥{live_price:,.1f} "
+                    f"  保有中: {label} ¥{entry:,.0f}→¥{live_price:,.1f} "
                     f"含み¥{pnl:+,.0f} (SL=¥{stop:,.1f} TP=¥{target:,.0f}) [{price_source}]"
                 )
 

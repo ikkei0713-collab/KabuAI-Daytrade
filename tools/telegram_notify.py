@@ -14,6 +14,7 @@ import asyncio
 import time
 import aiohttp
 from loguru import logger
+from core.ticker_map import format_ticker, get_name
 
 
 class TelegramNotifier:
@@ -192,13 +193,16 @@ class TelegramNotifier:
                 return "保有ポジションなし"
             lines = ["📋 保有ポジション"]
             for ticker, pos in trader.open_positions.items():
+                name = get_name(ticker + "0") or get_name(ticker) or ticker
                 yahoo_price = 0.0
                 if trader._yahoo_client:
                     yahoo_price = await trader._yahoo_client.get_current_price(ticker)
                 pnl = (yahoo_price - pos["entry_price"]) * pos["quantity"] if yahoo_price > 0 else 0
                 lines.append(
-                    f"  {ticker}: ¥{pos['entry_price']:,.0f}→¥{yahoo_price:,.1f} "
-                    f"含み¥{pnl:+,.0f} SL=¥{pos['stop']:,.0f} TP=¥{pos['target']:,.0f}"
+                    f"  {name}({ticker})\n"
+                    f"    ¥{pos['entry_price']:,.0f}→¥{yahoo_price:,.1f} "
+                    f"含み¥{pnl:+,.0f}\n"
+                    f"    SL=¥{pos['stop']:,.0f} TP=¥{pos['target']:,.0f}"
                 )
             return "\n".join(lines)
 
@@ -235,9 +239,11 @@ class TelegramNotifier:
             codes = trader._scan_candidates[:10]
             lines = [f"📋 スキャン候補 (上位{len(codes)}件)"]
             for code in codes:
+                name = get_name(code) or get_name(code[:4] + "0") or ""
                 df = trader.stock_data.get(code)
                 price = float(df["close"].iloc[-1]) if df is not None and not df.empty else 0
-                lines.append(f"  {code[:4]}: ¥{price:,.0f}")
+                display = f"{name}({code[:4]})" if name else code[:4]
+                lines.append(f"  {display}: ¥{price:,.0f}")
             return "\n".join(lines)
 
         # TDnet・ニュース

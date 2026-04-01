@@ -141,9 +141,13 @@ class RegimeDetector:
         atr_p = m["atr_percentile"]
         bb_p = m["bb_width_percentile"]
         consistency = m["consistency"]
+        atr_pct = m.get("atr_pct", 0)
 
-        # 高ボラティリティ（ATRが上位20%）
-        if atr_p > 0.8:
+        # 高ボラティリティ判定
+        # 低位株（ATR%が高くなりやすい）は閾値を緩和:
+        # ATR% 3%以上 かつ ATRパーセンタイル上位10% の場合のみvolatile
+        is_high_vol = atr_p > 0.9 or (atr_p > 0.8 and atr_pct > 3.0)
+        if is_high_vol:
             if abs(ret) > 3:
                 if ret > 0:
                     return "trend_up", min(0.9, atr_p)

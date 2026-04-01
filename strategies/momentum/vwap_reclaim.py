@@ -50,7 +50,7 @@ class VWAPReclaimStrategy(BaseStrategy):
                 "reclaim_buffer_pct": 0.30,
                 "max_distance_from_vwap_pct": 1.0,
                 # レジームフィルタ: trend_down/volatile で損失が大きい
-                "blocked_regimes": ["trend_down", "volatile"],
+                "blocked_regimes": ["trend_down"],
                 # 後場 PM-VWAP reclaim（intraday 品質が十分なときのみ）
                 "pm_reclaim_min_hold_count": 2,
                 "pm_rel_volume_threshold": 1.8,

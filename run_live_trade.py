@@ -61,7 +61,7 @@ JST = ZoneInfo("Asia/Tokyo")
 MAX_DAILY_LOSS = -3000       # 日次最大損失
 MAX_POSITIONS = 2            # 同時保有数
 MAX_ORDER_PCT = 0.40         # 1注文あたり資金の40%
-SCAN_INTERVAL = 30           # スキャン間隔（秒）
+SCAN_INTERVAL = 10           # スキャン間隔（秒）
 FORCE_CLOSE_HOUR = 14        # 強制決済時
 FORCE_CLOSE_MIN = 50         # 強制決済分
 MARKET_CLOSE_HOUR = 15
@@ -446,14 +446,17 @@ class LiveTrader:
                         (df["volume"] > 500000)  # 50万株以上の流動性
                     ].sort_values("volume", ascending=False)
 
-                    # 上位20銘柄を候補に
+                    # ETF/レバレッジ商品を除外（1000番台はETF）
+                    etf_prefixes = {"13", "14", "15", "16", "17", "18", "19", "23", "24", "25"}
                     dynamic_codes = []
-                    for _, row in affordable.head(20).iterrows():
+                    for _, row in affordable.head(40).iterrows():
                         code = str(row["code"])
                         if len(code) == 4:
                             code = code + "0"
-                        if code not in fixed:
+                        if code not in fixed and code[:2] not in etf_prefixes:
                             dynamic_codes.append(code)
+                        if len(dynamic_codes) >= 20:
+                            break
 
                     self._scan_candidates = fixed + dynamic_codes
                     logger.info(
@@ -628,8 +631,14 @@ class LiveTrader:
             if len(self.open_positions) >= MAX_POSITIONS:
                 break
 
-            last_close = float(df["close"].iloc[-1])
-            cost_100 = last_close * 100
+            # リアルタイム価格を最優先で取得
+            yahoo_price = await self._yahoo_client.get_current_price(code_4)
+            if yahoo_price > 0:
+                current_price = yahoo_price
+            else:
+                current_price = float(df["close"].iloc[-1])
+
+            cost_100 = current_price * 100
 
             if cost_100 + 200 > balance:
                 logger.debug(f"  {code_4}: ¥{cost_100:,.0f} > 余力¥{balance:,.0f}")
@@ -640,18 +649,36 @@ class LiveTrader:
             features = self.fe.calculate_all_features(
                 df, clock=now, intraday_ohlcv=intraday_df
             )
-            features["current_price"] = last_close
+            features["current_price"] = current_price
 
-            # Yahoo Financeからリアルタイム価格取得
-            yahoo_price = await self._yahoo_client.get_current_price(code_4)
-            if yahoo_price > 0:
-                features["current_price"] = yahoo_price
-                last_close = yahoo_price
-            elif intraday_df is not None and not intraday_df.empty and "close" in intraday_df.columns:
-                intraday_last = float(intraday_df["close"].iloc[-1])
-                if intraday_last > 0:
-                    features["current_price"] = intraday_last
-                    last_close = intraday_last
+            # 日中足から追加の特徴量を上書き（プロキシ排除）
+            if intraday_df is not None and not intraday_df.empty and "close" in intraday_df.columns:
+                intra_closes = intraday_df["close"].dropna()
+                if len(intra_closes) >= 5:
+                    # 日中VWAPを計算
+                    if "volume" in intraday_df.columns:
+                        iv = intraday_df[["close", "volume"]].dropna()
+                        if iv["volume"].sum() > 0:
+                            intraday_vwap = float((iv["close"] * iv["volume"]).sum() / iv["volume"].sum())
+                            features["vwap"] = intraday_vwap
+                            features["distance_from_vwap"] = (current_price - intraday_vwap) / intraday_vwap * 100
+                            features["vwap_distance"] = features["distance_from_vwap"]
+
+                    # 日中のオープニングレンジ（最初5本）
+                    first_bars = intraday_df.head(5)
+                    if "high" in first_bars.columns and "low" in first_bars.columns:
+                        or_high = float(first_bars["high"].max())
+                        or_low = float(first_bars["low"].min())
+                        features["opening_range_high"] = or_high
+                        features["opening_range_low"] = or_low
+                        features["opening_range_size"] = or_high - or_low
+
+                    # 日中の出来高トレンド
+                    if "volume" in intraday_df.columns:
+                        recent_vol = float(intraday_df["volume"].tail(5).mean())
+                        early_vol = float(intraday_df["volume"].head(5).mean())
+                        if early_vol > 0:
+                            features["volume_trend"] = recent_vol / early_vol
 
             regime = self.regime_det.detect(df)
             features["regime_result"] = regime
@@ -683,7 +710,7 @@ class LiveTrader:
                             "code_5": code_5,
                             "strategy": strategy.name,
                             "confidence": signal.confidence + confidence_bonus,
-                            "entry": last_close,
+                            "entry": current_price,  # リアルタイム価格
                             "stop": signal.stop_loss,
                             "target": signal.take_profit,
                             "reason": signal.entry_reason,
@@ -716,22 +743,28 @@ class LiveTrader:
             f"[{best['regime']}] [{src_str}] {best['reason'][:40]}"
         )
 
+        # ポジションサイズ: confidence + 余力に応じて調整
+        max_invest = min(balance * MAX_ORDER_PCT, balance - 5000)  # 最低¥5,000残す
+        max_shares = int(max_invest / best["entry"]) if best["entry"] > 0 else 100
+        max_shares = max(max_shares // 100 * 100, 100)  # 100株単位に丸め
+        quantity = max_shares
+
         order = Order(
             ticker=best["code_4"],
             side=OrderSide.BUY,
-            quantity=100,
+            quantity=quantity,
             order_type=OrderType.LIMIT,
-            limit_price=best["entry"],
+            limit_price=best["entry"],  # リアルタイム価格
             strategy_name=best["strategy"],
         )
 
         result = await self.broker.place_order(order)
 
         if result.status.value == "submitted":
-            logger.info(f"★ 注文受付: {best['code_4']} 100株 {result.notes}")
+            logger.info(f"★ 注文受付: {best['code_4']} {quantity}株 @¥{best['entry']:,.0f} {result.notes}")
             self.open_positions[best["code_4"]] = {
                 "entry_price": best["entry"],
-                "quantity": 100,
+                "quantity": quantity,
                 "stop": best["stop"],
                 "target": best["target"],
                 "strategy": best["strategy"],

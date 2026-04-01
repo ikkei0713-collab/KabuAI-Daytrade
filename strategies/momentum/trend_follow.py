@@ -205,7 +205,7 @@ class TrendFollowStrategy(BaseStrategy):
                 "stop_ema": "ema_21",
                 "ema_alignment_buffer_pct": 0.05,
                 # レジームフィルタ: trend_down/volatile で損失
-                "blocked_regimes": ["trend_down", "volatile"],
+                "blocked_regimes": ["trend_down"],
             },
         )
 

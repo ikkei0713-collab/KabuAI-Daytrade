@@ -66,7 +66,7 @@ class SpreadEntryStrategy(BaseStrategy):
                 "stop_atr_multiple": 0.5,
                 "breakout_threshold_pct": 0.3,
                 # レジームフィルタ: trend_down/volatile/low_vol で損失
-                "blocked_regimes": ["trend_down", "volatile", "low_vol"],
+                "blocked_regimes": ["trend_down"],
             },
         )
 

@@ -43,7 +43,7 @@ class VWAPBounceStrategy(BaseStrategy):
                 "target_atr_multiple": 0.8,
                 "stop_atr_below_vwap": 0.8,
                 "bounce_proximity_pct": 0.3,
-                "blocked_regimes": ["trend_down", "volatile"],
+                "blocked_regimes": ["trend_down"],
             },
         )
 

@@ -187,6 +187,27 @@ CREATE TABLE IF NOT EXISTS ticker_affinity (
 
 CREATE INDEX IF NOT EXISTS idx_affinity_strategy ON ticker_affinity(strategy_name);
 CREATE INDEX IF NOT EXISTS idx_affinity_ticker ON ticker_affinity(ticker);
+
+CREATE TABLE IF NOT EXISTS event_intelligence (
+    id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+    symbol                  TEXT NOT NULL,
+    trade_date              TEXT NOT NULL,
+    source                  TEXT NOT NULL DEFAULT '',
+    event_type              TEXT NOT NULL DEFAULT '',
+    event_importance_score  REAL NOT NULL DEFAULT 0,
+    event_freshness_score   REAL NOT NULL DEFAULT 0,
+    propagation_score       REAL NOT NULL DEFAULT 0,
+    propagation_source_symbol TEXT DEFAULT '',
+    propagation_path_type   TEXT DEFAULT '',
+    company_feature_score   REAL NOT NULL DEFAULT 0,
+    evidence_summary        TEXT DEFAULT '',
+    confidence_before       REAL DEFAULT 0,
+    confidence_after        REAL DEFAULT 0,
+    created_at              TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_event_intel_symbol ON event_intelligence(symbol);
+CREATE INDEX IF NOT EXISTS idx_event_intel_date ON event_intelligence(trade_date);
 """
 
 

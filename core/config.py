@@ -74,10 +74,22 @@ class Settings(BaseSettings):
     EXPANSION_PENALTY_AFTER_CROSS: float = 0.10     # 最適化: 0.10 (控えめ)
     SCANNER_CONVERGENCE_WEIGHT: float = 0.05
 
-    # Tachibana (future)
+    # Tachibana
     TACHIBANA_API_URL: str = ""
     TACHIBANA_USER: str = ""
     TACHIBANA_PASSWORD: str = ""
+
+    # Novaquity Event Intelligence (補助レイヤー)
+    NOVAQUITY_ENABLED: bool = False
+    NOVAQUITY_EVENT_IMPORTANCE_WEIGHT: float = 0.10
+    NOVAQUITY_EVENT_FRESHNESS_WEIGHT: float = 0.05
+    NOVAQUITY_PROPAGATION_WEIGHT: float = 0.07
+    NOVAQUITY_COMPANY_FEATURE_WEIGHT: float = 0.05
+    NOVAQUITY_TRACEABILITY_WEIGHT: float = 0.03
+    NOVAQUITY_EVENT_CONFIDENCE_BOOST: float = 0.07
+    NOVAQUITY_PROPAGATION_CONFIDENCE_BOOST: float = 0.04
+    NOVAQUITY_STALE_EVENT_PENALTY: float = 0.08
+    NOVAQUITY_WEAK_EVIDENCE_PENALTY: float = 0.05
 
     model_config = {"env_file": ".env", "env_prefix": "KABUAI_", "extra": "ignore"}
 

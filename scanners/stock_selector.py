@@ -73,6 +73,7 @@ class StockSelector:
         df: pd.DataFrame,
         name: str = "",
         has_event: bool = False,
+        event_intel: "EventIntelligence | None" = None,
     ) -> StockScore:
         """1銘柄をスコアリング"""
         score = StockScore(code=code, name=name, has_event=has_event)
@@ -172,6 +173,24 @@ class StockSelector:
             score.score_breakdown[k] * self.WEIGHTS[k]
             for k in self.WEIGHTS
         )
+
+        # Novaquity/EventIntelligence 加点（補助レイヤー）
+        if event_intel is not None:
+            nova_boost = 0.0
+            nova_boost += event_intel.event_importance_score * 0.10
+            nova_boost += event_intel.event_freshness_score * 0.05
+            nova_boost += event_intel.propagation_score * 0.07
+            nova_boost += event_intel.company_feature_score * 0.05
+            nova_boost += event_intel.traceability_score * 0.03
+            # stale event penalty
+            if event_intel.event_freshness_score < 0.3:
+                nova_boost -= 0.08
+            # weak evidence penalty
+            if event_intel.evidence_count < 2 and event_intel.traceability_score < 0.3:
+                nova_boost -= 0.05
+            score.total_score += max(nova_boost, -0.05)  # ペナルティ上限
+            score.score_breakdown["novaquity"] = round(nova_boost, 3)
+
         # 後場セットアップ加点（流動性・出来高主軸、低位株は bonus のみ）
         pm_bonus, lp_bonus = self._pm_watchlist_bonus(
             df, close_col, close, score, has_event

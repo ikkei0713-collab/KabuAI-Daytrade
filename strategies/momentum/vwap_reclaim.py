@@ -209,7 +209,19 @@ class VWAPReclaimStrategy(BaseStrategy):
         if sector_bias_score > 0:
             confidence += sector_bias_score
 
-        # Proxy penalty: 無効化 (日足ベースの限界を受容)
+        # Novaquity/EventIntelligence confidence boost（補助のみ）
+        ei_importance = features.get("event_importance_score", 0)
+        ei_freshness = features.get("event_freshness_score", 0)
+        ei_propagation = features.get("propagation_score", 0)
+        ei_evidence = features.get("evidence_count", 0)
+        if ei_importance > 0.5 and ei_freshness > 0.5:
+            confidence += 0.07  # 高重要度+新鮮なイベント
+        if ei_propagation > 0.5:
+            confidence += 0.04  # 波及候補
+        if ei_freshness < 0.2 and ei_importance > 0:
+            confidence -= 0.08  # stale event penalty
+        if ei_evidence < 2 and ei_importance > 0:
+            confidence -= 0.05  # weak evidence penalty
 
         confidence = min(confidence, 0.90)
 

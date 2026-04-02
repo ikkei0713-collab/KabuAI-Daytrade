@@ -26,6 +26,7 @@ v2からの改善:
 
 import asyncio
 import json
+import math
 import sys
 import time
 from datetime import datetime, date, timedelta
@@ -50,7 +51,9 @@ from data_sources.tdnet import TDnetClient
 from data_sources.yahoo_finance import YahooFinanceClient
 from data_sources.event_intelligence import (
     EventIntelligence, from_tdnet_disclosure, from_price_action,
+    _SECTOR_GROUPS,
 )
+from tools.temporal_decay import apply_decay
 from tools.telegram_notify import TelegramNotifier
 from core.ticker_map import format_ticker, get_name, update_from_jquants
 
@@ -84,6 +87,9 @@ STRATEGY_TIME_WINDOWS = {
     "crash_rebound":(9, 0, 14, 50),   # 急落はいつでも
 }
 
+SIGNAL_DEDUP_WINDOW = 60     # シグナル重複排除ウィンドウ（秒）
+MMR_LAMBDA = 0.7             # MMR: confidence重視 vs 多様性
+
 SCREENING_FILE = Path("knowledge/screening_candidates.json")
 SESSION_FILE = Path("data/tachibana_session.json")
 ORDER_CHECK_INTERVAL = 60     # 未約定チェック間隔（秒）
@@ -113,6 +119,7 @@ class LiveTrader:
         self._last_order_check = 0.0
         self._morning_report_sent = False
         self._afternoon_report_sent = False
+        self._signal_scratchpad = {}  # ticker -> (timestamp, strategy, confidence)
 
     async def start(self):
         """メインループ"""
@@ -625,6 +632,82 @@ class LiveTrader:
         end = end_h * 60 + end_m
         return start <= current <= end
 
+    # ------------------------------------------------------------------
+    # Signal Deduplication & MMR Diversification
+    # ------------------------------------------------------------------
+
+    def _dedup_signal(self, code_4: str, strategy: str, confidence: float) -> bool:
+        """Check scratchpad for duplicate signals. Returns True if signal should be kept."""
+        now_ts = time.time()
+        # Expire old entries
+        expired = [k for k, (ts, _, _) in self._signal_scratchpad.items()
+                   if now_ts - ts > SIGNAL_DEDUP_WINDOW]
+        for k in expired:
+            del self._signal_scratchpad[k]
+
+        if code_4 in self._signal_scratchpad:
+            prev_ts, prev_strat, prev_conf = self._signal_scratchpad[code_4]
+            if now_ts - prev_ts <= SIGNAL_DEDUP_WINDOW:
+                if strategy == prev_strat:
+                    # Same strategy on same ticker within window -> skip
+                    return False
+                if confidence <= prev_conf:
+                    # Different strategy but lower confidence -> skip
+                    return False
+                # Higher confidence from different strategy -> replace
+        self._signal_scratchpad[code_4] = (now_ts, strategy, confidence)
+        return True
+
+    @staticmethod
+    def _ticker_sector(code_4: str) -> str | None:
+        """Return the sector group name for a ticker, or None."""
+        for sector, members in _SECTOR_GROUPS.items():
+            if code_4 in members:
+                return sector
+        return None
+
+    @staticmethod
+    def _sector_similarity(code_a: str, code_b: str) -> float:
+        """Return 1.0 if tickers share a sector group, else 0.0."""
+        for members in _SECTOR_GROUPS.values():
+            if code_a in members and code_b in members:
+                return 1.0
+        return 0.0
+
+    def _mmr_rerank(self, signals: list[dict]) -> list[dict]:
+        """Rerank signals using Maximal Marginal Relevance for diversity.
+
+        Prefers high-confidence signals but penalises signals in the same
+        sector as already-selected ones.
+        """
+        if len(signals) <= 1:
+            return signals
+
+        selected: list[dict] = []
+        remaining = list(signals)
+
+        # First pick: highest confidence
+        remaining.sort(key=lambda s: -s["confidence"])
+        selected.append(remaining.pop(0))
+
+        while remaining:
+            best_idx = 0
+            best_mmr = -float("inf")
+            for i, sig in enumerate(remaining):
+                conf = sig["confidence"]
+                # Max similarity to any already-selected signal
+                max_sim = max(
+                    self._sector_similarity(sig["code_4"], sel["code_4"])
+                    for sel in selected
+                )
+                mmr = MMR_LAMBDA * conf - (1 - MMR_LAMBDA) * max_sim
+                if mmr > best_mmr:
+                    best_mmr = mmr
+                    best_idx = i
+            selected.append(remaining.pop(best_idx))
+
+        return selected
+
     async def _scan_and_trade(self):
         """スキャン→シグナル→注文"""
         used = sum(p["entry_price"] * p["quantity"] for p in self.open_positions.values())
@@ -735,11 +818,18 @@ class LiveTrader:
                         if tdnet_event and tdnet_event.is_material:
                             confidence_bonus += 0.05
 
+                        adj_confidence = signal.confidence + confidence_bonus
+
+                        # Signal deduplication: skip if same ticker/strategy
+                        # recently seen, or keep higher confidence only
+                        if not self._dedup_signal(code_4, strategy.name, adj_confidence):
+                            continue
+
                         signals.append({
                             "code_4": code_4,
                             "code_5": code_5,
                             "strategy": strategy.name,
-                            "confidence": signal.confidence + confidence_bonus,
+                            "confidence": adj_confidence,
                             "entry": current_price,  # リアルタイム価格
                             "stop": signal.stop_loss,
                             "target": signal.take_profit,
@@ -754,7 +844,8 @@ class LiveTrader:
         if not signals:
             return
 
-        signals.sort(key=lambda s: -s["confidence"])
+        # MMR reranking: prefer diversity across sectors when MAX_POSITIONS=2
+        signals = self._mmr_rerank(signals)
         best = signals[0]
 
         data_sources = []

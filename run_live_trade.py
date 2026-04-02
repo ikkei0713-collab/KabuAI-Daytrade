@@ -227,6 +227,14 @@ class LiveTrader:
                 if time.time() - self._last_order_check >= ORDER_CHECK_INTERVAL:
                     await self._manage_orders()
 
+                # 余力を5分ごとに更新
+                if time.time() - getattr(self, '_last_balance_check', 0) >= 300:
+                    new_balance = await self._get_real_balance()
+                    if new_balance > 0 and new_balance != self.initial_balance:
+                        logger.info(f"余力更新: ¥{self.initial_balance:,.0f} → ¥{new_balance:,.0f}")
+                        self.initial_balance = new_balance
+                    self._last_balance_check = time.time()
+
                 # 前場引けレポート（11:30）
                 if now.hour == 11 and now.minute >= 30 and not self._morning_report_sent:
                     await self._send_session_report("前場引け")

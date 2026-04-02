@@ -306,6 +306,33 @@ class TrendFollowStrategy(BaseStrategy):
         candle_range = float(latest["high"]) - current_low
         if candle_range > 0 and body / candle_range > 0.6:
             confidence += 0.10
+
+        # レジーム別ハイブリッド指標切替（論文 fit3 ハイブリッド売買）
+        # レンジ/volatile相場ではオシレータ系（RSI）で確認を追加
+        regime_result = features.get("regime_result")
+        current_regime = getattr(regime_result, "regime", "") if regime_result else ""
+        rsi_14 = features.get("rsi_14", 50)
+        bb_pct = features.get("price_vs_bollinger", 0.5)
+
+        if current_regime in ("range", "volatile", "low_vol"):
+            # レンジ相場: オシレータ確認を追加
+            if direction == "long" and rsi_14 > 70:
+                confidence -= 0.10  # RSI過熱 → 減点
+            elif direction == "long" and rsi_14 < 40:
+                confidence += 0.05  # RSI余裕あり → 加点
+            if direction == "short" and rsi_14 < 30:
+                confidence -= 0.10
+            elif direction == "short" and rsi_14 > 60:
+                confidence += 0.05
+            # BB上限/下限での逆張り確認
+            if direction == "long" and bb_pct > 0.9:
+                confidence -= 0.08  # BB上限付近 → 減点
+            if direction == "short" and bb_pct < 0.1:
+                confidence -= 0.08
+        elif current_regime == "trend_up":
+            # トレンド相場: トレンド指標をそのまま信頼
+            confidence += 0.05
+
         confidence = min(confidence, 0.90)
 
         shares = self.calculate_position_size(entry_price, atr, 10_000_000)

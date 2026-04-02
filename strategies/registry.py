@@ -192,19 +192,38 @@ class StrategyRegistry:
     _PERMANENTLY_DISABLED: set[str] = set()
 
     @classmethod
-    def auto_toggle(cls, recent_trades: list, min_trades: int = 12) -> list[str]:
+    def auto_toggle(
+        cls,
+        recent_trades: list,
+        min_trades: int = 12,
+        max_age_days: int = 30,
+    ) -> list[str]:
         """Auto-disable strategies with poor rolling performance.
 
-        閾値 (保守的チューニング 2026-03-19):
+        論文準拠: 短期学習ウィンドウ（30営業日）で評価。
+        古いトレードは無視して直近のレジームに適応する。
+
+        閾値:
         - off: PF < 0.90 or WR < 40% or avg_pnl < 0
         - on:  PF > 1.20 and WR > 48% (再開は15件以上)
         """
+        from datetime import datetime, timedelta
+
+        cutoff = datetime.now() - timedelta(days=max_age_days)
         toggled: list[str] = []
         for name, strategy in cls._strategies.items():
             if name in cls._PERMANENTLY_DISABLED:
                 continue
 
-            strades = [t for t in recent_trades if t.strategy_name == name]
+            # 30日以内のトレードのみ使用（短期学習ウィンドウ）
+            strades = []
+            for t in recent_trades:
+                if t.strategy_name != name:
+                    continue
+                trade_time = getattr(t, "exit_time", None) or getattr(t, "entry_time", None)
+                if trade_time and isinstance(trade_time, datetime) and trade_time < cutoff:
+                    continue  # 古いトレードは無視
+                strades.append(t)
 
             if len(strades) < min_trades:
                 continue

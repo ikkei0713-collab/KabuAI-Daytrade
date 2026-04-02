@@ -69,10 +69,12 @@ class TelegramNotifier:
         reason: str,
     ) -> None:
         """エントリー通知"""
+        name = get_name(ticker + "0") or get_name(ticker) or ""
+        label = f"{name}({ticker})" if name else ticker
         msg = (
             f"🟢 ENTRY\n"
             f"{'='*30}\n"
-            f"銘柄: {ticker}\n"
+            f"銘柄: {label}\n"
             f"方向: {direction}\n"
             f"価格: {price:,.0f}円\n"
             f"数量: {quantity}\n"
@@ -102,10 +104,12 @@ class TelegramNotifier:
         """決済通知"""
         icon = "🟢" if pnl > 0 else "🔴"
         result = "WIN" if pnl > 0 else "LOSE"
+        name = get_name(ticker + "0") or get_name(ticker) or ""
+        label = f"{name}({ticker})" if name else ticker
         msg = (
             f"{icon} EXIT [{result}]\n"
             f"{'='*30}\n"
-            f"銘柄: {ticker}\n"
+            f"銘柄: {label}\n"
             f"方向: {direction}\n"
             f"参入: {entry_price:,.0f}円\n"
             f"決済: {exit_price:,.0f}円\n"

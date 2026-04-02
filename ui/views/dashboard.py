@@ -426,6 +426,13 @@ def render():
                         iq_warn = " [proxy]"
                     elif iq is not None and float(iq) < 0.6:
                         iq_warn = " [低品質]"
+                    # Novaquity event intelligence fields
+                    ev_imp = w.get("event_importance_score")
+                    ev_imp_s = f"{ev_imp:.2f}" if ev_imp is not None else "-"
+                    prop_sc = w.get("propagation_score")
+                    prop_sc_s = f"{prop_sc:.2f}" if prop_sc is not None else "-"
+                    ev_summary = w.get("evidence_summary", "")
+                    nq_mode = "Novaquity" if w.get("novaquity_active") else "fallback" if w.get("has_event") else "-"
                     wl_data.append({
                         "銘柄": format_ticker(w.get("code", "")),
                         "スコア": f"{w.get('combined', 0):.3f}",
@@ -433,6 +440,8 @@ def render():
                         "出来高比": f"{w.get('relative_volume', 0):.1f}x",
                         "収束": f"{conv_label}{conv_tag}",
                         "イベント": "有" if w.get("has_event") else "-",
+                        "EV重要度": ev_imp_s,
+                        "波及スコア": prop_sc_s,
                         "PM相対出来高": pm_rel_s,
                         "PM売買代金": pm_to_s,
                         "PM reclaim": pm_rc_s,
@@ -440,6 +449,7 @@ def render():
                         "低位bonus": lp_s,
                         "PM品質": f"{iq:.2f}{iq_warn}" if iq is not None else "-",
                         "業種バイアス": f"{bias_label} ({bias_val:+.3f})" if bias_val else "-",
+                        "NQ": nq_mode,
                         "採用理由": w.get("reason", "")[:50],
                     })
                 st.dataframe(pd.DataFrame(wl_data), hide_index=True, use_container_width=True)

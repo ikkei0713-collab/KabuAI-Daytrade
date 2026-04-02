@@ -246,6 +246,9 @@ class FeedbackPacketGenerator:
         # Convergence feature analysis (v3.3)
         convergence_analysis = self._convergence_analysis()
 
+        # Novaquity event intelligence analysis
+        event_intelligence = self._event_intelligence_analysis()
+
         # Plot paths
         plot_paths = {
             "equity_curve": str(PLOTS_DIR / "equity_curve.png"),
@@ -272,6 +275,7 @@ class FeedbackPacketGenerator:
             "ic_icir": ic_icir,
             "net_exposure": net_exposure,
             "convergence_analysis": convergence_analysis,
+            "event_intelligence": event_intelligence,
             "pm_session_analysis": pm_session_analysis,
             "anomaly_summary": anomaly,
             "recommendation_hints": hints,
@@ -575,6 +579,62 @@ class FeedbackPacketGenerator:
             "squeeze_breakout_metrics": _group_metrics(squeeze_trades),
         }
 
+    def _event_intelligence_analysis(self) -> dict:
+        """Novaquity event intelligence layer analysis."""
+        if not self.all_trades:
+            return {}
+
+        ev_importance_vals: list[float] = []
+        prop_score_vals: list[float] = []
+        event_boost_count = 0
+        prop_boost_count = 0
+        stale_event_trades: list = []
+
+        for t in self.all_trades:
+            feats = t.features_at_entry or {}
+            ei = feats.get("event_importance_score")
+            if ei is not None:
+                try:
+                    ev_importance_vals.append(float(ei))
+                except (TypeError, ValueError):
+                    pass
+            ps = feats.get("propagation_score")
+            if ps is not None:
+                try:
+                    prop_score_vals.append(float(ps))
+                except (TypeError, ValueError):
+                    pass
+            if feats.get("event_boost_applied"):
+                event_boost_count += 1
+            if feats.get("propagation_boost_applied"):
+                prop_boost_count += 1
+            if feats.get("stale_event"):
+                stale_event_trades.append(t)
+
+        def _dist(vals: list[float]) -> dict:
+            if not vals:
+                return {"n": 0}
+            arr = np.array(vals)
+            return {
+                "n": len(vals),
+                "mean": round(float(arr.mean()), 4),
+                "std": round(float(arr.std()), 4),
+                "p25": round(float(np.percentile(arr, 25)), 4),
+                "p50": round(float(np.percentile(arr, 50)), 4),
+                "p75": round(float(np.percentile(arr, 75)), 4),
+            }
+
+        stale_pnl = sum(t.pnl for t in stale_event_trades)
+
+        return {
+            "event_importance_distribution": _dist(ev_importance_vals),
+            "propagation_score_distribution": _dist(prop_score_vals),
+            "event_boost_applied_count": event_boost_count,
+            "propagation_boost_applied_count": prop_boost_count,
+            "stale_event_count": len(stale_event_trades),
+            "stale_event_total_pnl": round(stale_pnl, 0),
+        }
+
     def _pm_session_analysis(self) -> dict:
         """後場 PM-VWAP reclaim 関連の成績・分布。"""
         if not self.all_trades:
@@ -769,6 +829,19 @@ class FeedbackPacketGenerator:
             wr = pm.get("low_price_bonus_applied_win_rate", 0)
             lp_helped = wr >= 0.45
 
+        # Novaquity event intelligence layer effectiveness
+        ev_intel = self._event_intelligence_analysis()
+        event_layer_helped = None
+        propagation_layer_helped = None
+        stale_event_hurt = None
+        if ev_intel.get("event_boost_applied_count", 0) >= 3:
+            # Check if boosted trades performed well by comparing with all trades
+            event_layer_helped = ev_intel["event_boost_applied_count"] > 0
+        if ev_intel.get("propagation_boost_applied_count", 0) >= 3:
+            propagation_layer_helped = ev_intel["propagation_boost_applied_count"] > 0
+        if ev_intel.get("stale_event_count", 0) >= 2:
+            stale_event_hurt = ev_intel.get("stale_event_total_pnl", 0) < 0
+
         hints_dict = {
             "weakest_strategies": weak,
             "strongest_strategies": strong,
@@ -786,6 +859,9 @@ class FeedbackPacketGenerator:
             "low_price_bonus_helped_or_hurt": lp_help,
             "best_pm_rel_volume_threshold_candidates": [1.6, 1.8, 2.0],
             "best_pm_hold_count_candidates": [2, 3],
+            "event_layer_helped": event_layer_helped,
+            "propagation_layer_helped": propagation_layer_helped,
+            "stale_event_hurt": stale_event_hurt,
         }
         return hints_dict
 

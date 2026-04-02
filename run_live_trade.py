@@ -128,7 +128,11 @@ class LiveTrader:
         if not ok:
             logger.error("ログイン失敗。電話認証してから再実行してください。")
             await self._notifier.send(
-                "🔴 セッション切れ！\n立花証券にログインできません。\n電話認証してからボットを再起動してください。"
+                "🔴 セッション切れ！\n"
+                "立花証券にログインできません。\n\n"
+                "📞 電話認証してください:\n"
+                "tel:0120286592\n\n"
+                "電話後にボットを再起動してください。"
             )
             return
         logger.info("★ ログイン成功。このプロセスを閉じないでください。")
@@ -168,6 +172,9 @@ class LiveTrader:
 
             # 銘柄候補を構築（前日スクリーニング結果があれば優先）
             await self._build_scan_candidates()
+
+            # 起動時: 前回の未約定注文を全取消
+            await self._cancel_all_pending_orders()
 
             # 銘柄データ一括取得（日足）
             await self._load_stock_data()
@@ -999,6 +1006,27 @@ class LiveTrader:
     # ------------------------------------------------------------------
     # 未約定注文管理
     # ------------------------------------------------------------------
+
+    async def _cancel_all_pending_orders(self):
+        """起動時に前回の未約定注文を全取消"""
+        try:
+            orders = await self.broker.get_orders()
+            if not orders:
+                return
+            cancelled = 0
+            for order in orders:
+                notes = getattr(order, 'notes', '') or ''
+                if notes:
+                    ok = await self.broker.cancel_order(notes)
+                    if ok:
+                        name = get_name(order.ticker + "0") or order.ticker
+                        logger.info(f"起動時取消: {name}({order.ticker}) {order.quantity}株 (ID: {notes})")
+                        cancelled += 1
+            if cancelled > 0:
+                logger.info(f"未約定注文 {cancelled}件を取消しました")
+                await self._notifier.send(f"⚠️ 起動時に未約定注文 {cancelled}件を自動取消しました")
+        except Exception as e:
+            logger.warning(f"未約定取消エラー: {e}")
 
     async def _manage_orders(self):
         """未約定注文を確認し、古い指値注文は取消す"""

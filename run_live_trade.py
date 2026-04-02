@@ -873,12 +873,12 @@ class LiveTrader:
         max_shares = max(max_shares // 100 * 100, 100)  # 100株単位に丸め
         quantity = max_shares
 
+        # エントリーは成行（即約定で機会損失を防ぐ）
         order = Order(
             ticker=best["code_4"],
             side=OrderSide.BUY,
             quantity=quantity,
-            order_type=OrderType.LIMIT,
-            limit_price=best["entry"],  # リアルタイム価格
+            order_type=OrderType.MARKET,
             strategy_name=best["strategy"],
         )
 

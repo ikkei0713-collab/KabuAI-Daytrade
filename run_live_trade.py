@@ -1266,7 +1266,8 @@ class LiveTrader:
     async def _force_close_all(self, reason: str):
         """全ポジション決済"""
         for ticker, pos in list(self.open_positions.items()):
-            logger.info(f"決済: {ticker} {pos['quantity']}株 ({reason})")
+            name = get_name(ticker + "0") or get_name(ticker) or ticker
+            logger.info(f"決済: {name}({ticker}) {pos['quantity']}株 ({reason})")
             order = Order(
                 ticker=ticker,
                 side=OrderSide.SELL,
@@ -1277,9 +1278,24 @@ class LiveTrader:
             result = await self.broker.place_order(order)
             logger.info(f"  → {result.status.value} {result.notes}")
 
+            # PnL計算
+            exit_price = await self._yahoo_client.get_current_price(ticker)
+            if exit_price <= 0:
+                exit_price = pos["entry_price"]  # フォールバック
+            pnl = (exit_price - pos["entry_price"]) * pos["quantity"]
+            pnl_pct = (exit_price / pos["entry_price"] - 1) * 100 if pos["entry_price"] > 0 else 0
+            self.daily_pnl += pnl
+
+            logger.info(
+                f"  {name}({ticker}): ¥{pos['entry_price']:,.0f}→¥{exit_price:,.0f} "
+                f"PnL=¥{pnl:+,.0f}"
+            )
+
             self.trades_today.append({
                 "ticker": ticker,
                 "entry": pos["entry_price"],
+                "exit_price": exit_price,
+                "pnl": pnl,
                 "exit_reason": reason,
                 "strategy": pos["strategy"],
             })

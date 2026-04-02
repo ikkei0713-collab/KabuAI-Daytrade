@@ -181,20 +181,17 @@ KabuAI-Day/
 | **J-Quants V2** | ライト¥1,650/月 | 日足OHLCV・全銘柄一括取得(4,400銘柄)・財務データ・上場銘柄マスタ |
 | **TDnet** | 無料 | 適時開示スクレイピング（上方修正・自社株買い・決算等） |
 | **Yahoo Finance (US)** | 無料 | 米国セクターETF前日騰落率→日本33業種バイアス |
-| **Novaquity API** | 無料/有料 | イベント重要度スコア・波及スコア・エビデンス要約 (補助レイヤー) |
+## Event Intelligence（自前イベント分析エンジン）
 
-## Novaquity Event Intelligence (補助レイヤー)
+外部APIに依存せず、TDnet + J-Quants + 価格アクションから**イベント重要度・波及スコア・企業特徴**を自前計算する。
 
-Novaquity APIを通じて企業イベント情報を取得し、銘柄選定の補助シグナルとして活用する。
-主戦略を置き換えるものではなく、あくまで既存スコアリングへの上乗せ(confidence boost)として機能する。
-
-- **イベント重要度スコア (event_importance_score)**: 適時開示・決算等のイベントが株価に与える影響度を0-1で定量化
-- **波及スコア (propagation_score)**: サプライチェーンや業種内での波及効果を0-1で評価
-- **エビデンス要約 (evidence_summary)**: イベントの根拠を短文で提示
-- **ウォッチリスト統合**: スコアが閾値を超えた銘柄にconfidence boostを付与し、採用優先度を引き上げ
-- **グレースフルフォールバック**: API障害時はNovaquityレイヤーを無効化し、従来のTDnet+内部スコアリングのみで動作。トレード判断が止まることはない
-
-フィードバックパケットでは `event_importance_distribution` / `propagation_score_distribution` / `event_boost_applied_count` 等を追跡し、レイヤーの有効性を継続評価する。
+- **イベント重要度 (event_importance_score)**: TDnet開示タイプ+キーワードから0-1で算出（上方修正=0.9, 自社株買い=0.7等）
+- **鮮度スコア (event_freshness_score)**: 開示からの経過時間で減衰（1時間以内=1.0, 6時間=0.7, 24時間超=0.1）
+- **波及スコア (propagation_score)**: 同業種グループ内の他銘柄イベントから波及効果を推定
+- **企業特徴 (company_feature_score)**: 出来高比率・ATR%・価格帯から算出
+- **価格アクション検出**: TDnet開示がなくても急騰(+3%)+出来高急増(2倍)を自動検出
+- **watchlist加点**: importance×0.10 + freshness×0.05 + propagation×0.07 + company×0.05
+- **confidence boost**: vwap_reclaimに高重要度+0.07, 波及+0.04, stale-0.08
 
 ## クイックスタート
 

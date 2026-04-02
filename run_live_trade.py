@@ -48,6 +48,9 @@ from tools.market_regime import RegimeDetector
 from data_sources.jquants import JQuantsClient
 from data_sources.tdnet import TDnetClient
 from data_sources.yahoo_finance import YahooFinanceClient
+from data_sources.event_intelligence import (
+    EventIntelligence, from_tdnet_disclosure, from_price_action,
+)
 from tools.telegram_notify import TelegramNotifier
 from core.ticker_map import format_ticker, get_name, update_from_jquants
 
@@ -99,6 +102,7 @@ class LiveTrader:
         self.stock_data = {}       # ticker(5digit) -> DataFrame (日足)
         self.intraday_data = {}    # ticker(5digit) -> DataFrame (分足)
         self.tdnet_events = {}     # ticker(4digit) -> DisclosureInfo
+        self.event_intel = {}      # ticker(4digit) -> EventIntelligence
         self.stopped = False
         self._last_tdnet_scan = 0.0
         self._last_intraday_refresh = 0.0
@@ -589,6 +593,17 @@ class LiveTrader:
 
                 if new_events > 0:
                     logger.info(f"TDnet新着: {new_events}件 (総material: {len(self.tdnet_events)}件)")
+
+                    # EventIntelligence生成（自前計算）
+                    for ticker_4, ev in self.tdnet_events.items():
+                        code_5 = ticker_4 + "0"
+                        df = self.stock_data.get(code_5)
+                        price = float(df["close"].iloc[-1]) if df is not None and not df.empty else 0
+                        intel = from_tdnet_disclosure(
+                            ev, df=df, price=price, all_events=self.tdnet_events
+                        )
+                        self.event_intel[ticker_4] = intel
+                    logger.info(f"EventIntel生成: {len(self.event_intel)}件")
                 else:
                     logger.debug(f"TDnet: 新着なし (総material: {len(self.tdnet_events)}件)")
 
@@ -683,7 +698,14 @@ class LiveTrader:
             regime = self.regime_det.detect(df)
             features["regime_result"] = regime
 
-            # TDnetイベント注入
+            # EventIntelligence注入（TDnet + 価格アクション）
+            intel = self.event_intel.get(code_4)
+            if intel is None:
+                # TDnet開示がなくても価格アクションから検出
+                intel = from_price_action(code_4, df, current_price, self.tdnet_events)
+                if intel:
+                    self.event_intel[code_4] = intel
+
             tdnet_event = self.tdnet_events.get(code_4)
             if tdnet_event:
                 features["event_type"] = tdnet_event.disclosure_type.value
@@ -694,6 +716,14 @@ class LiveTrader:
                     else -0.5 if tdnet_event.disclosure_type.value in ("下方修正", "上場廃止")
                     else 0.2
                 )
+
+            # EventIntelligenceスコアを特徴量に注入
+            if intel:
+                features["event_importance_score"] = intel.event_importance_score
+                features["event_freshness_score"] = intel.event_freshness_score
+                features["propagation_score"] = intel.propagation_score
+                features["company_feature_score"] = intel.company_feature_score
+                features["evidence_count"] = intel.evidence_count
 
             for strategy in strategies:
                 try:

@@ -128,9 +128,9 @@ class VWAPReclaimStrategy(BaseStrategy):
         day_high = float(data["high"].max())
 
         entry_price = current_price
-        stop_price = recent_low - 1.0
-        atr_target = entry_price + atr * params.get("target_atr_multiple", 1.5)
-        target_price = max(day_high, atr_target)
+        stop_price = max(recent_low - 1.0, entry_price - atr * 2)  # ATR2倍を上限
+        # TP: ATRベース（デイトレ現実的。日足高値は使わない）
+        target_price = entry_price + atr * params.get("target_atr_multiple", 1.5)
 
         if stop_price >= entry_price:
             return None

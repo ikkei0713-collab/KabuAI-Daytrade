@@ -127,6 +127,9 @@ class LiveTrader:
         ok = await self._restore_or_login()
         if not ok:
             logger.error("ログイン失敗。電話認証してから再実行してください。")
+            await self._notifier.send(
+                "🔴 セッション切れ！\n立花証券にログインできません。\n電話認証してからボットを再起動してください。"
+            )
             return
         logger.info("★ ログイン成功。このプロセスを閉じないでください。")
 

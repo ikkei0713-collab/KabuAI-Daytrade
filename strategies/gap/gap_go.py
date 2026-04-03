@@ -114,7 +114,7 @@ class GapGoStrategy(BaseStrategy):
             confidence += 0.1
         if gap_pct > 3.0:
             confidence += 0.1
-        confidence = min(confidence, 0.95)
+        confidence = min(confidence, 0.85)
 
         shares = self.calculate_position_size(entry_price, atr, 10_000_000)
 

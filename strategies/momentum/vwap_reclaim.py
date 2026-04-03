@@ -225,7 +225,7 @@ class VWAPReclaimStrategy(BaseStrategy):
         if ei_evidence < 2 and ei_importance > 0:
             confidence -= 0.05  # weak evidence penalty
 
-        confidence = min(confidence, 0.90)
+        confidence = min(confidence, 0.85)
 
         shares = self.calculate_position_size(entry_price, atr, 10_000_000)
 
@@ -325,7 +325,7 @@ class VWAPReclaimStrategy(BaseStrategy):
         if float(features.get("selector_score") or 0) > 0.55:
             confidence += 0.04
         confidence += float(features.get("pm_low_price_bonus") or 0.0)
-        confidence = min(confidence, 0.90)
+        confidence = min(confidence, 0.85)
 
         snap = {**features, "_pm_vwap_reclaim": True}
         signal = TradeSignal(

@@ -1,4 +1,4 @@
-"""KabuAI-Daytrade central configuration via pydantic-settings."""
+"""KabuAI-Day central configuration via pydantic-settings."""
 
 from pathlib import Path
 
@@ -11,9 +11,9 @@ class Settings(BaseSettings):
     PAPER_TRADING: bool = True
 
     # Paths
-    BASE_DIR: Path = Path.home() / "dev" / "KabuAI-Daytrade"
-    DB_PATH: Path = Path.home() / "dev" / "KabuAI-Daytrade" / "db" / "kabuai.db"
-    LOG_DIR: Path = Path.home() / "dev" / "KabuAI-Daytrade" / "logs"
+    BASE_DIR: Path = Path.home() / "dev" / "KabuAI-Day"
+    DB_PATH: Path = Path.home() / "dev" / "KabuAI-Day" / "db" / "kabuai.db"
+    LOG_DIR: Path = Path.home() / "dev" / "KabuAI-Day" / "logs"
 
     # J-Quants
     JQUANTS_API_KEY: str = ""
@@ -21,12 +21,12 @@ class Settings(BaseSettings):
     JQUANTS_PASSWORD: str = ""
     JQUANTS_REFRESH_TOKEN: str = ""
 
-    # Trading params – 攻撃的チューニング (2026-03-25)
-    # 目標: 3万円→6万円/月 (月利100%)
+    # Trading params – 攻撃的チューニング (2026-04-03)
+    # 余力いっぱい使い、試行回数を最大化
     MAX_POSITIONS: int = 3             # 同時3ポジション: 機会最大化
-    MAX_POSITION_SIZE: float = 30000   # 3万円: 全資金1ポジションもあり
-    TOTAL_CAPITAL: float = 30000       # 3万円
-    MAX_LOSS_PER_DAY: float = -3000    # -3,000円: 資金の10%で日次停止
+    MAX_POSITION_SIZE: float = 100000  # 余力に応じて動的調整
+    TOTAL_CAPITAL: float = 100000      # API残高から自動取得
+    MAX_LOSS_PER_DAY: float = -5000    # -5,000円: 余裕を持たせる
     MAX_HOLDING_MINUTES: int = 360     # 6時間=当日完結
 
     # Market hours (JST)
@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     # 後場 PM-VWAP reclaim (vwap_reclaim 強化用, JST)
     PM_SESSION_START: str = "12:30"
     PM_ENTRY_START: str = "13:00"
-    PM_FORCE_EXIT: str = "14:45"
+    PM_FORCE_EXIT: str = "15:15"
     PM_RECLAIM_MIN_HOLD_COUNT: int = 2
     PM_RELATIVE_VOLUME_THRESHOLD: float = 1.8
     PM_TURNOVER_THRESHOLD: float = 1_000_000_000.0

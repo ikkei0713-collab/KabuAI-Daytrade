@@ -129,7 +129,7 @@ class VWAPBounceStrategy(BaseStrategy):
             confidence += 0.10
         if touches >= 2:
             confidence += 0.05  # VWAP tested and held
-        confidence = min(confidence, 0.90)
+        confidence = min(confidence, 0.85)
 
         shares = self.calculate_position_size(entry_price, atr, 10_000_000)
 

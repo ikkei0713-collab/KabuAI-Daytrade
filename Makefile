@@ -1,4 +1,4 @@
-.PHONY: ui trade analyze test setup backtest lint
+.PHONY: ui live paper analyze test setup backtest lint
 
 setup:
 	pip install -e ".[dev]"
@@ -7,8 +7,11 @@ setup:
 ui:
 	KABUAI_ALLOW_LIVE_TRADING=false streamlit run ui/app.py --server.port 8501
 
-trade:
-	KABUAI_ALLOW_LIVE_TRADING=false python main.py --mode trade
+live:
+	KABUAI_ALLOW_LIVE_TRADING=false python run_live_trade.py
+
+paper:
+	KABUAI_ALLOW_LIVE_TRADING=false python run_paper.py
 
 analyze:
 	KABUAI_ALLOW_LIVE_TRADING=false python main.py --mode analyze --date $(shell date +%Y-%m-%d)

@@ -333,7 +333,7 @@ class TrendFollowStrategy(BaseStrategy):
             # トレンド相場: トレンド指標をそのまま信頼
             confidence += 0.05
 
-        confidence = min(confidence, 0.90)
+        confidence = min(confidence, 0.85)
 
         shares = self.calculate_position_size(entry_price, atr, 10_000_000)
 

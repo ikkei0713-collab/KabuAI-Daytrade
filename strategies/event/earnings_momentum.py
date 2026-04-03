@@ -133,7 +133,7 @@ class EarningsMomentumStrategy(BaseStrategy):
         # Price holding above VWAP area (use open as proxy)
         if current_price > open_price * 1.005:
             confidence += 0.05
-        confidence = min(confidence, 0.90)
+        confidence = min(confidence, 0.85)
 
         shares = self.calculate_position_size(entry_price, atr, 10_000_000)
 

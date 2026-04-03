@@ -132,7 +132,7 @@ class OpenDriveStrategy(BaseStrategy):
             confidence += 0.10
         if direction == "long" and current_price > vwap:
             confidence += 0.05
-        confidence = min(confidence, 0.95)
+        confidence = min(confidence, 0.85)
 
         shares = self.calculate_position_size(entry_price, atr, 10_000_000)
 

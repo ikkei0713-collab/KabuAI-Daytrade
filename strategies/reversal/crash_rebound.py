@@ -38,7 +38,7 @@ class CrashReboundStrategy(BaseStrategy):
             parameter_set={
                 "min_drop_pct": 5.0,
                 "max_drop_pct": 20.0,
-                "min_volume_surge": 3.0,
+                "min_volume_surge": 2.5,
                 "selling_exhaustion_threshold": 0.7,
                 "retracement_target": 0.50,
                 "max_drop_minutes": 30,

@@ -254,12 +254,14 @@ class LiveTrader:
                 if time.time() - self._last_order_check >= ORDER_CHECK_INTERVAL:
                     await self._manage_orders()
 
-                # 余力を5分ごとに更新
+                # 余力を5分ごとに更新 + セッション保存（切れ防止）
                 if time.time() - getattr(self, '_last_balance_check', 0) >= 300:
                     new_balance = await self._get_real_balance()
                     if new_balance > 0 and new_balance != self.initial_balance:
                         logger.info(f"余力更新: ¥{self.initial_balance:,.0f} → ¥{new_balance:,.0f}")
                         self.initial_balance = new_balance
+                    # セッション情報を定期保存（再起動時の復元成功率を上げる）
+                    await self._save_session()
                     self._last_balance_check = time.time()
 
                 # 前場引けレポート（11:30）
@@ -933,12 +935,14 @@ class LiveTrader:
         max_shares = max(max_shares // 100 * 100, 100)  # 100株単位に丸め
         quantity = max_shares
 
-        # エントリーは成行（即約定で機会損失を防ぐ）
+        # エントリーは指値（スリッページ防止。現在値+1円で即約定を狙う）
+        limit_price = best["entry"] + 1.0  # 現在値+1円の指値
         order = Order(
             ticker=best["code_4"],
             side=OrderSide.BUY,
             quantity=quantity,
-            order_type=OrderType.MARKET,
+            order_type=OrderType.LIMIT,
+            limit_price=limit_price,
             strategy_name=best["strategy"],
         )
 
@@ -975,12 +979,16 @@ class LiveTrader:
             except Exception as e:
                 logger.warning(f"約定価格取得失敗（シグナル価格で代用）: {e}")
 
-            logger.info(f"★ 注文受付: {best['code_4']} {quantity}株 @¥{actual_price:,.0f} {result.notes}")
+            # TP/SLを約定価格ベースで再計算（スリッページ吸収）
+            slippage = actual_price - best["entry"]
+            adjusted_stop = best["stop"] + slippage
+            adjusted_target = best["target"] + slippage
+            logger.info(f"★ 注文受付: {best['code_4']} {quantity}株 @¥{actual_price:,.0f} (slip={slippage:+.1f}) {result.notes}")
             self.open_positions[best["code_4"]] = {
                 "entry_price": actual_price,
                 "quantity": quantity,
-                "stop": best["stop"],
-                "target": best["target"],
+                "stop": adjusted_stop,
+                "target": adjusted_target,
                 "strategy": best["strategy"],
                 "order_time": datetime.now(JST).isoformat(),
                 "tachibana_order": result.notes,
@@ -990,7 +998,7 @@ class LiveTrader:
                 ticker=best["code_4"], direction="long",
                 price=actual_price, quantity=quantity,
                 strategy=best["strategy"],
-                stop_loss=best["stop"], take_profit=best["target"],
+                stop_loss=adjusted_stop, take_profit=adjusted_target,
                 reason=best["reason"][:60],
             )
         else:

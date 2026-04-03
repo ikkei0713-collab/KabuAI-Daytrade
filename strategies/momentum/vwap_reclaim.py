@@ -135,12 +135,14 @@ class VWAPReclaimStrategy(BaseStrategy):
         if stop_price >= entry_price:
             return None
 
-        # Confidence
+        # 出来高急増なしのVWAP突破はダマシリスク高い → confidence大幅減
         confidence = 0.50
+        if vol_reclaim < 1.8:
+            confidence -= 0.10  # 出来高不足ペナルティ
         if time_below > 30:
             confidence += 0.10
         if vol_reclaim > 2.5:
-            confidence += 0.10
+            confidence += 0.15  # 出来高急増ボーナスを強化
         if atr > 15:
             confidence += 0.05
         # Stronger if reclaim candle has big body

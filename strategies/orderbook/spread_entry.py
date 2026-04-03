@@ -58,10 +58,10 @@ class SpreadEntryStrategy(BaseStrategy):
             feature_requirements=self.REQUIRED_FEATURES,
             expected_market_condition="range",
             parameter_set={
-                # 大規模BT (2026-03-27, 168パターン, OOS PF=5.62, 20件)
+                # 大規模BT最適値→実戦調整 (出来高閾値を緩和して試行回数増加)
                 "spread_percentile_max": 20,
-                "min_volume_building": 1.5,
-                "min_price_compression": 0.6,
+                "min_volume_building": 1.2,
+                "min_price_compression": 0.4,
                 "target_atr_multiple": 1.0,
                 "stop_atr_multiple": 0.5,
                 "breakout_threshold_pct": 0.3,

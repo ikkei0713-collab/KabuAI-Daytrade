@@ -16,7 +16,7 @@ from loguru import logger
 # JSON chart API is far more reliable than HTML scraping.
 _CHART_URL = (
     "https://query1.finance.yahoo.com/v8/finance/chart/{ticker}.T"
-    "?interval=1m&range=1d"
+    "?interval=1m&range=5d"
 )
 
 _CACHE_TTL = 30  # seconds
@@ -102,9 +102,10 @@ class YahooFinanceClient:
             if not timestamps:
                 return []
 
-            from datetime import datetime
+            from datetime import datetime, date
             from zoneinfo import ZoneInfo
             jst = ZoneInfo("Asia/Tokyo")
+            today = date.today()
 
             bars = []
             opens = quotes.get("open", [])
@@ -116,8 +117,11 @@ class YahooFinanceClient:
             for i, ts in enumerate(timestamps):
                 if i >= len(closes) or closes[i] is None:
                     continue
+                dt = datetime.fromtimestamp(ts, tz=jst)
+                if dt.date() != today:
+                    continue
                 bars.append({
-                    "DateTime": datetime.fromtimestamp(ts, tz=jst).isoformat(),
+                    "DateTime": dt.isoformat(),
                     "open": opens[i] if i < len(opens) and opens[i] else 0,
                     "high": highs[i] if i < len(highs) and highs[i] else 0,
                     "low": lows[i] if i < len(lows) and lows[i] else 0,

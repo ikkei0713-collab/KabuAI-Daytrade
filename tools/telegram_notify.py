@@ -48,10 +48,13 @@ class TelegramNotifier:
         try:
             url = f"https://api.telegram.org/bot{self._token}/sendMessage"
             async with aiohttp.ClientSession() as session:
-                await session.post(url, json={
+                payload = {
                     "chat_id": self._chat_id,
                     "text": message,
-                })
+                }
+                if "<a " in message or "<b>" in message or "<code>" in message:
+                    payload["parse_mode"] = "HTML"
+                await session.post(url, json=payload)
             return True
         except Exception as e:
             logger.warning(f"Telegram送信失敗: {e}")

@@ -55,6 +55,7 @@ from data_sources.event_intelligence import (
 )
 from tools.temporal_decay import apply_decay
 from tools.telegram_notify import TelegramNotifier
+from tools.pattern_matcher import PatternMatcher
 from core.ticker_map import format_ticker, get_name, update_from_jquants
 
 logger.remove()
@@ -90,6 +91,31 @@ STRATEGY_TIME_WINDOWS = {
 SIGNAL_DEDUP_WINDOW = 60     # シグナル重複排除ウィンドウ（秒）
 MMR_LAMBDA = 0.7             # MMR: confidence重視 vs 多様性
 
+# レジーム×戦略フィルター (バックテストOOS PF≥1.2のみ許可)
+# spread_entry+trend_up PF=3.71, vwap_bounce+range PF=235, trend_follow+trend_down PF=99
+# trend_follow+volatile PF=4.30, vwap_reclaim+volatile PF=3.37, open_drive+volatile PF=1.50
+# spread_entry+range PF=1.29, open_drive+range PF=1.27
+WINNING_REGIME_COMBOS = {
+    ("spread_entry", "trend_up"),
+    ("spread_entry", "range"),
+    ("vwap_bounce", "range"),
+    ("vwap_reclaim", "volatile"),
+    ("trend_follow", "trend_down"),
+    ("trend_follow", "volatile"),
+    ("open_drive", "volatile"),
+    ("open_drive", "range"),
+    ("crash_rebound", "trend_down"),   # 急落リバウンドは下落時のみ
+    ("crash_rebound", "volatile"),
+    ("tdnet_event", "trend_up"),       # イベント系はレジーム問わず
+    ("tdnet_event", "range"),
+    ("tdnet_event", "volatile"),
+    ("tdnet_event", "trend_down"),
+    ("earnings_momentum", "trend_up"),
+    ("earnings_momentum", "range"),
+    ("catalyst_initial", "trend_up"),
+    ("catalyst_initial", "range"),
+}
+
 SCREENING_FILE = Path("knowledge/screening_candidates.json")
 SESSION_FILE = Path("data/tachibana_session.json")
 ORDER_CHECK_INTERVAL = 60     # 未約定チェック間隔（秒）
@@ -101,6 +127,7 @@ class LiveTrader:
         self.broker = TachibanaBroker()
         self.fe = FeatureEngineer()
         self.regime_det = RegimeDetector()
+        self.pattern_matcher = PatternMatcher(window=20, top_k=5, min_history=60)
         self.daily_pnl = 0.0
         self.trades_today = []
         self.open_positions = {}  # ticker -> {entry_price, quantity, stop, target, strategy, highest_price}
@@ -130,8 +157,8 @@ class LiveTrader:
             await self._notifier.send(
                 "🔴 セッション切れ！\n"
                 "立花証券にログインできません。\n\n"
-                "📞 電話認証してください:\n"
-                "tel:0120286592\n\n"
+                '📞 電話認証してください:\n'
+                '<a href="tel:0120286592">0120-286-592</a>\n\n'
                 "電話後にボットを再起動してください。"
             )
             return
@@ -828,6 +855,10 @@ class LiveTrader:
 
             for strategy in strategies:
                 try:
+                    # レジーム×戦略フィルター: 勝てる組み合わせのみ通す
+                    if (strategy.name, regime.regime) not in WINNING_REGIME_COMBOS:
+                        continue
+
                     signal = await strategy.scan(code_5, df, features)
                     if signal and signal.confidence >= MIN_CONFIDENCE and signal.direction == "long":
                         confidence_bonus = 0.0
@@ -835,6 +866,20 @@ class LiveTrader:
                             confidence_bonus += 0.03
                         if tdnet_event and tdnet_event.is_material:
                             confidence_bonus += 0.05
+
+                        # IDTW パターンマッチング boost (中川2019)
+                        try:
+                            pm_result = self.pattern_matcher.predict(df)
+                            if pm_result.is_valid and pm_result.predicted_direction == "long":
+                                confidence_bonus += pm_result.confidence_boost
+                                features["idtw_similarity"] = pm_result.similarity
+                                features["idtw_win_rate"] = pm_result.win_rate
+                                features["idtw_weighted_return"] = pm_result.weighted_return
+                            elif pm_result.is_valid and pm_result.predicted_direction == "short":
+                                # パターンが逆方向を示唆 → ペナルティ
+                                confidence_bonus -= pm_result.confidence_boost * 0.5
+                        except Exception as e:
+                            logger.debug(f"IDTW計算失敗 {code_4}: {e}")
 
                         adj_confidence = signal.confidence + confidence_bonus
 
@@ -900,20 +945,46 @@ class LiveTrader:
         result = await self.broker.place_order(order)
 
         if result.status.value == "submitted":
-            logger.info(f"★ 注文受付: {best['code_4']} {quantity}株 @¥{best['entry']:,.0f} {result.notes}")
+            # 成行注文は即約定するので、約定価格を取得
+            actual_price = best["entry"]  # フォールバック
+            try:
+                await asyncio.sleep(1)  # 約定反映を待つ
+                orders = await self.broker.get_orders()
+                tachibana_id = result.notes.split("tachibana_id=")[1].split()[0] if "tachibana_id=" in (result.notes or "") else ""
+                for o in orders:
+                    if tachibana_id and f"tachibana_id={tachibana_id}" in (o.notes or ""):
+                        if o.filled_price and o.filled_price > 0:
+                            actual_price = o.filled_price
+                            quantity = o.filled_quantity or quantity
+                            logger.info(f"約定確認: {best['code_4']} {quantity}株 @¥{actual_price:,.0f} (シグナル時¥{best['entry']:,.0f})")
+                            break
+                else:
+                    # 注文一覧から見つからない場合、現物残高から��得
+                    positions = await self.broker.get_positions()
+                    for p in positions:
+                        if p.ticker == best["code_4"] or p.ticker == best["code_5"]:
+                            if p.average_price and p.average_price > 0:
+                                actual_price = p.average_price
+                                quantity = p.quantity or quantity
+                                logger.info(f"残高から約定確認: {best['code_4']} {quantity}株 @¥{actual_price:,.0f}")
+                                break
+            except Exception as e:
+                logger.warning(f"約定価格取得失敗（シグナル価格で代用）: {e}")
+
+            logger.info(f"★ 注文受付: {best['code_4']} {quantity}株 @¥{actual_price:,.0f} {result.notes}")
             self.open_positions[best["code_4"]] = {
-                "entry_price": best["entry"],
+                "entry_price": actual_price,
                 "quantity": quantity,
                 "stop": best["stop"],
                 "target": best["target"],
                 "strategy": best["strategy"],
                 "order_time": datetime.now(JST).isoformat(),
                 "tachibana_order": result.notes,
-                "highest_price": best["entry"],
+                "highest_price": actual_price,
             }
             await self._notifier.notify_entry(
                 ticker=best["code_4"], direction="long",
-                price=best["entry"], quantity=100,
+                price=actual_price, quantity=quantity,
                 strategy=best["strategy"],
                 stop_loss=best["stop"], take_profit=best["target"],
                 reason=best["reason"][:60],

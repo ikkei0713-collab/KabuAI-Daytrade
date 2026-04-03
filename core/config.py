@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     MARKET_OPEN: str = "09:00"
     MARKET_CLOSE: str = "15:30"
     PRE_MARKET_SCAN: str = "08:30"
-    FORCE_CLOSE_TIME: str = "14:50"  # 強制決済 15:20→14:50 余裕を持って決済
+    FORCE_CLOSE_TIME: str = "15:20"  # ザラバ15:25終了の5分前に強制決済
 
     # 後場 PM-VWAP reclaim (vwap_reclaim 強化用, JST)
     PM_SESSION_START: str = "12:30"

@@ -15,13 +15,13 @@ v2からの改善:
 2. 30秒ごとにスキャン→シグナル生成
 3. シグナルがあれば自動注文
 4. ポジション監視→利確/損切り/トレーリングストップ
-5. 14:50に全ポジション強制決済
-6. 15:00に終了
+5. 15:20に全ポジション強制決済
+6. 15:30に終了 (2024/11/5〜 東証取引時間延長対応)
 
 セーフティ:
-- 1日の最大損失 -3,000円で停止
-- 同時ポジション最大2
-- 1注文あたり資金の40%まで
+- 1日の最大損失 -5,000円で停止
+- 同時ポジション最大3
+- 1注文あたり資金の90%まで
 """
 
 import asyncio
@@ -64,28 +64,28 @@ logger.add("logs/live_trade.log", rotation="10 MB", level="DEBUG")
 
 JST = ZoneInfo("Asia/Tokyo")
 
-# 安全設定
-MAX_DAILY_LOSS = -3000       # 日次最大損失
-MAX_POSITIONS = 2            # 同時保有数
-MAX_ORDER_PCT = 0.40         # 1注文あたり資金の40%
+# 安全設定（攻撃的: 余力いっぱい使い、試行回数を最大化）
+MAX_DAILY_LOSS = -5000       # 日次最大損失（余裕を持たせる）
+MAX_POSITIONS = 3            # 同時3ポジション
+MAX_ORDER_PCT = 0.90         # 1注文あたり資金の90%（余力いっぱい）
 SCAN_INTERVAL = 10           # スキャン間隔（秒）
-FORCE_CLOSE_HOUR = 14        # 強制決済時
-FORCE_CLOSE_MIN = 50         # 強制決済分
-MARKET_CLOSE_HOUR = 15
-MIN_CONFIDENCE = 0.35        # 最低confidence
+FORCE_CLOSE_HOUR = 15        # 強制決済時 (東証15:25ザラバ終了、余裕持って15:20)
+FORCE_CLOSE_MIN = 20         # 強制決済分
+MARKET_CLOSE_HOUR = 16       # 15:30終了だが、hour>=16で場外判定
+MIN_CONFIDENCE = 0.30        # 最低confidence（シグナルを広く拾う）
 TDNET_SCAN_INTERVAL = 300    # TDnet スキャン間隔（秒）= 5分
 INTRADAY_REFRESH_INTERVAL = 120  # 日中足更新間隔（秒）= 2分
 
-# 時間帯フィルター（戦略ごとの有効時間帯）
+# 時間帯フィルター（戦略ごとの有効時間帯）※2024/11/5〜東証15:25ザラバ終了
 STRATEGY_TIME_WINDOWS = {
     "orb":          (9, 0, 9, 45),    # 寄り付き45分のみ
     "open_drive":   (9, 0, 9, 30),    # 寄り付き30分のみ
     "gap_go":       (9, 0, 10, 0),    # 前場序盤
     "gap_fade":     (9, 0, 10, 0),    # 前場序盤
-    "vwap_reclaim": (9, 30, 14, 45),  # 寄り付き安定後〜引け前
-    "vwap_bounce":  (9, 30, 14, 45),  # 寄り付き安定後〜引け前
-    "trend_follow": (9, 15, 14, 30),  # 安定期間
-    "crash_rebound":(9, 0, 14, 50),   # 急落はいつでも
+    "vwap_reclaim": (9, 30, 15, 15),  # 寄り付き安定後〜ザラバ終了10分前
+    "vwap_bounce":  (9, 30, 15, 15),  # 寄り付き安定後〜ザラバ終了10分前
+    "trend_follow": (9, 15, 15, 0),   # 安定期間〜15:00
+    "crash_rebound":(9, 0, 15, 15),   # 急落はいつでも〜ザラバ終了10分前
 }
 
 SIGNAL_DEDUP_WINDOW = 60     # シグナル重複排除ウィンドウ（秒）
@@ -222,10 +222,10 @@ class LiveTrader:
             while not self.stopped:
                 now = datetime.now(JST)
 
-                # 場が閉まったら待機
-                if now.hour >= MARKET_CLOSE_HOUR or now.hour < 9:
-                    # 大引けレポート（15時台に1回）
-                    if now.hour == 15 and not self._afternoon_report_sent:
+                # 場が閉まったら待機 (15:30以降 or 9:00前)
+                if (now.hour > 15 or (now.hour == 15 and now.minute >= 30)) or now.hour < 9:
+                    # 大引けレポート（15:30以降に1回）
+                    if now.hour == 15 and now.minute >= 30 and not self._afternoon_report_sent:
                         await self._send_session_report("大引け")
                         self._afternoon_report_sent = True
                         # 大引け後スクリーニング（翌日候補を保存）
@@ -235,7 +235,7 @@ class LiveTrader:
                     await asyncio.sleep(300)
                     continue
 
-                # 強制決済チェック（14:50）
+                # 強制決済チェック（15:20 — ザラバ15:25終了の5分前）
                 if now.hour == FORCE_CLOSE_HOUR and now.minute >= FORCE_CLOSE_MIN:
                     if self.open_positions:
                         await self._force_close_all("引け前強制決済")
@@ -928,7 +928,7 @@ class LiveTrader:
         )
 
         # ポジションサイズ: confidence + 余力に応じて調整
-        max_invest = min(balance * MAX_ORDER_PCT, balance - 5000)  # 最低¥5,000残す
+        max_invest = min(balance * MAX_ORDER_PCT, balance - 1000)  # 最低¥1,000残す（余力いっぱい使う）
         max_shares = int(max_invest / best["entry"]) if best["entry"] > 0 else 100
         max_shares = max(max_shares // 100 * 100, 100)  # 100株単位に丸め
         quantity = max_shares

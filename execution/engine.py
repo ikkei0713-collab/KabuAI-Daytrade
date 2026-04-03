@@ -81,11 +81,11 @@ class ExecutionEngine:
     Orchestrates the full day-trading cycle for Japanese stocks.
 
     Responsibilities:
-    - Run the main trading loop during TSE hours (09:00-15:00 JST)
+    - Run the main trading loop during TSE hours (09:00-15:25 JST)
     - Evaluate strategies and generate trade signals
     - Execute orders through the broker with risk checks
     - Monitor open positions for exit conditions
-    - Force close all positions at FORCE_CLOSE_TIME (14:50 JST)
+    - Force close all positions at FORCE_CLOSE_TIME (15:20 JST)
     - Generate end-of-day reports and trigger analytics
 
     Usage::
@@ -499,7 +499,7 @@ class ExecutionEngine:
         for position in positions:
             try:
                 current_price = await self.broker.get_current_price(position.ticker)
-                await self._close_position(position, current_price, "force_close_14:50")
+                await self._close_position(position, current_price, "force_close_15:20")
             except Exception as e:
                 logger.error(
                     "ExecutionEngine: error force closing {}: {}", position.id, e,

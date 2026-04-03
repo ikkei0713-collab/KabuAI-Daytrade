@@ -839,7 +839,7 @@ class PaperTrader:
                 today_str = now.strftime("%Y-%m-%d")
                 market_open = now.replace(hour=9, minute=0, second=0, microsecond=0)
                 market_close = now.replace(hour=15, minute=30, second=0, microsecond=0)
-                force_close_time = now.replace(hour=14, minute=50, second=0, microsecond=0)
+                force_close_time = now.replace(hour=15, minute=20, second=0, microsecond=0)
 
                 # ── 市場開場前: 待機 ──
                 if now < market_open:
@@ -932,7 +932,7 @@ class PaperTrader:
 
                 # 15:20 以降: 全ポジション強制決済
                 if now >= force_close_time and self.positions:
-                    logger.info("14:50 全ポジション強制決済")
+                    logger.info("15:20 全ポジション強制決済")
                     for ticker in list(self.positions.keys()):
                         try:
                             df = await self.fetch_ohlcv(client, ticker, days=30)

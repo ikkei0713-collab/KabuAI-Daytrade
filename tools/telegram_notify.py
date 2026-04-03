@@ -52,7 +52,7 @@ class TelegramNotifier:
                     "chat_id": self._chat_id,
                     "text": message,
                 }
-                if "<a " in message or "<b>" in message or "<code>" in message:
+                if '<a href="' in message or "<b>" in message or "<code>" in message:
                     payload["parse_mode"] = "HTML"
                 await session.post(url, json=payload)
             return True

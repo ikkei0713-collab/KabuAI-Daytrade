@@ -105,7 +105,7 @@ class YahooFinanceClient:
             from datetime import datetime, date
             from zoneinfo import ZoneInfo
             jst = ZoneInfo("Asia/Tokyo")
-            today = date.today()
+            today = datetime.now(jst).date()
 
             bars = []
             opens = quotes.get("open", [])

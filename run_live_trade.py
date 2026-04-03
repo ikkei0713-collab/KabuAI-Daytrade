@@ -876,12 +876,12 @@ class LiveTrader:
                                 features["idtw_win_rate"] = pm_result.win_rate
                                 features["idtw_weighted_return"] = pm_result.weighted_return
                             elif pm_result.is_valid and pm_result.predicted_direction == "short":
-                                # パターンが逆方向を示唆 → ペナルティ
-                                confidence_bonus -= pm_result.confidence_boost * 0.5
+                                # パターンが逆方向を示唆 → 乗算ペナルティ
+                                confidence_bonus -= pm_result.confidence_boost
                         except Exception as e:
                             logger.debug(f"IDTW計算失敗 {code_4}: {e}")
 
-                        adj_confidence = signal.confidence + confidence_bonus
+                        adj_confidence = min(signal.confidence + confidence_bonus, 0.85)  # 上限キャップ
 
                         # Signal deduplication: skip if same ticker/strategy
                         # recently seen, or keep higher confidence only
@@ -945,21 +945,25 @@ class LiveTrader:
         result = await self.broker.place_order(order)
 
         if result.status.value == "submitted":
-            # 成行注文は即約定するので、約定価格を取得
+            # 成行注文は即約定するので、約定価格を取得（最大3回リトライ）
             actual_price = best["entry"]  # フォールバック
+            tachibana_id = result.notes.split("tachibana_id=")[1].split()[0] if "tachibana_id=" in (result.notes or "") else ""
             try:
-                await asyncio.sleep(1)  # 約定反映を待つ
-                orders = await self.broker.get_orders()
-                tachibana_id = result.notes.split("tachibana_id=")[1].split()[0] if "tachibana_id=" in (result.notes or "") else ""
-                for o in orders:
-                    if tachibana_id and f"tachibana_id={tachibana_id}" in (o.notes or ""):
-                        if o.filled_price and o.filled_price > 0:
-                            actual_price = o.filled_price
-                            quantity = o.filled_quantity or quantity
-                            logger.info(f"約定確認: {best['code_4']} {quantity}株 @¥{actual_price:,.0f} (シグナル時¥{best['entry']:,.0f})")
-                            break
+                for retry in range(3):
+                    await asyncio.sleep(0.5 + retry * 0.5)  # 0.5s, 1.0s, 1.5s
+                    orders = await self.broker.get_orders()
+                    for o in orders:
+                        if tachibana_id and f"tachibana_id={tachibana_id}" in (o.notes or ""):
+                            if o.filled_price and o.filled_price > 0:
+                                actual_price = o.filled_price
+                                quantity = o.filled_quantity or quantity
+                                logger.info(f"約定確認: {best['code_4']} {quantity}株 @¥{actual_price:,.0f} (シグナル時¥{best['entry']:,.0f})")
+                                break
+                    else:
+                        continue
+                    break  # 約定価格取得成功
                 else:
-                    # 注文一覧から見つからない場合、現物残高から��得
+                    # 3回リトライしても取れない → 現物残高から取得
                     positions = await self.broker.get_positions()
                     for p in positions:
                         if p.ticker == best["code_4"] or p.ticker == best["code_5"]:

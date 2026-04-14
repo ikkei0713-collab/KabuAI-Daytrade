@@ -1,4 +1,4 @@
-.PHONY: ui live paper analyze test setup backtest lint
+.PHONY: ui live paper analyze test setup backtest lint morning overnight
 
 setup:
 	pip install -e ".[dev]"
@@ -21,6 +21,12 @@ test:
 
 backtest:
 	KABUAI_ALLOW_LIVE_TRADING=false python main.py --mode backtest
+
+morning:
+	KABUAI_ALLOW_LIVE_TRADING=false python run_morning_prep.py
+
+overnight:
+	KABUAI_ALLOW_LIVE_TRADING=false python run_overnight_scan.py
 
 lint:
 	ruff check .

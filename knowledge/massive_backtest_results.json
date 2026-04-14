@@ -1,233 +1,51 @@
 {
-  "timestamp": "2026-03-27T19:04:35.677121",
-  "total_patterns": 168,
-  "duration_minutes": 33.9,
+  "timestamp": "2026-04-06T11:02:23.170243",
+  "total_patterns": 199,
+  "duration_minutes": 31.5,
   "top_20": [
     {
       "rank": 1,
       "test_type": "param_search",
-      "description": "vwap_bounce param_search + block_down_vol",
+      "description": "vwap_reclaim param_search + block_down_vol",
       "strategies": [
-        "vwap_bounce"
+        "vwap_reclaim"
       ],
       "params": {
-        "min_vwap_touches": 1,
-        "trend_direction_min": 0.2,
-        "min_volume_ratio": 1.2,
+        "min_time_below_vwap_min": 10,
+        "min_volume_at_reclaim": 1.8,
         "target_atr_multiple": 0.8,
-        "stop_atr_below_vwap": 0.8
+        "reclaim_buffer_pct": 0.3,
+        "max_distance_from_vwap_pct": 0.5
       },
-      "convergence_params": {
-        "MAX_MA_SPREAD_PCT_FOR_ENTRY": 0.025,
-        "MIN_MA_CONVERGENCE_SCORE": 0.4,
-        "MIN_RANGE_COMPRESSION_SCORE": 0.4,
-        "MIN_VOLATILITY_COMPRESSION_SCORE": 0.3,
-        "CONVERGENCE_CONFIDENCE_BOOST": 0.02,
-        "EXPANSION_PENALTY_AFTER_CROSS": 0.08
-      },
+      "convergence_params": null,
       "regime_filter": "block_down_vol",
       "oos": {
         "total": 3,
-        "wins": 3,
-        "win_rate": 1.0,
-        "pf": 99.0,
-        "pnl": 579.0,
-        "avg": 193.0,
-        "fit3": 6.0,
-        "max_win": 444.0,
-        "max_loss": 65.0,
-        "sharpe": 13.9
+        "wins": 2,
+        "win_rate": 0.667,
+        "pf": 463.5,
+        "pnl": 925.0,
+        "avg": 308.0,
+        "fit3": 7.0,
+        "max_win": 559.0,
+        "max_loss": -2.0,
+        "sharpe": 16.92
       },
       "is": {
-        "total": 7,
+        "total": 11,
         "wins": 4,
-        "win_rate": 0.571,
-        "pf": 10.939,
-        "pnl": 2425.0,
-        "avg": 346.0,
-        "fit3": -217.0,
-        "max_win": 1545.0,
-        "max_loss": -182.0,
-        "sharpe": 8.4
+        "win_rate": 0.364,
+        "pf": 1.161,
+        "pnl": 291.0,
+        "avg": 26.0,
+        "fit3": -1789.0,
+        "max_win": 1055.0,
+        "max_loss": -589.0,
+        "sharpe": 0.86
       }
     },
     {
       "rank": 2,
-      "test_type": "param_search",
-      "description": "vwap_bounce param_search + no_low_vol",
-      "strategies": [
-        "vwap_bounce"
-      ],
-      "params": {
-        "min_vwap_touches": 2,
-        "trend_direction_min": 0.2,
-        "min_volume_ratio": 1.2,
-        "target_atr_multiple": 1.5,
-        "stop_atr_below_vwap": 1.0
-      },
-      "convergence_params": null,
-      "regime_filter": "no_low_vol",
-      "oos": {
-        "total": 3,
-        "wins": 3,
-        "win_rate": 1.0,
-        "pf": 99.0,
-        "pnl": 579.0,
-        "avg": 193.0,
-        "fit3": 6.0,
-        "max_win": 444.0,
-        "max_loss": 65.0,
-        "sharpe": 13.9
-      },
-      "is": {
-        "total": 7,
-        "wins": 4,
-        "win_rate": 0.571,
-        "pf": 10.939,
-        "pnl": 2425.0,
-        "avg": 346.0,
-        "fit3": -217.0,
-        "max_win": 1545.0,
-        "max_loss": -182.0,
-        "sharpe": 8.4
-      }
-    },
-    {
-      "rank": 3,
-      "test_type": "param_search",
-      "description": "spread_entry param_search + only_trend_up_range",
-      "strategies": [
-        "spread_entry"
-      ],
-      "params": {
-        "spread_percentile_max": 15,
-        "min_volume_building": 2.0,
-        "min_price_compression": 0.6,
-        "target_atr_multiple": 2.0
-      },
-      "convergence_params": {
-        "MAX_MA_SPREAD_PCT_FOR_ENTRY": 0.02,
-        "MIN_MA_CONVERGENCE_SCORE": 0.55,
-        "MIN_RANGE_COMPRESSION_SCORE": 0.4,
-        "MIN_VOLATILITY_COMPRESSION_SCORE": 0.4,
-        "CONVERGENCE_CONFIDENCE_BOOST": 0.04,
-        "EXPANSION_PENALTY_AFTER_CROSS": 0.1
-      },
-      "regime_filter": "only_trend_up_range",
-      "oos": {
-        "total": 5,
-        "wins": 4,
-        "win_rate": 0.8,
-        "pf": 29.61,
-        "pnl": 5207.0,
-        "avg": 1041.0,
-        "fit3": -128.0,
-        "max_win": 1870.0,
-        "max_loss": -182.0,
-        "sharpe": 18.71
-      },
-      "is": {
-        "total": 6,
-        "wins": 4,
-        "win_rate": 0.667,
-        "pf": 2.202,
-        "pnl": 714.0,
-        "avg": 119.0,
-        "fit3": -581.0,
-        "max_win": 555.0,
-        "max_loss": -536.0,
-        "sharpe": 4.83
-      }
-    },
-    {
-      "rank": 4,
-      "test_type": "param_search",
-      "description": "spread_entry param_search + block_down_vol",
-      "strategies": [
-        "spread_entry"
-      ],
-      "params": {
-        "spread_percentile_max": 25,
-        "min_volume_building": 2.5,
-        "min_price_compression": 0.4,
-        "target_atr_multiple": 1.5
-      },
-      "convergence_params": null,
-      "regime_filter": "block_down_vol",
-      "oos": {
-        "total": 4,
-        "wins": 3,
-        "win_rate": 0.75,
-        "pf": 16.32,
-        "pnl": 3922.0,
-        "avg": 980.0,
-        "fit3": -214.0,
-        "max_win": 1870.0,
-        "max_loss": -256.0,
-        "sharpe": 14.91
-      },
-      "is": {
-        "total": 3,
-        "wins": 3,
-        "win_rate": 1.0,
-        "pf": 99.0,
-        "pnl": 952.0,
-        "avg": 317.0,
-        "fit3": 10.0,
-        "max_win": 555.0,
-        "max_loss": 88.0,
-        "sharpe": 21.26
-      }
-    },
-    {
-      "rank": 5,
-      "test_type": "param_search",
-      "description": "spread_entry param_search + block_down_vol",
-      "strategies": [
-        "spread_entry"
-      ],
-      "params": {
-        "spread_percentile_max": 20,
-        "min_volume_building": 2.5,
-        "min_price_compression": 0.3,
-        "target_atr_multiple": 1.0
-      },
-      "convergence_params": {
-        "MAX_MA_SPREAD_PCT_FOR_ENTRY": 0.03,
-        "MIN_MA_CONVERGENCE_SCORE": 0.65,
-        "MIN_RANGE_COMPRESSION_SCORE": 0.55,
-        "MIN_VOLATILITY_COMPRESSION_SCORE": 0.3,
-        "CONVERGENCE_CONFIDENCE_BOOST": 0.1,
-        "EXPANSION_PENALTY_AFTER_CROSS": 0.05
-      },
-      "regime_filter": "block_down_vol",
-      "oos": {
-        "total": 4,
-        "wins": 3,
-        "win_rate": 0.75,
-        "pf": 16.32,
-        "pnl": 3922.0,
-        "avg": 980.0,
-        "fit3": -214.0,
-        "max_win": 1870.0,
-        "max_loss": -256.0,
-        "sharpe": 14.91
-      },
-      "is": {
-        "total": 4,
-        "wins": 3,
-        "win_rate": 0.75,
-        "pf": 1.548,
-        "pnl": 337.0,
-        "avg": 84.0,
-        "fit3": -605.0,
-        "max_win": 555.0,
-        "max_loss": -615.0,
-        "sharpe": 2.62
-      }
-    },
-    {
-      "rank": 6,
       "test_type": "param_search",
       "description": "spread_entry param_search + only_trend_up_range",
       "strategies": [
@@ -237,147 +55,118 @@
         "spread_percentile_max": 10,
         "min_volume_building": 2.0,
         "min_price_compression": 0.4,
-        "target_atr_multiple": 1.2
+        "target_atr_multiple": 1.5
       },
       "convergence_params": null,
       "regime_filter": "only_trend_up_range",
       "oos": {
-        "total": 6,
-        "wins": 4,
+        "total": 3,
+        "wins": 2,
         "win_rate": 0.667,
-        "pf": 12.304,
-        "pnl": 4951.0,
-        "avg": 825.0,
-        "fit3": -384.0,
-        "max_win": 1870.0,
-        "max_loss": -256.0,
-        "sharpe": 13.71
+        "pf": 12.681,
+        "pnl": 2126.0,
+        "avg": 709.0,
+        "fit3": -159.0,
+        "max_win": 1786.0,
+        "max_loss": -182.0,
+        "sharpe": 11.12
       },
       "is": {
-        "total": 6,
-        "wins": 4,
-        "win_rate": 0.667,
-        "pf": 2.202,
-        "pnl": 714.0,
-        "avg": 119.0,
-        "fit3": -581.0,
+        "total": 5,
+        "wins": 3,
+        "win_rate": 0.6,
+        "pf": 1.855,
+        "pnl": 508.0,
+        "avg": 102.0,
+        "fit3": -583.0,
         "max_win": 555.0,
         "max_loss": -536.0,
-        "sharpe": 4.83
+        "sharpe": 3.8
       }
     },
     {
-      "rank": 7,
+      "rank": 3,
       "test_type": "param_search",
-      "description": "spread_entry param_search + only_trend_up_range",
+      "description": "vwap_reclaim param_search + block_trend_down",
+      "strategies": [
+        "vwap_reclaim"
+      ],
+      "params": {
+        "min_time_below_vwap_min": 8,
+        "min_volume_at_reclaim": 2.0,
+        "target_atr_multiple": 1.2,
+        "reclaim_buffer_pct": 0.15,
+        "max_distance_from_vwap_pct": 0.8
+      },
+      "convergence_params": null,
+      "regime_filter": "block_trend_down",
+      "oos": {
+        "total": 14,
+        "wins": 10,
+        "win_rate": 0.714,
+        "pf": 4.638,
+        "pnl": 4027.0,
+        "avg": 288.0,
+        "fit3": -1056.0,
+        "max_win": 852.0,
+        "max_loss": -505.0,
+        "sharpe": 10.11
+      },
+      "is": {
+        "total": 29,
+        "wins": 10,
+        "win_rate": 0.345,
+        "pf": 0.702,
+        "pnl": -1831.0,
+        "avg": -63.0,
+        "fit3": -6092.0,
+        "max_win": 1091.0,
+        "max_loss": -1148.0,
+        "sharpe": -2.05
+      }
+    },
+    {
+      "rank": 4,
+      "test_type": "param_search",
+      "description": "spread_entry param_search + block_volatile",
       "strategies": [
         "spread_entry"
       ],
       "params": {
-        "spread_percentile_max": 20,
+        "spread_percentile_max": 25,
         "min_volume_building": 1.5,
-        "min_price_compression": 0.6,
-        "target_atr_multiple": 1.0
+        "min_price_compression": 0.4,
+        "target_atr_multiple": 1.2
       },
       "convergence_params": null,
-      "regime_filter": "only_trend_up_range",
+      "regime_filter": "block_volatile",
       "oos": {
         "total": 20,
         "wins": 13,
         "win_rate": 0.65,
-        "pf": 5.62,
-        "pnl": 12206.0,
-        "avg": 610.0,
-        "fit3": -2494.0,
+        "pf": 4.603,
+        "pnl": 9372.0,
+        "avg": 469.0,
+        "fit3": -2481.0,
         "max_win": 3660.0,
-        "max_loss": -543.0,
-        "sharpe": 9.25
+        "max_loss": -807.0,
+        "sharpe": 7.41
       },
       "is": {
-        "total": 21,
-        "wins": 10,
-        "win_rate": 0.476,
-        "pf": 0.586,
-        "pnl": -2247.0,
-        "avg": -107.0,
-        "fit3": -5397.0,
+        "total": 19,
+        "wins": 9,
+        "win_rate": 0.474,
+        "pf": 0.473,
+        "pnl": -2752.0,
+        "avg": -145.0,
+        "fit3": -5197.0,
         "max_win": 555.0,
         "max_loss": -1129.0,
-        "sharpe": -3.27
+        "sharpe": -4.64
       }
     },
     {
-      "rank": 8,
-      "test_type": "regime_filter",
-      "description": "spread_entry + block_down_vol",
-      "strategies": [
-        "spread_entry"
-      ],
-      "params": {},
-      "convergence_params": null,
-      "regime_filter": "block_down_vol",
-      "oos": {
-        "total": 13,
-        "wins": 8,
-        "win_rate": 0.615,
-        "pf": 5.166,
-        "pnl": 5824.0,
-        "avg": 448.0,
-        "fit3": -1326.0,
-        "max_win": 1870.0,
-        "max_loss": -502.0,
-        "sharpe": 8.85
-      },
-      "is": {
-        "total": 9,
-        "wins": 5,
-        "win_rate": 0.556,
-        "pf": 0.729,
-        "pnl": -489.0,
-        "avg": -54.0,
-        "fit3": -1794.0,
-        "max_win": 555.0,
-        "max_loss": -875.0,
-        "sharpe": -1.85
-      }
-    },
-    {
-      "rank": 9,
-      "test_type": "regime_filter",
-      "description": "spread_entry + only_trend_up",
-      "strategies": [
-        "spread_entry"
-      ],
-      "params": {},
-      "convergence_params": null,
-      "regime_filter": "only_trend_up",
-      "oos": {
-        "total": 11,
-        "wins": 6,
-        "win_rate": 0.545,
-        "pf": 4.856,
-        "pnl": 5390.0,
-        "avg": 490.0,
-        "fit3": -1330.0,
-        "max_win": 1870.0,
-        "max_loss": -502.0,
-        "sharpe": 8.94
-      },
-      "is": {
-        "total": 2,
-        "wins": 1,
-        "win_rate": 0.5,
-        "pf": 0.019,
-        "pnl": -526.0,
-        "avg": -263.0,
-        "fit3": -536.0,
-        "max_win": 10.0,
-        "max_loss": -536.0,
-        "sharpe": -10.66
-      }
-    },
-    {
-      "rank": 10,
+      "rank": 5,
       "test_type": "regime_filter",
       "description": "spread_entry + only_trend_up_range",
       "strategies": [
@@ -387,626 +176,812 @@
       "convergence_params": null,
       "regime_filter": "only_trend_up_range",
       "oos": {
-        "total": 11,
-        "wins": 6,
-        "win_rate": 0.545,
-        "pf": 4.856,
-        "pnl": 5390.0,
-        "avg": 490.0,
-        "fit3": -1330.0,
-        "max_win": 1870.0,
-        "max_loss": -502.0,
-        "sharpe": 8.94
+        "total": 26,
+        "wins": 17,
+        "win_rate": 0.654,
+        "pf": 4.495,
+        "pnl": 11115.0,
+        "avg": 428.0,
+        "fit3": -3037.0,
+        "max_win": 3660.0,
+        "max_loss": -1361.0,
+        "sharpe": 7.32
       },
       "is": {
-        "total": 9,
-        "wins": 5,
-        "win_rate": 0.556,
-        "pf": 0.729,
-        "pnl": -489.0,
-        "avg": -54.0,
-        "fit3": -1794.0,
-        "max_win": 555.0,
-        "max_loss": -875.0,
-        "sharpe": -1.85
+        "total": 35,
+        "wins": 15,
+        "win_rate": 0.429,
+        "pf": 0.499,
+        "pnl": -4755.0,
+        "avg": -136.0,
+        "fit3": -9435.0,
+        "max_win": 852.0,
+        "max_loss": -1384.0,
+        "sharpe": -4.35
       }
     },
     {
-      "rank": 11,
-      "test_type": "regime_filter",
-      "description": "trend_follow + only_trend_up_range",
+      "rank": 6,
+      "test_type": "param_search",
+      "description": "spread_entry param_search + block_down_vol",
       "strategies": [
-        "trend_follow"
+        "spread_entry"
+      ],
+      "params": {
+        "spread_percentile_max": 25,
+        "min_volume_building": 1.2,
+        "min_price_compression": 0.6,
+        "target_atr_multiple": 1.2
+      },
+      "convergence_params": null,
+      "regime_filter": "block_down_vol",
+      "oos": {
+        "total": 28,
+        "wins": 18,
+        "win_rate": 0.643,
+        "pf": 4.131,
+        "pnl": 10883.0,
+        "avg": 389.0,
+        "fit3": -3332.0,
+        "max_win": 3660.0,
+        "max_loss": -1361.0,
+        "sharpe": 6.82
+      },
+      "is": {
+        "total": 35,
+        "wins": 15,
+        "win_rate": 0.429,
+        "pf": 0.525,
+        "pnl": -4270.0,
+        "avg": -122.0,
+        "fit3": -8950.0,
+        "max_win": 852.0,
+        "max_loss": -1129.0,
+        "sharpe": -4.16
+      }
+    },
+    {
+      "rank": 7,
+      "test_type": "regime_filter",
+      "description": "spread_entry + block_down_vol",
+      "strategies": [
+        "spread_entry"
       ],
       "params": {},
       "convergence_params": null,
-      "regime_filter": "only_trend_up_range",
+      "regime_filter": "block_down_vol",
+      "oos": {
+        "total": 29,
+        "wins": 18,
+        "win_rate": 0.621,
+        "pf": 4.077,
+        "pnl": 10837.0,
+        "avg": 374.0,
+        "fit3": -3378.0,
+        "max_win": 3660.0,
+        "max_loss": -1361.0,
+        "sharpe": 6.65
+      },
+      "is": {
+        "total": 36,
+        "wins": 15,
+        "win_rate": 0.417,
+        "pf": 0.455,
+        "pnl": -5654.0,
+        "avg": -157.0,
+        "fit3": -10334.0,
+        "max_win": 852.0,
+        "max_loss": -1384.0,
+        "sharpe": -4.93
+      }
+    },
+    {
+      "rank": 8,
+      "test_type": "param_search",
+      "description": "vwap_reclaim param_search + block_trend_down",
+      "strategies": [
+        "vwap_reclaim"
+      ],
+      "params": {
+        "min_time_below_vwap_min": 8,
+        "min_volume_at_reclaim": 2.0,
+        "target_atr_multiple": 1.5,
+        "reclaim_buffer_pct": 0.15,
+        "max_distance_from_vwap_pct": 0.5
+      },
+      "convergence_params": {
+        "MAX_MA_SPREAD_PCT_FOR_ENTRY": 0.008,
+        "MIN_MA_CONVERGENCE_SCORE": 0.35,
+        "MIN_RANGE_COMPRESSION_SCORE": 0.2,
+        "MIN_VOLATILITY_COMPRESSION_SCORE": 0.35,
+        "CONVERGENCE_CONFIDENCE_BOOST": 0.06,
+        "EXPANSION_PENALTY_AFTER_CROSS": 0.2
+      },
+      "regime_filter": "block_trend_down",
       "oos": {
         "total": 8,
         "wins": 5,
         "win_rate": 0.625,
-        "pf": 3.428,
-        "pnl": 1984.0,
-        "avg": 248.0,
-        "fit3": -789.0,
-        "max_win": 1252.0,
-        "max_loss": -543.0,
-        "sharpe": 6.95
+        "pf": 3.986,
+        "pnl": 1466.0,
+        "avg": 183.0,
+        "fit3": -471.0,
+        "max_win": 834.0,
+        "max_loss": -314.0,
+        "sharpe": 7.43
       },
       "is": {
-        "total": 10,
-        "wins": 6,
-        "win_rate": 0.6,
-        "pf": 0.57,
-        "pnl": -995.0,
-        "avg": -100.0,
-        "fit3": -2299.0,
-        "max_win": 618.0,
-        "max_loss": -1011.0,
-        "sharpe": -3.11
+        "total": 14,
+        "wins": 4,
+        "win_rate": 0.286,
+        "pf": 1.173,
+        "pnl": 356.0,
+        "avg": 25.0,
+        "fit3": -2035.0,
+        "max_win": 1091.0,
+        "max_loss": -589.0,
+        "sharpe": 0.84
       }
     },
     {
-      "rank": 12,
-      "test_type": "regime_filter",
-      "description": "trend_follow + block_down_lowvol",
+      "rank": 9,
+      "test_type": "combination",
+      "description": "combo: vwap_reclaim+spread_entry + block_down_vol",
       "strategies": [
-        "trend_follow"
+        "vwap_reclaim",
+        "spread_entry"
       ],
       "params": {},
       "convergence_params": null,
-      "regime_filter": "block_down_lowvol",
+      "regime_filter": "block_down_vol",
       "oos": {
-        "total": 21,
-        "wins": 13,
-        "win_rate": 0.619,
-        "pf": 3.182,
-        "pnl": 9947.0,
-        "avg": 474.0,
-        "fit3": -4414.0,
-        "max_win": 7193.0,
-        "max_loss": -1663.0,
-        "sharpe": 4.35
-      },
-      "is": {
-        "total": 11,
-        "wins": 6,
-        "win_rate": 0.545,
-        "pf": 0.441,
-        "pnl": -1668.0,
-        "avg": -152.0,
-        "fit3": -2972.0,
-        "max_win": 618.0,
-        "max_loss": -1011.0,
-        "sharpe": -4.69
-      }
-    },
-    {
-      "rank": 13,
-      "test_type": "param_search",
-      "description": "spread_entry param_search + no_low_vol",
-      "strategies": [
-        "spread_entry"
-      ],
-      "params": {
-        "spread_percentile_max": 30,
-        "min_volume_building": 2.5,
-        "min_price_compression": 0.6,
-        "target_atr_multiple": 1.0
-      },
-      "convergence_params": null,
-      "regime_filter": "no_low_vol",
-      "oos": {
-        "total": 5,
-        "wins": 3,
+        "total": 35,
+        "wins": 21,
         "win_rate": 0.6,
-        "pf": 2.787,
-        "pnl": 2679.0,
-        "avg": 536.0,
-        "fit3": -1457.0,
-        "max_win": 1870.0,
-        "max_loss": -757.0,
-        "sharpe": 6.51
+        "pf": 3.789,
+        "pnl": 11891.0,
+        "avg": 340.0,
+        "fit3": -4101.0,
+        "max_win": 3660.0,
+        "max_loss": -1361.0,
+        "sharpe": 6.45
       },
       "is": {
-        "total": 4,
-        "wins": 4,
-        "win_rate": 1.0,
-        "pf": 99.0,
-        "pnl": 1190.0,
-        "avg": 298.0,
-        "fit3": 12.0,
-        "max_win": 555.0,
-        "max_loss": 88.0,
-        "sharpe": 23.9
+        "total": 65,
+        "wins": 25,
+        "win_rate": 0.385,
+        "pf": 0.534,
+        "pnl": -7721.0,
+        "avg": -119.0,
+        "fit3": -16465.0,
+        "max_win": 1091.0,
+        "max_loss": -1384.0,
+        "sharpe": -3.8
       }
     },
     {
-      "rank": 14,
-      "test_type": "param_search",
-      "description": "spread_entry param_search + block_down_lowvol",
+      "rank": 10,
+      "test_type": "regime_filter",
+      "description": "spread_entry + only_trend_up",
       "strategies": [
         "spread_entry"
-      ],
-      "params": {
-        "spread_percentile_max": 20,
-        "min_volume_building": 2.0,
-        "min_price_compression": 0.4,
-        "target_atr_multiple": 1.0
-      },
-      "convergence_params": null,
-      "regime_filter": "block_down_lowvol",
-      "oos": {
-        "total": 8,
-        "wins": 4,
-        "win_rate": 0.5,
-        "pf": 2.782,
-        "pnl": 3452.0,
-        "avg": 432.0,
-        "fit3": -1883.0,
-        "max_win": 1870.0,
-        "max_loss": -757.0,
-        "sharpe": 6.26
-      },
-      "is": {
-        "total": 7,
-        "wins": 5,
-        "win_rate": 0.714,
-        "pf": 2.603,
-        "pnl": 952.0,
-        "avg": 136.0,
-        "fit3": -579.0,
-        "max_win": 555.0,
-        "max_loss": -536.0,
-        "sharpe": 6.0
-      }
-    },
-    {
-      "rank": 15,
-      "test_type": "param_search",
-      "description": "trend_follow param_search + no_filter",
-      "strategies": [
-        "trend_follow"
-      ],
-      "params": {
-        "min_trend_strength": 0.1,
-        "min_volume_trend": 1.2,
-        "trailing_atr_multiple": 1.0
-      },
-      "convergence_params": {
-        "MAX_MA_SPREAD_PCT_FOR_ENTRY": 0.03,
-        "MIN_MA_CONVERGENCE_SCORE": 0.7,
-        "MIN_RANGE_COMPRESSION_SCORE": 0.4,
-        "MIN_VOLATILITY_COMPRESSION_SCORE": 0.5,
-        "CONVERGENCE_CONFIDENCE_BOOST": 0.08,
-        "EXPANSION_PENALTY_AFTER_CROSS": 0.15
-      },
-      "regime_filter": "no_filter",
-      "oos": {
-        "total": 27,
-        "wins": 15,
-        "win_rate": 0.556,
-        "pf": 2.633,
-        "pnl": 6524.0,
-        "avg": 242.0,
-        "fit3": -3890.0,
-        "max_win": 4776.0,
-        "max_loss": -713.0,
-        "sharpe": 3.73
-      },
-      "is": {
-        "total": 20,
-        "wins": 7,
-        "win_rate": 0.35,
-        "pf": 0.683,
-        "pnl": -1324.0,
-        "avg": -66.0,
-        "fit3": -4146.0,
-        "max_win": 1321.0,
-        "max_loss": -673.0,
-        "sharpe": -2.18
-      }
-    },
-    {
-      "rank": 16,
-      "test_type": "param_search",
-      "description": "spread_entry param_search + block_volatile",
-      "strategies": [
-        "spread_entry"
-      ],
-      "params": {
-        "spread_percentile_max": 10,
-        "min_volume_building": 2.0,
-        "min_price_compression": 0.6,
-        "target_atr_multiple": 1.5
-      },
-      "convergence_params": null,
-      "regime_filter": "block_volatile",
-      "oos": {
-        "total": 9,
-        "wins": 6,
-        "win_rate": 0.667,
-        "pf": 2.609,
-        "pnl": 3591.0,
-        "avg": 399.0,
-        "fit3": -2174.0,
-        "max_win": 1870.0,
-        "max_loss": -1243.0,
-        "sharpe": 5.77
-      },
-      "is": {
-        "total": 6,
-        "wins": 4,
-        "win_rate": 0.667,
-        "pf": 2.202,
-        "pnl": 714.0,
-        "avg": 119.0,
-        "fit3": -581.0,
-        "max_win": 555.0,
-        "max_loss": -536.0,
-        "sharpe": 4.83
-      }
-    },
-    {
-      "rank": 17,
-      "test_type": "regime_filter",
-      "description": "trend_follow + block_trend_down",
-      "strategies": [
-        "trend_follow"
-      ],
-      "params": {},
-      "convergence_params": null,
-      "regime_filter": "block_trend_down",
-      "oos": {
-        "total": 25,
-        "wins": 13,
-        "win_rate": 0.52,
-        "pf": 2.571,
-        "pnl": 8864.0,
-        "avg": 355.0,
-        "fit3": -5497.0,
-        "max_win": 7193.0,
-        "max_loss": -1663.0,
-        "sharpe": 3.51
-      },
-      "is": {
-        "total": 11,
-        "wins": 6,
-        "win_rate": 0.545,
-        "pf": 0.441,
-        "pnl": -1668.0,
-        "avg": -152.0,
-        "fit3": -2972.0,
-        "max_win": 618.0,
-        "max_loss": -1011.0,
-        "sharpe": -4.69
-      }
-    },
-    {
-      "rank": 18,
-      "test_type": "regime_filter",
-      "description": "trend_follow + only_trend_up",
-      "strategies": [
-        "trend_follow"
       ],
       "params": {},
       "convergence_params": null,
       "regime_filter": "only_trend_up",
       "oos": {
-        "total": 6,
-        "wins": 3,
-        "win_rate": 0.5,
-        "pf": 2.546,
-        "pnl": 1263.0,
-        "avg": 210.0,
-        "fit3": -796.0,
-        "max_win": 1252.0,
-        "max_loss": -543.0,
-        "sharpe": 5.22
+        "total": 21,
+        "wins": 13,
+        "win_rate": 0.619,
+        "pf": 3.733,
+        "pnl": 8471.0,
+        "avg": 403.0,
+        "fit3": -2983.0,
+        "max_win": 3660.0,
+        "max_loss": -1361.0,
+        "sharpe": 6.37
       },
       "is": {
-        "total": 2,
-        "wins": 1,
+        "total": 8,
+        "wins": 4,
         "win_rate": 0.5,
-        "pf": 51.5,
-        "pnl": 606.0,
-        "avg": 303.0,
-        "fit3": -6.0,
-        "max_win": 618.0,
-        "max_loss": -12.0,
-        "sharpe": 10.65
+        "pf": 0.461,
+        "pnl": -1243.0,
+        "avg": -155.0,
+        "fit3": -2297.0,
+        "max_win": 439.0,
+        "max_loss": -1129.0,
+        "sharpe": -4.54
+      }
+    },
+    {
+      "rank": 11,
+      "test_type": "param_search",
+      "description": "spread_entry param_search + only_trend_up",
+      "strategies": [
+        "spread_entry"
+      ],
+      "params": {
+        "spread_percentile_max": 30,
+        "min_volume_building": 1.2,
+        "min_price_compression": 0.4,
+        "target_atr_multiple": 1.2
+      },
+      "convergence_params": null,
+      "regime_filter": "only_trend_up",
+      "oos": {
+        "total": 21,
+        "wins": 13,
+        "win_rate": 0.619,
+        "pf": 3.733,
+        "pnl": 8471.0,
+        "avg": 403.0,
+        "fit3": -2983.0,
+        "max_win": 3660.0,
+        "max_loss": -1361.0,
+        "sharpe": 6.37
+      },
+      "is": {
+        "total": 8,
+        "wins": 4,
+        "win_rate": 0.5,
+        "pf": 0.461,
+        "pnl": -1243.0,
+        "avg": -155.0,
+        "fit3": -2297.0,
+        "max_win": 439.0,
+        "max_loss": -1129.0,
+        "sharpe": -4.54
+      }
+    },
+    {
+      "rank": 12,
+      "test_type": "param_search",
+      "description": "vwap_bounce param_search + no_filter",
+      "strategies": [
+        "vwap_bounce"
+      ],
+      "params": {
+        "min_vwap_touches": 1,
+        "trend_direction_min": 0.5,
+        "min_volume_ratio": 1.0,
+        "target_atr_multiple": 0.8,
+        "stop_atr_below_vwap": 0.5
+      },
+      "convergence_params": null,
+      "regime_filter": "no_filter",
+      "oos": {
+        "total": 3,
+        "wins": 2,
+        "win_rate": 0.667,
+        "pf": 3.651,
+        "pnl": 660.0,
+        "avg": 220.0,
+        "fit3": -240.0,
+        "max_win": 520.0,
+        "max_loss": -249.0,
+        "sharpe": 8.37
+      },
+      "is": {
+        "total": 5,
+        "wins": 4,
+        "win_rate": 0.8,
+        "pf": 219.538,
+        "pnl": 2841.0,
+        "avg": 568.0,
+        "fit3": 16.0,
+        "max_win": 1545.0,
+        "max_loss": -13.0,
+        "sharpe": 13.44
+      }
+    },
+    {
+      "rank": 13,
+      "test_type": "param_search",
+      "description": "vwap_bounce param_search + block_trend_down",
+      "strategies": [
+        "vwap_bounce"
+      ],
+      "params": {
+        "min_vwap_touches": 2,
+        "trend_direction_min": 0.4,
+        "min_volume_ratio": 1.0,
+        "target_atr_multiple": 1.0,
+        "stop_atr_below_vwap": 0.5
+      },
+      "convergence_params": null,
+      "regime_filter": "block_trend_down",
+      "oos": {
+        "total": 3,
+        "wins": 2,
+        "win_rate": 0.667,
+        "pf": 3.651,
+        "pnl": 660.0,
+        "avg": 220.0,
+        "fit3": -240.0,
+        "max_win": 520.0,
+        "max_loss": -249.0,
+        "sharpe": 8.37
+      },
+      "is": {
+        "total": 5,
+        "wins": 4,
+        "win_rate": 0.8,
+        "pf": 219.538,
+        "pnl": 2841.0,
+        "avg": 568.0,
+        "fit3": 16.0,
+        "max_win": 1545.0,
+        "max_loss": -13.0,
+        "sharpe": 13.44
+      }
+    },
+    {
+      "rank": 14,
+      "test_type": "param_search",
+      "description": "vwap_bounce param_search + no_filter",
+      "strategies": [
+        "vwap_bounce"
+      ],
+      "params": {
+        "min_vwap_touches": 2,
+        "trend_direction_min": 0.5,
+        "min_volume_ratio": 1.0,
+        "target_atr_multiple": 1.0,
+        "stop_atr_below_vwap": 0.5
+      },
+      "convergence_params": {
+        "MAX_MA_SPREAD_PCT_FOR_ENTRY": 0.03,
+        "MIN_MA_CONVERGENCE_SCORE": 0.7,
+        "MIN_RANGE_COMPRESSION_SCORE": 0.3,
+        "MIN_VOLATILITY_COMPRESSION_SCORE": 0.35,
+        "CONVERGENCE_CONFIDENCE_BOOST": 0.06,
+        "EXPANSION_PENALTY_AFTER_CROSS": 0.15
+      },
+      "regime_filter": "no_filter",
+      "oos": {
+        "total": 3,
+        "wins": 2,
+        "win_rate": 0.667,
+        "pf": 3.651,
+        "pnl": 660.0,
+        "avg": 220.0,
+        "fit3": -240.0,
+        "max_win": 520.0,
+        "max_loss": -249.0,
+        "sharpe": 8.37
+      },
+      "is": {
+        "total": 5,
+        "wins": 4,
+        "win_rate": 0.8,
+        "pf": 219.538,
+        "pnl": 2841.0,
+        "avg": 568.0,
+        "fit3": 16.0,
+        "max_win": 1545.0,
+        "max_loss": -13.0,
+        "sharpe": 13.44
+      }
+    },
+    {
+      "rank": 15,
+      "test_type": "param_search",
+      "description": "vwap_reclaim param_search + only_trend_up_range",
+      "strategies": [
+        "vwap_reclaim"
+      ],
+      "params": {
+        "min_time_below_vwap_min": 30,
+        "min_volume_at_reclaim": 1.5,
+        "target_atr_multiple": 1.0,
+        "reclaim_buffer_pct": 0.2,
+        "max_distance_from_vwap_pct": 0.8
+      },
+      "convergence_params": null,
+      "regime_filter": "only_trend_up_range",
+      "oos": {
+        "total": 7,
+        "wins": 4,
+        "win_rate": 0.571,
+        "pf": 3.623,
+        "pnl": 1579.0,
+        "avg": 226.0,
+        "fit3": -580.0,
+        "max_win": 706.0,
+        "max_loss": -425.0,
+        "sharpe": 8.31
+      },
+      "is": {
+        "total": 27,
+        "wins": 11,
+        "win_rate": 0.407,
+        "pf": 0.787,
+        "pnl": -1253.0,
+        "avg": -46.0,
+        "fit3": -5838.0,
+        "max_win": 1091.0,
+        "max_loss": -1148.0,
+        "sharpe": -1.45
+      }
+    },
+    {
+      "rank": 16,
+      "test_type": "regime_filter",
+      "description": "spread_entry + block_volatile",
+      "strategies": [
+        "spread_entry"
+      ],
+      "params": {},
+      "convergence_params": null,
+      "regime_filter": "block_volatile",
+      "oos": {
+        "total": 34,
+        "wins": 20,
+        "win_rate": 0.588,
+        "pf": 2.908,
+        "pnl": 9845.0,
+        "avg": 290.0,
+        "fit3": -5010.0,
+        "max_win": 3660.0,
+        "max_loss": -1361.0,
+        "sharpe": 5.27
+      },
+      "is": {
+        "total": 37,
+        "wins": 15,
+        "win_rate": 0.405,
+        "pf": 0.442,
+        "pnl": -5979.0,
+        "avg": -162.0,
+        "fit3": -10659.0,
+        "max_win": 852.0,
+        "max_loss": -1384.0,
+        "sharpe": -5.14
+      }
+    },
+    {
+      "rank": 17,
+      "test_type": "regime_filter",
+      "description": "vwap_reclaim + block_trend_down",
+      "strategies": [
+        "vwap_reclaim"
+      ],
+      "params": {},
+      "convergence_params": null,
+      "regime_filter": "block_trend_down",
+      "oos": {
+        "total": 10,
+        "wins": 6,
+        "win_rate": 0.6,
+        "pf": 2.537,
+        "pnl": 1915.0,
+        "avg": 192.0,
+        "fit3": -1214.0,
+        "max_win": 798.0,
+        "max_loss": -505.0,
+        "sharpe": 6.22
+      },
+      "is": {
+        "total": 29,
+        "wins": 10,
+        "win_rate": 0.345,
+        "pf": 0.665,
+        "pnl": -2067.0,
+        "avg": -71.0,
+        "fit3": -6131.0,
+        "max_win": 1091.0,
+        "max_loss": -1148.0,
+        "sharpe": -2.32
+      }
+    },
+    {
+      "rank": 18,
+      "test_type": "regime_filter",
+      "description": "vwap_reclaim + block_down_lowvol",
+      "strategies": [
+        "vwap_reclaim"
+      ],
+      "params": {},
+      "convergence_params": null,
+      "regime_filter": "block_down_lowvol",
+      "oos": {
+        "total": 10,
+        "wins": 6,
+        "win_rate": 0.6,
+        "pf": 2.537,
+        "pnl": 1915.0,
+        "avg": 192.0,
+        "fit3": -1214.0,
+        "max_win": 798.0,
+        "max_loss": -505.0,
+        "sharpe": 6.22
+      },
+      "is": {
+        "total": 28,
+        "wins": 10,
+        "win_rate": 0.357,
+        "pf": 0.683,
+        "pnl": -1909.0,
+        "avg": -68.0,
+        "fit3": -5973.0,
+        "max_win": 1091.0,
+        "max_loss": -1148.0,
+        "sharpe": -2.18
       }
     },
     {
       "rank": 19,
       "test_type": "regime_filter",
-      "description": "trend_follow + no_low_vol",
+      "description": "vwap_reclaim + block_down_vol",
       "strategies": [
-        "trend_follow"
+        "vwap_reclaim"
       ],
       "params": {},
       "convergence_params": null,
-      "regime_filter": "no_low_vol",
+      "regime_filter": "block_down_vol",
       "oos": {
-        "total": 28,
-        "wins": 16,
-        "win_rate": 0.571,
-        "pf": 2.532,
-        "pnl": 9140.0,
-        "avg": 326.0,
-        "fit3": -5817.0,
-        "max_win": 7193.0,
-        "max_loss": -1663.0,
-        "sharpe": 3.4
+        "total": 6,
+        "wins": 3,
+        "win_rate": 0.5,
+        "pf": 2.422,
+        "pnl": 1054.0,
+        "avg": 176.0,
+        "fit3": -723.0,
+        "max_win": 798.0,
+        "max_loss": -425.0,
+        "sharpe": 5.48
       },
       "is": {
-        "total": 11,
-        "wins": 6,
-        "win_rate": 0.545,
-        "pf": 0.441,
-        "pnl": -1668.0,
-        "avg": -152.0,
-        "fit3": -2972.0,
-        "max_win": 618.0,
-        "max_loss": -1011.0,
-        "sharpe": -4.69
+        "total": 29,
+        "wins": 10,
+        "win_rate": 0.345,
+        "pf": 0.665,
+        "pnl": -2067.0,
+        "avg": -71.0,
+        "fit3": -6131.0,
+        "max_win": 1091.0,
+        "max_loss": -1148.0,
+        "sharpe": -2.32
       }
     },
     {
       "rank": 20,
-      "test_type": "param_search",
-      "description": "trend_follow param_search + no_low_vol",
+      "test_type": "regime_filter",
+      "description": "vwap_reclaim + only_trend_up_range",
       "strategies": [
-        "trend_follow"
+        "vwap_reclaim"
       ],
-      "params": {
-        "min_trend_strength": 0.2,
-        "min_volume_trend": 1.0,
-        "trailing_atr_multiple": 1.5
-      },
+      "params": {},
       "convergence_params": null,
-      "regime_filter": "no_low_vol",
+      "regime_filter": "only_trend_up_range",
       "oos": {
-        "total": 28,
-        "wins": 16,
-        "win_rate": 0.571,
-        "pf": 2.532,
-        "pnl": 9140.0,
-        "avg": 326.0,
-        "fit3": -5817.0,
-        "max_win": 7193.0,
-        "max_loss": -1663.0,
-        "sharpe": 3.4
+        "total": 6,
+        "wins": 3,
+        "win_rate": 0.5,
+        "pf": 2.422,
+        "pnl": 1054.0,
+        "avg": 176.0,
+        "fit3": -723.0,
+        "max_win": 798.0,
+        "max_loss": -425.0,
+        "sharpe": 5.48
       },
       "is": {
-        "total": 11,
-        "wins": 6,
-        "win_rate": 0.545,
-        "pf": 0.441,
-        "pnl": -1668.0,
-        "avg": -152.0,
-        "fit3": -2972.0,
-        "max_win": 618.0,
-        "max_loss": -1011.0,
-        "sharpe": -4.69
+        "total": 28,
+        "wins": 10,
+        "win_rate": 0.357,
+        "pf": 0.683,
+        "pnl": -1909.0,
+        "avg": -68.0,
+        "fit3": -5973.0,
+        "max_win": 1091.0,
+        "max_loss": -1148.0,
+        "sharpe": -2.18
       }
     }
   ],
   "strategy_best": {
-    "vwap_bounce": {
+    "vwap_reclaim": {
       "oos": {
         "total": 3,
-        "wins": 3,
-        "win_rate": 1.0,
-        "pf": 99.0,
-        "pnl": 579.0,
-        "avg": 193.0,
-        "fit3": 6.0,
-        "max_win": 444.0,
-        "max_loss": 65.0,
-        "sharpe": 13.9
+        "wins": 2,
+        "win_rate": 0.667,
+        "pf": 463.5,
+        "pnl": 925.0,
+        "avg": 308.0,
+        "fit3": 7.0,
+        "max_win": 559.0,
+        "max_loss": -2.0,
+        "sharpe": 16.92
       },
       "is": {
-        "total": 7,
+        "total": 11,
         "wins": 4,
-        "win_rate": 0.571,
-        "pf": 10.939,
-        "pnl": 2425.0,
-        "avg": 346.0,
-        "fit3": -217.0,
-        "max_win": 1545.0,
-        "max_loss": -182.0,
-        "sharpe": 8.4
+        "win_rate": 0.364,
+        "pf": 1.161,
+        "pnl": 291.0,
+        "avg": 26.0,
+        "fit3": -1789.0,
+        "max_win": 1055.0,
+        "max_loss": -589.0,
+        "sharpe": 0.86
       },
       "params": {
-        "min_vwap_touches": 1,
-        "trend_direction_min": 0.2,
-        "min_volume_ratio": 1.2,
+        "min_time_below_vwap_min": 10,
+        "min_volume_at_reclaim": 1.8,
         "target_atr_multiple": 0.8,
-        "stop_atr_below_vwap": 0.8
+        "reclaim_buffer_pct": 0.3,
+        "max_distance_from_vwap_pct": 0.5
       },
       "regime_filter": "block_down_vol",
-      "convergence_params": {
-        "MAX_MA_SPREAD_PCT_FOR_ENTRY": 0.025,
-        "MIN_MA_CONVERGENCE_SCORE": 0.4,
-        "MIN_RANGE_COMPRESSION_SCORE": 0.4,
-        "MIN_VOLATILITY_COMPRESSION_SCORE": 0.3,
-        "CONVERGENCE_CONFIDENCE_BOOST": 0.02,
-        "EXPANSION_PENALTY_AFTER_CROSS": 0.08
-      }
+      "convergence_params": null
     },
     "spread_entry": {
       "oos": {
-        "total": 5,
-        "wins": 4,
-        "win_rate": 0.8,
-        "pf": 29.61,
-        "pnl": 5207.0,
-        "avg": 1041.0,
-        "fit3": -128.0,
-        "max_win": 1870.0,
+        "total": 3,
+        "wins": 2,
+        "win_rate": 0.667,
+        "pf": 12.681,
+        "pnl": 2126.0,
+        "avg": 709.0,
+        "fit3": -159.0,
+        "max_win": 1786.0,
         "max_loss": -182.0,
-        "sharpe": 18.71
+        "sharpe": 11.12
       },
       "is": {
-        "total": 6,
-        "wins": 4,
-        "win_rate": 0.667,
-        "pf": 2.202,
-        "pnl": 714.0,
-        "avg": 119.0,
-        "fit3": -581.0,
+        "total": 5,
+        "wins": 3,
+        "win_rate": 0.6,
+        "pf": 1.855,
+        "pnl": 508.0,
+        "avg": 102.0,
+        "fit3": -583.0,
         "max_win": 555.0,
         "max_loss": -536.0,
-        "sharpe": 4.83
+        "sharpe": 3.8
       },
       "params": {
-        "spread_percentile_max": 15,
+        "spread_percentile_max": 10,
         "min_volume_building": 2.0,
-        "min_price_compression": 0.6,
-        "target_atr_multiple": 2.0
-      },
-      "regime_filter": "only_trend_up_range",
-      "convergence_params": {
-        "MAX_MA_SPREAD_PCT_FOR_ENTRY": 0.02,
-        "MIN_MA_CONVERGENCE_SCORE": 0.55,
-        "MIN_RANGE_COMPRESSION_SCORE": 0.4,
-        "MIN_VOLATILITY_COMPRESSION_SCORE": 0.4,
-        "CONVERGENCE_CONFIDENCE_BOOST": 0.04,
-        "EXPANSION_PENALTY_AFTER_CROSS": 0.1
-      }
-    },
-    "trend_follow": {
-      "oos": {
-        "total": 8,
-        "wins": 5,
-        "win_rate": 0.625,
-        "pf": 3.428,
-        "pnl": 1984.0,
-        "avg": 248.0,
-        "fit3": -789.0,
-        "max_win": 1252.0,
-        "max_loss": -543.0,
-        "sharpe": 6.95
-      },
-      "is": {
-        "total": 10,
-        "wins": 6,
-        "win_rate": 0.6,
-        "pf": 0.57,
-        "pnl": -995.0,
-        "avg": -100.0,
-        "fit3": -2299.0,
-        "max_win": 618.0,
-        "max_loss": -1011.0,
-        "sharpe": -3.11
-      },
-      "params": {},
-      "regime_filter": "only_trend_up_range",
-      "convergence_params": null
-    },
-    "orderbook_imbalance": {
-      "oos": {
-        "total": 129,
-        "wins": 65,
-        "win_rate": 0.504,
-        "pf": 1.496,
-        "pnl": 11895.0,
-        "avg": 92.0,
-        "fit3": -23644.0,
-        "max_win": 2146.0,
-        "max_loss": -1034.0,
-        "sharpe": 2.51
-      },
-      "is": {
-        "total": 244,
-        "wins": 102,
-        "win_rate": 0.418,
-        "pf": 0.72,
-        "pnl": -16249.0,
-        "avg": -67.0,
-        "fit3": -57590.0,
-        "max_win": 1474.0,
-        "max_loss": -2016.0,
-        "sharpe": -2.02
-      },
-      "params": {
-        "long_ratio_threshold": 2.0,
-        "min_depth_imbalance": 0.4,
+        "min_price_compression": 0.4,
         "target_atr_multiple": 1.5
       },
       "regime_filter": "only_trend_up_range",
       "convergence_params": null
     },
-    "vwap_reclaim": {
+    "vwap_bounce": {
       "oos": {
-        "total": 10,
-        "wins": 4,
-        "win_rate": 0.4,
-        "pf": 1.423,
-        "pnl": 893.0,
-        "avg": 89.0,
-        "fit3": -2083.0,
-        "max_win": 1211.0,
-        "max_loss": -946.0,
-        "sharpe": 2.15
+        "total": 3,
+        "wins": 2,
+        "win_rate": 0.667,
+        "pf": 3.651,
+        "pnl": 660.0,
+        "avg": 220.0,
+        "fit3": -240.0,
+        "max_win": 520.0,
+        "max_loss": -249.0,
+        "sharpe": 8.37
       },
       "is": {
-        "total": 42,
-        "wins": 18,
-        "win_rate": 0.429,
-        "pf": 0.634,
-        "pnl": -3617.0,
-        "avg": -86.0,
-        "fit3": -9824.0,
-        "max_win": 1091.0,
-        "max_loss": -2169.0,
-        "sharpe": -2.36
+        "total": 5,
+        "wins": 4,
+        "win_rate": 0.8,
+        "pf": 219.538,
+        "pnl": 2841.0,
+        "avg": 568.0,
+        "fit3": 16.0,
+        "max_win": 1545.0,
+        "max_loss": -13.0,
+        "sharpe": 13.44
       },
       "params": {
-        "min_time_below_vwap_min": 30,
-        "min_volume_at_reclaim": 1.8,
-        "target_atr_multiple": 2.0,
-        "reclaim_buffer_pct": 0.3,
-        "max_distance_from_vwap_pct": 1.0
+        "min_vwap_touches": 1,
+        "trend_direction_min": 0.5,
+        "min_volume_ratio": 1.0,
+        "target_atr_multiple": 0.8,
+        "stop_atr_below_vwap": 0.5
       },
-      "regime_filter": "only_trend_up_range",
+      "regime_filter": "no_filter",
+      "convergence_params": null
+    },
+    "trend_follow": {
+      "oos": {
+        "total": 10,
+        "wins": 6,
+        "win_rate": 0.6,
+        "pf": 2.355,
+        "pnl": 2410.0,
+        "avg": 241.0,
+        "fit3": -1736.0,
+        "max_win": 1252.0,
+        "max_loss": -905.0,
+        "sharpe": 5.47
+      },
+      "is": {
+        "total": 6,
+        "wins": 3,
+        "win_rate": 0.5,
+        "pf": 0.543,
+        "pnl": -749.0,
+        "avg": -125.0,
+        "fit3": -1630.0,
+        "max_win": 618.0,
+        "max_loss": -1011.0,
+        "sharpe": -3.31
+      },
+      "params": {
+        "min_trend_strength": 0.2,
+        "min_volume_trend": 1.0,
+        "trailing_atr_multiple": 1.2
+      },
+      "regime_filter": "no_low_vol",
+      "convergence_params": null
+    },
+    "orderbook_imbalance": {
+      "oos": {
+        "total": 51,
+        "wins": 27,
+        "win_rate": 0.529,
+        "pf": 2.039,
+        "pnl": 7989.0,
+        "avg": 157.0,
+        "fit3": -7530.0,
+        "max_win": 2146.0,
+        "max_loss": -606.0,
+        "sharpe": 4.12
+      },
+      "is": {
+        "total": 38,
+        "wins": 14,
+        "win_rate": 0.368,
+        "pf": 0.471,
+        "pnl": -4667.0,
+        "avg": -123.0,
+        "fit3": -8775.0,
+        "max_win": 828.0,
+        "max_loss": -1140.0,
+        "sharpe": -4.6
+      },
+      "params": {},
+      "regime_filter": "only_trend_up",
       "convergence_params": null
     },
     "open_drive": {
       "oos": {
-        "total": 43,
-        "wins": 13,
-        "win_rate": 0.302,
-        "pf": 0.633,
-        "pnl": -2275.0,
-        "avg": -53.0,
-        "fit3": -6163.0,
-        "max_win": 1067.0,
-        "max_loss": -588.0,
-        "sharpe": -2.75
+        "total": 3,
+        "wins": 1,
+        "win_rate": 0.333,
+        "pf": 1.415,
+        "pnl": 80.0,
+        "avg": 27.0,
+        "fit3": -190.0,
+        "max_win": 273.0,
+        "max_loss": -164.0,
+        "sharpe": 1.87
       },
       "is": {
-        "total": 73,
-        "wins": 35,
-        "win_rate": 0.479,
-        "pf": 1.03,
-        "pnl": 318.0,
-        "avg": 4.0,
-        "fit3": -10321.0,
-        "max_win": 1263.0,
-        "max_loss": -830.0,
-        "sharpe": 0.18
+        "total": 10,
+        "wins": 6,
+        "win_rate": 0.6,
+        "pf": 1.596,
+        "pnl": 739.0,
+        "avg": 74.0,
+        "fit3": -1219.0,
+        "max_win": 1091.0,
+        "max_loss": -511.0,
+        "sharpe": 2.52
       },
       "params": {},
-      "regime_filter": "no_low_vol",
+      "regime_filter": "only_trend_up",
       "convergence_params": null
     }
   },
   "all_results_summary": {
-    "total": 168,
-    "oos_pf_over_1": 64,
-    "oos_pf_over_1_5": 36,
-    "oos_pf_over_2": 27
+    "total": 199,
+    "oos_pf_over_1": 83,
+    "oos_pf_over_1_5": 49,
+    "oos_pf_over_2": 29
   }
 }

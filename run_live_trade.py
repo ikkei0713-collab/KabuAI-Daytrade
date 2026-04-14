@@ -64,15 +64,22 @@ logger.add("logs/live_trade.log", rotation="10 MB", level="DEBUG")
 
 JST = ZoneInfo("Asia/Tokyo")
 
-# 安全設定（攻撃的: 余力いっぱい使い、試行回数を最大化）
+# コツコツ回転モード (2026-04-14学習: 手数料無料を活用、回転数 > 1発のサイズ)
 MAX_DAILY_LOSS = -5000       # 日次最大損失（余裕を持たせる）
-MAX_POSITIONS = 3            # 同時3ポジション
-MAX_ORDER_PCT = 0.90         # 1注文あたり資金の90%（余力いっぱい）
-SCAN_INTERVAL = 10           # スキャン間隔（秒）
+MAX_POSITIONS = 4            # 同時4ポジション
+SCAN_INTERVAL = 8            # スキャン間隔(秒)
+# 動的サイジング: confidenceに応じて余力の何%を投入するか線形補間
+SIZING_CONF_MIN = 0.45       # この信頼度で最小サイズ
+SIZING_CONF_MAX = 0.85       # この信頼度で最大サイズ
+SIZING_PCT_MIN = 0.20        # 弱シグナルは余力の20%
+SIZING_PCT_MAX = 0.70        # 強シグナルは余力の70%
+MAX_ORDER_PCT = SIZING_PCT_MAX  # 互換性のため残す
 FORCE_CLOSE_HOUR = 15        # 強制決済時 (東証15:25ザラバ終了、余裕持って15:20)
 FORCE_CLOSE_MIN = 20         # 強制決済分
+NO_NEW_ENTRY_HOUR = 14       # これ以降は新規エントリー禁止 (TP到達する時間がない)
+NO_NEW_ENTRY_MIN = 0
 MARKET_CLOSE_HOUR = 16       # 15:30終了だが、hour>=16で場外判定
-MIN_CONFIDENCE = 0.30        # 最低confidence（シグナルを広く拾う）
+MIN_CONFIDENCE = 0.45        # 最低confidence（質の高いシグナルのみ）
 TDNET_SCAN_INTERVAL = 300    # TDnet スキャン間隔（秒）= 5分
 INTRADAY_REFRESH_INTERVAL = 120  # 日中足更新間隔（秒）= 2分
 
@@ -91,30 +98,32 @@ STRATEGY_TIME_WINDOWS = {
 SIGNAL_DEDUP_WINDOW = 60     # シグナル重複排除ウィンドウ（秒）
 MMR_LAMBDA = 0.7             # MMR: confidence重視 vs 多様性
 
-# レジーム×戦略フィルター (バックテストOOS PF≥1.2のみ許可)
-# spread_entry+trend_up PF=3.71, vwap_bounce+range PF=235, trend_follow+trend_down PF=99
-# trend_follow+volatile PF=4.30, vwap_reclaim+volatile PF=3.37, open_drive+volatile PF=1.50
-# spread_entry+range PF=1.29, open_drive+range PF=1.27
-WINNING_REGIME_COMBOS = {
-    ("spread_entry", "trend_up"),
-    ("spread_entry", "range"),
-    ("vwap_bounce", "range"),
-    ("vwap_reclaim", "volatile"),
-    ("trend_follow", "trend_down"),
-    ("trend_follow", "volatile"),
-    ("open_drive", "volatile"),
-    ("open_drive", "range"),
-    ("crash_rebound", "trend_down"),   # 急落リバウンドは下落時のみ
-    ("crash_rebound", "volatile"),
-    ("tdnet_event", "trend_up"),       # イベント系はレジーム問わず
-    ("tdnet_event", "range"),
-    ("tdnet_event", "volatile"),
-    ("tdnet_event", "trend_down"),
-    ("earnings_momentum", "trend_up"),
-    ("earnings_momentum", "range"),
-    ("catalyst_initial", "trend_up"),
-    ("catalyst_initial", "range"),
+# レジーム×戦略フィルター → ボーナス方式 (ブロックしない、ボーナス加点のみ)
+# バックテストOOS PF≥1.2の組み合わせにconfidenceボーナスを付与
+REGIME_BONUS_COMBOS = {
+    ("spread_entry", "trend_up"): 0.10,
+    ("spread_entry", "range"): 0.05,
+    ("vwap_bounce", "range"): 0.10,
+    ("vwap_reclaim", "volatile"): 0.08,
+    ("trend_follow", "trend_down"): 0.10,
+    ("trend_follow", "volatile"): 0.08,
+    ("open_drive", "volatile"): 0.05,
+    ("open_drive", "range"): 0.05,
+    ("crash_rebound", "trend_down"): 0.10,
+    ("crash_rebound", "volatile"): 0.08,
+    ("tdnet_event", "trend_up"): 0.05,
+    ("tdnet_event", "range"): 0.05,
+    ("tdnet_event", "volatile"): 0.05,
+    ("tdnet_event", "trend_down"): 0.05,
+    ("earnings_momentum", "trend_up"): 0.08,
+    ("earnings_momentum", "range"): 0.05,
+    ("catalyst_initial", "trend_up"): 0.08,
+    ("catalyst_initial", "range"): 0.05,
+    ("volume_dryup", "trend_up"): 0.10,   # トレンド入りの押し目に最適
+    ("volume_dryup", "range"): 0.05,
 }
+# 非推奨コンボはペナルティ (-0.05)
+REGIME_PENALTY = -0.05
 
 SCREENING_FILE = Path("knowledge/screening_candidates.json")
 SESSION_FILE = Path("data/tachibana_session.json")
@@ -147,6 +156,8 @@ class LiveTrader:
         self._morning_report_sent = False
         self._afternoon_report_sent = False
         self._signal_scratchpad = {}  # ticker -> (timestamp, strategy, confidence)
+        self._overnight_data = {}     # 夜間マーケットデータ
+        self._same_day_sold = set()   # 当日売却済み銘柄(差金決済禁止) ticker(4digit)
 
     async def start(self):
         """メインループ"""
@@ -196,6 +207,9 @@ class LiveTrader:
                 logger.info("本日は土日です。待機します。")
                 await asyncio.sleep(3600)
                 return
+
+            # 夜間マーケットデータ読み込み
+            self._load_overnight_data()
 
             # 銘柄候補を構築（前日スクリーニング結果があれば優先）
             await self._build_scan_candidates()
@@ -422,11 +436,14 @@ class LiveTrader:
                         ], axis=1).max(axis=1)
                         atr = float(tr.mean())
 
+                    # ATR×1.5でSL、ATR×1.2でTP（手数料無料期間対応）
+                    stop = avg_price - atr * 1.5
+                    target = avg_price + atr * 1.2
                     self.open_positions[ticker] = {
                         "entry_price": avg_price,
                         "quantity": qty,
-                        "stop": avg_price - atr * 2,
-                        "target": avg_price + atr * 3,
+                        "stop": stop,
+                        "target": target,
                         "strategy": "synced",
                         "order_time": datetime.now(JST).isoformat(),
                         "tachibana_order": "",
@@ -436,10 +453,93 @@ class LiveTrader:
                     logger.info(
                         f"ポジション同期: {ticker} {qty}株 @¥{avg_price:,.1f} "
                         f"現在¥{current_price:,.1f} 含み¥{pnl:+,.0f} "
-                        f"SL=¥{avg_price - atr * 2:,.0f} TP=¥{avg_price + atr * 3:,.0f}"
+                        f"SL=¥{stop:,.0f} TP=¥{target:,.0f}"
                     )
         except Exception as e:
             logger.warning(f"ポジション同期失敗: {e}")
+
+    # ------------------------------------------------------------------
+    # 夜間マーケットデータ読み込み
+    # ------------------------------------------------------------------
+
+    def _load_overnight_data(self):
+        """knowledge/overnight_scan.json + premarket_scan.json から読み込み"""
+        # premarket_scan.json も読み込み
+        premarket_path = Path("knowledge/premarket_scan.json")
+        if premarket_path.exists():
+            try:
+                pm = json.loads(premarket_path.read_text(encoding="utf-8"))
+                if pm.get("date") == date.today().isoformat():
+                    regime = pm.get("regime", {})
+                    tdnet = pm.get("tdnet", {})
+                    sector = pm.get("sector_bias", {})
+                    logger.info(
+                        f"寄り前データ読込: レジーム={regime.get('regime','?')} "
+                        f"TDnet={tdnet.get('disclosures',0)}件 "
+                        f"risk_off={sector.get('risk_off','?')}"
+                    )
+            except Exception as e:
+                logger.warning(f"寄り前データ読込失敗: {e}")
+
+        overnight_path = Path("knowledge/overnight_scan.json")
+        if not overnight_path.exists():
+            logger.info("夜間データなし")
+            return
+        try:
+            data = json.loads(overnight_path.read_text(encoding="utf-8"))
+            if data.get("date") != date.today().isoformat():
+                logger.info("夜間データが古い（前日以前）→ スキップ")
+                return
+            self._overnight_data = data
+            summary = data.get("summary", {})
+            signals = data.get("signals", [])
+            logger.info(
+                f"夜間データ読込: SP500={summary.get('sp500_chg', '?')}% "
+                f"VIX={summary.get('vix', '?')} "
+                f"日経先物={summary.get('nk_futures_chg', '?')}% "
+                f"USD/JPY={summary.get('usdjpy_chg', '?')}%"
+            )
+            for s in signals:
+                logger.info(f"  → {s}")
+        except Exception as e:
+            logger.warning(f"夜間データ読込失敗: {e}")
+
+    def _calc_overnight_confidence_bonus(self) -> float:
+        """夜間データに基づくconfidenceボーナス/ペナルティ"""
+        if not self._overnight_data:
+            return 0.0
+        summary = self._overnight_data.get("summary", {})
+        bonus = 0.0
+
+        # 日経先物が大幅高 → 全体にボーナス
+        nk_chg = summary.get("nk_futures_chg")
+        if nk_chg is not None:
+            if nk_chg > 1.0:
+                bonus += 0.05
+            elif nk_chg > 0.5:
+                bonus += 0.02
+            elif nk_chg < -1.0:
+                bonus -= 0.08  # 大幅安はペナルティ大
+            elif nk_chg < -0.5:
+                bonus -= 0.04
+
+        # VIX高 → ペナルティ
+        vix = summary.get("vix")
+        if vix is not None:
+            if vix > 30:
+                bonus -= 0.08
+            elif vix > 25:
+                bonus -= 0.03
+
+        # 半導体強い → テック寄り銘柄にボーナス (全体に薄く)
+        smh_chg = summary.get("smh_chg")
+        if smh_chg is not None:
+            if smh_chg > 2.0:
+                bonus += 0.03
+            elif smh_chg < -2.0:
+                bonus -= 0.03
+
+        return round(bonus, 3)
 
     # ------------------------------------------------------------------
     # 動的銘柄候補構築
@@ -470,13 +570,16 @@ class LiveTrader:
         # 固定候補（常に監視）
         fixed = ["94320"]  # NTT
 
-        # J-Quantsから当日の全銘柄を取得して安い順にフィルタ
+        # J-Quantsから直近営業日の全銘柄を取得して安い順にフィルタ
         try:
-            yesterday = (date.today() - timedelta(days=3)).isoformat()
-            today_str = date.today().isoformat()
-            raw = await self._jquants_client.get_prices_daily_bulk(
-                (date.today() - timedelta(days=1)).isoformat()
-            )
+            # 直近3営業日を試す (休日対策)
+            raw = None
+            for days_back in range(1, 5):
+                try_date = (date.today() - timedelta(days=days_back)).isoformat()
+                raw = await self._jquants_client.get_prices_daily_bulk(try_date)
+                if raw:
+                    logger.info(f"バルク取得成功: {try_date} ({len(raw)}銘柄)")
+                    break
             if raw:
                 df = pd.DataFrame(raw)
                 # カラム名の正規化
@@ -517,6 +620,21 @@ class LiveTrader:
                             break
 
                     self._scan_candidates = fixed + dynamic_codes
+                    # Yahoo Japanランキングからの動的ユニバースを統合
+                    try:
+                        from data_sources.yahoo_ranking import fetch_dynamic_universe
+                        yahoo_codes = await fetch_dynamic_universe(limit_per_category=50)
+                        added = 0
+                        existing = set(c[:4] for c in self._scan_candidates)
+                        for c in yahoo_codes:
+                            code5 = c + "0" if len(c) == 4 else c
+                            if c[:4] not in existing and c[:2] not in {"13","14","15","16","17","18","19","23","24","25"}:
+                                self._scan_candidates.append(code5)
+                                existing.add(c[:4])
+                                added += 1
+                        logger.info(f"  Yahoo動的ユニバース統合: +{added}銘柄")
+                    except Exception as e:
+                        logger.warning(f"  Yahoo動的ユニバース統合失敗: {e}")
                     logger.info(
                         f"動的銘柄候補: {len(self._scan_candidates)}銘柄 "
                         f"(余力¥{available:,.0f} → 上限¥{max_price_per_share:,.0f}/株)"
@@ -532,11 +650,22 @@ class LiveTrader:
         except Exception as e:
             logger.warning(f"動的銘柄構築失敗: {e}")
 
-        # フォールバック: 固定候補
+        # フォールバック: 余力¥100kで買える低位株＋高出来高
         self._scan_candidates = [
-            "94320", "40050", "93070", "47550", "41200",
+            "94320",  # NTT ¥158       ← 超大型・高出来高
+            "67400",  # JDI ¥93        ← 超低位・大出来高
+            "94340",  # ソフトバンク ¥215
+            "87290",  # ソニーFG ¥147
+            "72010",  # 日産 ¥346
+            "33150",  # 日本コークス ¥116
+            "33500",  # メタプラネット ¥302
+            "69930",  # 大黒屋HD ¥124
+            "54010",  # 日本製鉄 ¥584
+            "40050",  # 住友化学 ¥529
+            "95010",  # 東電HD ¥648
+            "47550",  # 楽天 ¥746
         ]
-        logger.info(f"固定銘柄候補にフォールバック: {len(self._scan_candidates)}銘柄")
+        logger.info(f"低位株フォールバック: {len(self._scan_candidates)}銘柄")
 
     # ------------------------------------------------------------------
     # データ取得
@@ -761,6 +890,10 @@ class LiveTrader:
         balance = self.initial_balance - used
         now = datetime.now(JST)
 
+        # 14:00以降は新規エントリー禁止（TP到達の時間が足りない）
+        if now.hour > NO_NEW_ENTRY_HOUR or (now.hour == NO_NEW_ENTRY_HOUR and now.minute >= NO_NEW_ENTRY_MIN):
+            return
+
         strategies = StrategyRegistry.get_active()
         # 時間帯フィルター適用
         strategies = [s for s in strategies if self._is_strategy_in_time_window(s.name, now)]
@@ -782,6 +915,9 @@ class LiveTrader:
                 current_price = yahoo_price
             else:
                 current_price = float(df["close"].iloc[-1])
+
+            if current_price <= 0:
+                continue  # 価格取得失敗 → スキップ
 
             cost_100 = current_price * 100
 
@@ -824,6 +960,11 @@ class LiveTrader:
                         early_vol = float(intraday_df["volume"].head(5).mean())
                         if early_vol > 0:
                             features["volume_trend"] = recent_vol / early_vol
+                        # volume_at_reclaimを日中足から現実的に計算（プロキシ排除）
+                        avg_bar_vol = float(intraday_df["volume"].mean())
+                        last_bar_vol = float(intraday_df["volume"].iloc[-1])
+                        if avg_bar_vol > 0:
+                            features["volume_at_reclaim"] = last_bar_vol / avg_bar_vol
 
             regime = self.regime_det.detect(df)
             features["regime_result"] = regime
@@ -857,13 +998,17 @@ class LiveTrader:
 
             for strategy in strategies:
                 try:
-                    # レジーム×戦略フィルター: 勝てる組み合わせのみ通す
-                    if (strategy.name, regime.regime) not in WINNING_REGIME_COMBOS:
-                        continue
-
                     signal = await strategy.scan(code_5, df, features)
                     if signal and signal.confidence >= MIN_CONFIDENCE and signal.direction == "long":
                         confidence_bonus = 0.0
+
+                        # レジーム×戦略ボーナス/ペナルティ (ブロックしない)
+                        regime_key = (strategy.name, regime.regime)
+                        confidence_bonus += REGIME_BONUS_COMBOS.get(regime_key, REGIME_PENALTY)
+
+                        # 夜間マーケットデータボーナス
+                        confidence_bonus += self._calc_overnight_confidence_bonus()
+
                         if intraday_df is not None and not intraday_df.empty:
                             confidence_bonus += 0.03
                         if tdnet_event and tdnet_event.is_material:
@@ -909,6 +1054,15 @@ class LiveTrader:
         if not signals:
             return
 
+        # 差金決済禁止: 当日売却した銘柄を除外
+        if self._same_day_sold:
+            before = len(signals)
+            signals = [s for s in signals if s["code_4"] not in self._same_day_sold]
+            if before > len(signals):
+                logger.debug(f"差金決済禁止で {before-len(signals)}件 除外")
+        if not signals:
+            return
+
         # MMR reranking: prefer diversity across sectors when MAX_POSITIONS=2
         signals = self._mmr_rerank(signals)
         best = signals[0]
@@ -929,14 +1083,23 @@ class LiveTrader:
             f"[{best['regime']}] [{src_str}] {best['reason'][:40]}"
         )
 
-        # ポジションサイズ: confidence + 余力に応じて調整
-        max_invest = min(balance * MAX_ORDER_PCT, balance - 1000)  # 最低¥1,000残す（余力いっぱい使う）
+        # 注文直前に立花APIから最新の買付余力を取得 (古いキャッシュ回避)
+        live_balance = await self._get_real_balance()
+        if live_balance <= 0:
+            live_balance = balance  # API失敗時のフォールバック
+        # ポジションサイズ: confidence連動 (強いシグナルほど大きく)
+        conf = float(best.get("confidence", best.get("conf", 0.5)))
+        conf_clamped = max(SIZING_CONF_MIN, min(SIZING_CONF_MAX, conf))
+        ratio = (conf_clamped - SIZING_CONF_MIN) / (SIZING_CONF_MAX - SIZING_CONF_MIN)
+        size_pct = SIZING_PCT_MIN + ratio * (SIZING_PCT_MAX - SIZING_PCT_MIN)
+        max_invest = min(live_balance * size_pct, live_balance - 1000)
         max_shares = int(max_invest / best["entry"]) if best["entry"] > 0 else 100
         max_shares = max(max_shares // 100 * 100, 100)  # 100株単位に丸め
         quantity = max_shares
+        logger.info(f"  サイジング: 余力¥{live_balance:,.0f} × conf={conf:.2f} → {size_pct*100:.0f}% = {quantity}株")
 
         # エントリーは指値（スリッページ防止。現在値+1円で即約定を狙う）
-        limit_price = best["entry"] + 1.0  # 現在値+1円の指値
+        limit_price = round(best["entry"] * 1.002, 1)  # 0.2% slippage
         order = Order(
             ticker=best["code_4"],
             side=OrderSide.BUY,
@@ -949,33 +1112,46 @@ class LiveTrader:
         result = await self.broker.place_order(order)
 
         if result.status.value == "submitted":
-            # 成行注文は即約定するので、約定価格を取得（最大3回リトライ）
-            actual_price = best["entry"]  # フォールバック
+            # 約定価格を取得（簿価ベース・最大8回リトライ）
+            actual_price = limit_price  # フォールバック: 指値価格
             tachibana_id = result.notes.split("tachibana_id=")[1].split()[0] if "tachibana_id=" in (result.notes or "") else ""
             try:
-                for retry in range(3):
-                    await asyncio.sleep(0.5 + retry * 0.5)  # 0.5s, 1.0s, 1.5s
+                got = False
+                for retry in range(8):
+                    await asyncio.sleep(1.5 + retry * 0.5)  # 1.5,2,2.5,...,5s 累計約26s
+                    # まず立花APIから現物残高(簿価)を直接取得 — 一番正確
+                    try:
+                        data = await self.broker._api_request("CLMGenbutuKabuList", {})
+                        items = data.get("aGenbutuKabuList", []) or []
+                        for it in items:
+                            code4 = (it.get("sUriOrderIssueCode", "") or "")[:4]
+                            if code4 == best["code_4"]:
+                                bv = float(it.get("sUriOrderGaisanBokaTanka", "0") or "0")
+                                qty_api = int(it.get("sUriOrderZanKabuSuryou", "0") or "0")
+                                if bv > 0 and qty_api > 0:
+                                    actual_price = bv
+                                    quantity = qty_api
+                                    logger.info(f"簿価取得: {code4} {quantity}株 @¥{actual_price:,.1f} (シグナル時¥{best['entry']:,.0f})")
+                                    got = True
+                                    break
+                        if got:
+                            break
+                    except Exception:
+                        pass
+                    # フォールバック1: get_orders() の filled_price
                     orders = await self.broker.get_orders()
                     for o in orders:
                         if tachibana_id and f"tachibana_id={tachibana_id}" in (o.notes or ""):
                             if o.filled_price and o.filled_price > 0:
                                 actual_price = o.filled_price
                                 quantity = o.filled_quantity or quantity
-                                logger.info(f"約定確認: {best['code_4']} {quantity}株 @¥{actual_price:,.0f} (シグナル時¥{best['entry']:,.0f})")
+                                logger.info(f"約定確認: {best['code_4']} {quantity}株 @¥{actual_price:,.1f}")
+                                got = True
                                 break
-                    else:
-                        continue
-                    break  # 約定価格取得成功
-                else:
-                    # 3回リトライしても取れない → 現物残高から取得
-                    positions = await self.broker.get_positions()
-                    for p in positions:
-                        if p.ticker == best["code_4"] or p.ticker == best["code_5"]:
-                            if p.average_price and p.average_price > 0:
-                                actual_price = p.average_price
-                                quantity = p.quantity or quantity
-                                logger.info(f"残高から約定確認: {best['code_4']} {quantity}株 @¥{actual_price:,.0f}")
-                                break
+                    if got:
+                        break
+                if not got:
+                    logger.warning(f"約定価格取得失敗 → 指値¥{limit_price:,.1f}で代用")
             except Exception as e:
                 logger.warning(f"約定価格取得失敗（シグナル価格で代用）: {e}")
 
@@ -993,6 +1169,11 @@ class LiveTrader:
                 "order_time": datetime.now(JST).isoformat(),
                 "tachibana_order": result.notes,
                 "highest_price": actual_price,
+                "signal_reason": best.get("reason", ""),
+                "signal_confidence": float(best.get("confidence", best.get("conf", 0.0))),
+                "signal_entry": best.get("entry"),
+                "signal_stop": best.get("stop"),
+                "signal_target": best.get("target"),
             }
             await self._notifier.notify_entry(
                 ticker=best["code_4"], direction="long",
@@ -1047,13 +1228,51 @@ class LiveTrader:
                 highest = live_price
 
             # トレーリングストップ計算
-            # ATR推定（簡易: エントリーの2%をATR代わりに使用）
-            atr_est = entry * 0.02
+            # 実ATRがあれば使用、なければエントリーの2%でフォールバック
+            code_5 = ticker + "0"
+            ticker_df = self.stock_data.get(code_5)
+            if ticker_df is not None and len(ticker_df) >= 14:
+                _high = ticker_df["high"]
+                _low = ticker_df["low"]
+                _prev_close = ticker_df["close"].shift(1)
+                _tr = pd.concat([_high - _low, (_high - _prev_close).abs(), (_low - _prev_close).abs()], axis=1).max(axis=1)
+                atr_est = float(_tr.rolling(14).mean().iloc[-1])
+                if pd.isna(atr_est) or atr_est <= 0:
+                    atr_est = max(entry * 0.02, 3.0)  # 最低3円 (低位株対応)
+            else:
+                atr_est = entry * 0.02  # fallback
             profit_from_entry = live_price - entry
 
-            # 含み益が1ATR以上ならトレーリングストップを引き上げ
-            if profit_from_entry > atr_est:
-                trailing_stop = highest - atr_est * 1.5
+            # 3段階トレーリングストップ（2026-04-13学習: +¥770を逃さないため閾値を大幅タイト化）
+            profit_from_highest = highest - entry  # 最高含み益
+            pullback_from_highest = highest - live_price  # 高値からの戻り
+
+            # Stage1: 建値撤退 (含み益0.25ATR or +0.3% で発動 — ATR推定荒れ対策)
+            be_threshold = min(atr_est * 0.25, entry * 0.003)
+            if profit_from_entry > be_threshold and stop < entry:
+                old_stop = stop
+                pos["stop"] = entry
+                stop = entry
+                logger.info(f"  建値撤退SL: {ticker} ¥{old_stop:,.1f}→¥{entry:,.1f} (含み益{profit_from_entry:,.0f})")
+
+            # Stage2: 部分利確 (含み益0.5ATR or +0.6% 超 — 早期に半利確 = コツコツ回転)
+            partial_threshold = min(atr_est * 0.5, entry * 0.006)
+            if profit_from_entry > partial_threshold and not pos.get("partial_taken", False):
+                half_qty = pos["quantity"] // 2
+                if half_qty > 0:
+                    pos["partial_taken"] = True
+                    pnl_half = (live_price - entry) * half_qty
+                    logger.info(f"  ★ 部分利確: {ticker} {half_qty}株 @¥{live_price:,.1f} (+¥{pnl_half:,.0f})")
+                    await self._close_position(ticker, f"部分利確(0.5ATR)", quantity=half_qty)
+                    self.daily_pnl += pnl_half
+                    pos["quantity"] -= half_qty
+                    if pos["quantity"] <= 0:
+                        continue
+
+            # Stage3: トレーリング (含み益0.75ATR or +0.9% 超で追従開始)
+            trail_threshold = min(atr_est * 0.75, entry * 0.009)
+            if profit_from_entry > trail_threshold:
+                trailing_stop = highest - max(atr_est * 0.5, entry * 0.004)  # よりタイトに
                 if trailing_stop > stop:
                     old_stop = stop
                     pos["stop"] = trailing_stop
@@ -1064,6 +1283,36 @@ class LiveTrader:
                             f"¥{old_stop:,.1f}→¥{trailing_stop:,.1f} "
                             f"(最高値¥{highest:,.1f})"
                         )
+
+            # ピーク逆行ガード: 高値の含み益が ATR or +0.6% 以上 → 40%戻しで即クローズ
+            peak_threshold = min(atr_est, entry * 0.006)
+            if profit_from_highest > peak_threshold and pullback_from_highest > profit_from_highest * 0.4:
+                pnl = (live_price - entry) * pos["quantity"]
+                logger.warning(
+                    f"★ ピーク逆行撤退: {ticker} 高値¥{highest:,.1f}→¥{live_price:,.1f} "
+                    f"(50%戻り) PnL=¥{pnl:+,.0f}"
+                )
+                await self._close_position(ticker, "ピーク逆行")
+                self.daily_pnl += pnl
+                continue
+
+            # 時間ベース損切り: 2時間以上含み損なら早期撤退
+            order_time_str = pos.get("order_time", "")
+            if order_time_str:
+                try:
+                    order_dt = datetime.fromisoformat(order_time_str)
+                    hold_hours = (datetime.now(JST) - order_dt).total_seconds() / 3600
+                    if hold_hours >= 2.0 and live_price < entry:
+                        pnl = (live_price - entry) * pos["quantity"]
+                        logger.warning(
+                            f"★ 時間損切り: {ticker} {hold_hours:.1f}時間保有で含み損 "
+                            f"¥{entry:,.0f}→¥{live_price:,.1f} PnL=¥{pnl:+,.0f}"
+                        )
+                        await self._close_position(ticker, f"時間損切り({hold_hours:.0f}h)")
+                        self.daily_pnl += pnl
+                        continue
+                except Exception:
+                    pass
 
             # ストップロス
             if live_price <= stop:
@@ -1143,11 +1392,23 @@ class LiveTrader:
 
                     # ORDER_STALE_MINUTES分以上経過した指値は取消し
                     if hasattr(order, 'order_type') and order.order_type == OrderType.LIMIT:
+                        order_created = getattr(order, 'created_at', None)
+                        if order_created is not None:
+                            if order_created.tzinfo is None:
+                                order_created = order_created.replace(tzinfo=JST)
+                            elapsed_min = (now - order_created).total_seconds() / 60
+                        else:
+                            elapsed_min = ORDER_STALE_MINUTES + 1  # 不明なら即取消し
+
+                        if elapsed_min < ORDER_STALE_MINUTES:
+                            logger.debug(f"  指値注文 {order.ticker} 経過{elapsed_min:.0f}分 < {ORDER_STALE_MINUTES}分 → 待機")
+                            continue
+
                         ok = await self.broker.cancel_order(tachibana_id)
                         if ok:
-                            logger.info(f"  → 未約定指値取消: {order.ticker} (ID: {tachibana_id})")
+                            logger.info(f"  → 未約定指値取消: {order.ticker} (ID: {tachibana_id}) 経過{elapsed_min:.0f}分")
                             await self._notifier.send(
-                                f"⚠️ 未約定取消: {order.ticker} {order.quantity}株 指値注文をキャンセル"
+                                f"⚠️ 未約定取消: {order.ticker} {order.quantity}株 指値注文を{elapsed_min:.0f}分経過でキャンセル"
                             )
         except Exception as e:
             logger.warning(f"注文管理エラー: {e}")
@@ -1301,37 +1562,39 @@ class LiveTrader:
     # ポジション決済
     # ------------------------------------------------------------------
 
-    async def _close_position(self, ticker: str, reason: str, limit_price: float = None):
-        """個別ポジション決済。limit_price指定で指値、なければ成行。"""
+    async def _close_position(self, ticker: str, reason: str, limit_price: float = None, quantity: int = None):
+        """個別ポジション決済。quantityで部分決済も対応。"""
         pos = self.open_positions.get(ticker)
         if not pos:
             return
 
+        qty = quantity if quantity is not None else pos["quantity"]
+        partial = quantity is not None and quantity < pos["quantity"]
+
         if limit_price:
-            logger.info(f"決済(指値): {ticker} {pos['quantity']}株 @¥{limit_price:,.0f} ({reason})")
+            logger.info(f"決済(指値): {ticker} {qty}株 @¥{limit_price:,.0f} ({reason})")
             order = Order(
                 ticker=ticker,
                 side=OrderSide.SELL,
-                quantity=pos["quantity"],
+                quantity=qty,
                 order_type=OrderType.LIMIT,
                 limit_price=limit_price,
                 strategy_name=pos["strategy"],
             )
         else:
-            logger.info(f"決済(成行): {ticker} {pos['quantity']}株 ({reason})")
+            logger.info(f"決済(成行): {ticker} {qty}株 ({reason})")
             order = Order(
                 ticker=ticker,
                 side=OrderSide.SELL,
-                quantity=pos["quantity"],
+                quantity=qty,
                 order_type=OrderType.MARKET,
                 strategy_name=pos["strategy"],
             )
         result = await self.broker.place_order(order)
         logger.info(f"  → {result.status.value} {result.notes}")
 
-        # 決済価格を推定（指値ならlimit_price、成行ならYahoo価格）
         exit_price = limit_price if limit_price else await self._yahoo_client.get_current_price(ticker)
-        pnl = (exit_price - pos["entry_price"]) * pos["quantity"] if exit_price > 0 else 0
+        pnl = (exit_price - pos["entry_price"]) * qty if exit_price > 0 else 0
         pnl_pct = (exit_price / pos["entry_price"] - 1) * 100 if pos["entry_price"] > 0 and exit_price > 0 else 0
 
         self.trades_today.append({
@@ -1343,16 +1606,63 @@ class LiveTrader:
             "strategy": pos["strategy"],
         })
 
+        # 差金決済禁止: 当日売却した銘柄を記録 (同日中の再買付ブロック用)
+        if not partial:
+            self._same_day_sold.add(ticker[:4])
+            logger.info(f"  → 差金決済禁止リスト追加: {ticker[:4]} (本日中の再買付不可)")
+
+        # トレードジャーナル: 全決済を knowledge/trade_journal.jsonl に追記 (自動学習用)
+        try:
+            from datetime import datetime as _dt
+            hold_min = 0
+            ot = pos.get("order_time", "")
+            if ot:
+                try:
+                    hold_min = (_dt.now(JST) - _dt.fromisoformat(ot)).total_seconds() / 60
+                except Exception:
+                    pass
+            journal_entry = {
+                "timestamp": _dt.now(JST).isoformat(),
+                "ticker": ticker,
+                "name": get_name(ticker + "0") or get_name(ticker) or ticker,
+                "strategy": pos["strategy"],
+                "entry_price": pos["entry_price"],
+                "exit_price": exit_price,
+                "quantity": qty,
+                "pnl": pnl,
+                "pnl_pct": pnl_pct,
+                "exit_reason": reason,
+                "hold_minutes": round(hold_min, 1),
+                "highest_price": pos.get("highest_price", pos["entry_price"]),
+                "stop": pos.get("stop"),
+                "target": pos.get("target"),
+                "partial": partial,
+                "regime": getattr(self, "current_regime", None),
+                "win": pnl > 0,
+                "signal_reason": pos.get("signal_reason", ""),
+                "signal_confidence": pos.get("signal_confidence", 0.0),
+                "signal_entry": pos.get("signal_entry"),
+                "signal_stop": pos.get("signal_stop"),
+                "signal_target": pos.get("signal_target"),
+            }
+            jfile = Path("knowledge/trade_journal.jsonl")
+            jfile.parent.mkdir(parents=True, exist_ok=True)
+            with jfile.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(journal_entry, ensure_ascii=False) + "\n")
+        except Exception as e:
+            logger.warning(f"トレードジャーナル追記失敗: {e}")
+
         win_count = sum(1 for t in self.trades_today if t.get("pnl", 0) > 0)
         await self._notifier.notify_exit(
             ticker=ticker, direction="long",
             entry_price=pos["entry_price"], exit_price=exit_price,
-            quantity=pos["quantity"], pnl=pnl, pnl_pct=pnl_pct,
+            quantity=qty, pnl=pnl, pnl_pct=pnl_pct,
             reason=reason, daily_pnl=self.daily_pnl,
             win_rate=win_count / len(self.trades_today) if self.trades_today else 0,
             trade_count=len(self.trades_today),
         )
-        del self.open_positions[ticker]
+        if not partial:
+            del self.open_positions[ticker]
 
     async def _force_close_all(self, reason: str):
         """全ポジション決済"""

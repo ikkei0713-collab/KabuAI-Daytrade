@@ -1,0 +1,49 @@
+{
+  "date": "2026-04-14",
+  "timestamp": "2026-04-14T08:40:08.948852+09:00",
+  "tdnet": {
+    "disclosures": 2,
+    "analyzed": [
+      {
+        "ticker": "19630",
+        "title": "一部報道について",
+        "type": "その他",
+        "direction": "neutral",
+        "magnitude": 0.1,
+        "category": "other"
+      },
+      {
+        "ticker": "50760",
+        "title": "当社に関する一部報道について",
+        "type": "その他",
+        "direction": "neutral",
+        "magnitude": 0.1,
+        "category": "other"
+      }
+    ]
+  },
+  "premarket": {
+    "count": 0,
+    "candidates": []
+  },
+  "sector_bias": {
+    "risk_off": false,
+    "biases": {},
+    "spy_return": 0.0098
+  },
+  "regime": {
+    "regime": "trend_up",
+    "confidence": 0.6,
+    "position_scale": 1.2,
+    "strategy_weights": {
+      "orb": 1.0,
+      "gap_go": 0.9,
+      "open_drive": 0.8,
+      "trend_follow": 0.9,
+      "vwap_reclaim": 0.7,
+      "vwap_bounce": 0.5,
+      "rsi_reversal": 0.2,
+      "overextension": 0.1
+    }
+  }
+}

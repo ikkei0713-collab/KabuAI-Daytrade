@@ -38,7 +38,7 @@ class OpenDriveStrategy(BaseStrategy):
             parameter_set={
                 "min_drive_pct": 0.8,
                 "min_volume_ratio_5min": 2.0,
-                "target_range_multiple": 1.75,
+                "target_range_multiple": 0.8,  # 手数料無料: TP近めで利確回転
                 "max_pullback_pct": 0.5,
                 "min_tick_direction": 0.6,
                 "blocked_regimes": ["trend_down", "low_vol"],

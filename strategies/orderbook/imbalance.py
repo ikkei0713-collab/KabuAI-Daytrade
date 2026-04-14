@@ -36,15 +36,15 @@ class ImbalanceStrategy(BaseStrategy):
             feature_requirements=self.REQUIRED_FEATURES,
             expected_market_condition="bull",
             parameter_set={
-                # 大規模BT: OOS PF=1.50, 129件 (only_trend_up_range)
-                "long_ratio_threshold": 2.0,
+                # 大規模BT (2026-04-06): OOS PF=1.50 WR=55% 80件 +¥7,149
+                "long_ratio_threshold": 1.5,    # 緩和: BTベスト
                 "short_ratio_threshold": 0.5,
                 "max_spread_pct": 0.3,
-                "min_depth_imbalance": 0.4,
-                "target_atr_multiple": 1.5,
+                "min_depth_imbalance": 0.5,     # BTベスト
+                "target_atr_multiple": 1.0,     # 手数料無料: 回転UP
                 "stop_atr_multiple": 0.8,
                 "min_volume_ratio": 1.0,
-                "blocked_regimes": ["trend_down", "volatile", "low_vol"],
+                "blocked_regimes": ["trend_down", "low_vol"],  # volatile解除
             },
         )
 

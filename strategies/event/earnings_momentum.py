@@ -40,7 +40,7 @@ class EarningsMomentumStrategy(BaseStrategy):
                 "min_revenue_growth": 0.0,
                 "min_gap_pct": 1.0,
                 "min_volume_ratio": 1.5,
-                "trailing_atr_multiple": 2.0,
+                "trailing_atr_multiple": 1.2,  # 手数料無料: TP近め
                 "stop_below_post_earnings_low": True,
                 "guidance_weight": 1.5,
                 "blocked_regimes": [],  # 決算イベントはレジーム不問
@@ -109,7 +109,7 @@ class EarningsMomentumStrategy(BaseStrategy):
 
         # Target: trailing stop based (initial target = 2x ATR above)
         trail_mult = params.get("trailing_atr_multiple", 2.0)
-        target_price = entry_price + atr * trail_mult * 2
+        target_price = entry_price + atr * trail_mult
 
         if stop_price >= entry_price:
             return None

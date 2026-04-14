@@ -1,9 +1,10 @@
 .env
 .venv/
-data/cache/
+data/
 db/*.db
 logs/
 __pycache__/
 *.pyc
 *.egg-info/
 knowledge/trades/
+scripts/

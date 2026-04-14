@@ -65,7 +65,7 @@ class ORBStrategy(BaseStrategy):
                 "max_trades_per_stock": 2,      # max ORB entries per ticker per day
                 "max_holding_minutes": 60,       # time-based exit (extended from 30)
                 "atr_stop_multiple": 1.5,        # stop = entry -/+ ATR * multiple
-                "atr_target_multiple": 2.0,      # target = entry +/- ATR * multiple
+                "atr_target_multiple": 1.2,      # 手数料無料: TP近め
                 "use_atr_stops": True,           # use ATR-based stops instead of range-based
                 "min_confidence": 0.45,          # minimum confidence to generate signal
                 "regime_weight_threshold": 0.3,  # skip if regime weight for orb < this

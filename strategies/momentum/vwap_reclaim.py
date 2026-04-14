@@ -43,13 +43,13 @@ class VWAPReclaimStrategy(BaseStrategy):
             feature_requirements=self.REQUIRED_FEATURES,
             expected_market_condition="bull",
             parameter_set={
-                # 大規模BT (2026-03-27, 168パターン, OOS PF=1.42 trend_up/range)
-                "min_time_below_vwap_min": 30,
-                "min_volume_at_reclaim": 1.8,
-                "target_atr_multiple": 2.0,
-                "reclaim_buffer_pct": 0.30,
-                "max_distance_from_vwap_pct": 1.0,
-                # レジームフィルタ: trend_down/volatile で損失が大きい
+                # 大規模BT (2026-04-06, OOS PF=1.65 WR=62% 16件 block_down_vol)
+                "min_time_below_vwap_min": 25,
+                "min_volume_at_reclaim": 0.8,   # 緩和: 低出来高でもエントリー可
+                "target_atr_multiple": 1.2,     # 手数料無料期間: TP近めで回転数UP
+                "reclaim_buffer_pct": 0.25,     # やや緩和
+                "max_distance_from_vwap_pct": 3.0,  # 大幅緩和: VWAPから離れていてもOK
+                # レジームフィルタ: trend_downとvolatileで損失が大きい
                 "blocked_regimes": ["trend_down"],
                 # 後場 PM-VWAP reclaim（intraday 品質が十分なときのみ）
                 "pm_reclaim_min_hold_count": 2,
@@ -128,7 +128,7 @@ class VWAPReclaimStrategy(BaseStrategy):
         day_high = float(data["high"].max())
 
         entry_price = current_price
-        stop_price = min(recent_low - 1.0, entry_price - atr * 2)  # 直近安値かATR2倍の近い方
+        stop_price = min(recent_low - 1.0, entry_price - atr * 1.5)  # 直近安値かATR1.5倍の近い方
         # TP: ATRベース（デイトレ現実的。日足高値は使わない）
         target_price = entry_price + atr * params.get("target_atr_multiple", 1.5)
 
@@ -145,6 +145,10 @@ class VWAPReclaimStrategy(BaseStrategy):
             confidence += 0.15  # 出来高急増ボーナスを強化
         if atr > 15:
             confidence += 0.05
+        # 低ボラ銘柄ペナルティ: ATR%が1.5%未満は値幅が取れない
+        atr_pct = (atr / entry_price * 100) if entry_price > 0 else 0
+        if atr_pct < 1.5:
+            confidence -= 0.15  # 低ボラは勝ちにくい
         # Stronger if reclaim candle has big body
         body = abs(float(latest["close"]) - float(latest["open"]))
         candle_range = float(latest["high"]) - float(latest["low"])

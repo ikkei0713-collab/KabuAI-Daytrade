@@ -315,11 +315,11 @@ class ExecutionEngine:
                 # Calculate unrealized P&L
                 if position.direction == "long":
                     position.unrealized_pnl = (
-                        (current_price - position.entry_price) * position.current_price
+                        (current_price - position.entry_price) * position.quantity
                     )
                 else:
                     position.unrealized_pnl = (
-                        (position.entry_price - current_price) * position.current_price
+                        (position.entry_price - current_price) * position.quantity
                     )
 
                 # Update holding time

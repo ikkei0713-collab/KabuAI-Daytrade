@@ -1,0 +1,415 @@
+{
+  "date": "2026-04-14",
+  "timestamp": "2026-04-14T08:34:16.256202+09:00",
+  "quotes": {
+    "NKD=F": {
+      "symbol": "NKD=F",
+      "name": "日経225先物",
+      "price": 57790.0,
+      "prev_close": 57390.0,
+      "change_pct": 0.7
+    },
+    "^GSPC": {
+      "symbol": "^GSPC",
+      "name": "S&P500",
+      "price": 6886.24,
+      "prev_close": 6816.89,
+      "change_pct": 1.02
+    },
+    "^IXIC": {
+      "symbol": "^IXIC",
+      "name": "NASDAQ",
+      "price": 23183.74,
+      "prev_close": 22902.89,
+      "change_pct": 1.23
+    },
+    "^DJI": {
+      "symbol": "^DJI",
+      "name": "ダウ平均",
+      "price": 48218.25,
+      "prev_close": 47916.57,
+      "change_pct": 0.63
+    },
+    "^RUT": {
+      "symbol": "^RUT",
+      "name": "Russell2000",
+      "price": 2670.49,
+      "prev_close": 2630.59,
+      "change_pct": 1.52
+    },
+    "^VIX": {
+      "symbol": "^VIX",
+      "name": "VIX",
+      "price": 19.12,
+      "prev_close": 19.23,
+      "change_pct": -0.57
+    },
+    "JPY=X": {
+      "symbol": "JPY=X",
+      "name": "USD/JPY",
+      "price": 159.24,
+      "prev_close": 159.68,
+      "change_pct": -0.27
+    },
+    "EURJPY=X": {
+      "symbol": "EURJPY=X",
+      "name": "EUR/JPY",
+      "price": 187.34,
+      "prev_close": 186.42,
+      "change_pct": 0.49
+    },
+    "CNYJPY=X": {
+      "symbol": "CNYJPY=X",
+      "name": "CNY/JPY",
+      "price": 23.39,
+      "prev_close": 23.29,
+      "change_pct": 0.42
+    },
+    "CL=F": {
+      "symbol": "CL=F",
+      "name": "原油WTI",
+      "price": 96.83,
+      "prev_close": 96.57,
+      "change_pct": 0.27
+    },
+    "GC=F": {
+      "symbol": "GC=F",
+      "name": "金",
+      "price": 4781.2,
+      "prev_close": 4761.9,
+      "change_pct": 0.41
+    },
+    "^HSI": {
+      "symbol": "^HSI",
+      "name": "香港ハンセン",
+      "price": 25893.54,
+      "prev_close": 25752.4,
+      "change_pct": 0.55
+    },
+    "000001.SS": {
+      "symbol": "000001.SS",
+      "name": "上海総合",
+      "price": 3986.23,
+      "prev_close": 3966.17,
+      "change_pct": 0.51
+    },
+    "^STOXX50E": {
+      "symbol": "^STOXX50E",
+      "name": "ユーロSTOXX50",
+      "price": 5926.11,
+      "prev_close": 5896.29,
+      "change_pct": 0.51
+    },
+    "XLK": {
+      "symbol": "XLK",
+      "name": "テクノロジー",
+      "price": 145.61,
+      "prev_close": 142.62,
+      "change_pct": 2.1
+    },
+    "XLF": {
+      "symbol": "XLF",
+      "name": "金融",
+      "price": 51.66,
+      "prev_close": 50.77,
+      "change_pct": 1.75
+    },
+    "XLE": {
+      "symbol": "XLE",
+      "name": "エネルギー",
+      "price": 57.11,
+      "prev_close": 56.94,
+      "change_pct": 0.3
+    },
+    "XLV": {
+      "symbol": "XLV",
+      "name": "ヘルスケア",
+      "price": 147.97,
+      "prev_close": 147.31,
+      "change_pct": 0.45
+    },
+    "XLI": {
+      "symbol": "XLI",
+      "name": "資本財",
+      "price": 172.73,
+      "prev_close": 171.52,
+      "change_pct": 0.71
+    },
+    "XLY": {
+      "symbol": "XLY",
+      "name": "一般消費財",
+      "price": 113.92,
+      "prev_close": 112.89,
+      "change_pct": 0.91
+    },
+    "XLP": {
+      "symbol": "XLP",
+      "name": "生活必需品",
+      "price": 81.55,
+      "prev_close": 82.37,
+      "change_pct": -1.0
+    },
+    "XLRE": {
+      "symbol": "XLRE",
+      "name": "不動産",
+      "price": 43.02,
+      "prev_close": 42.82,
+      "change_pct": 0.47
+    },
+    "XLU": {
+      "symbol": "XLU",
+      "name": "公共事業",
+      "price": 46.39,
+      "prev_close": 46.96,
+      "change_pct": -1.21
+    },
+    "XLC": {
+      "symbol": "XLC",
+      "name": "通信",
+      "price": 114.82,
+      "prev_close": 113.95,
+      "change_pct": 0.76
+    },
+    "XLB": {
+      "symbol": "XLB",
+      "name": "素材",
+      "price": 52.19,
+      "prev_close": 51.96,
+      "change_pct": 0.44
+    },
+    "SMH": {
+      "symbol": "SMH",
+      "name": "半導体ETF",
+      "price": 443.34,
+      "prev_close": 436.88,
+      "change_pct": 1.48
+    },
+    "SOXX": {
+      "symbol": "SOXX",
+      "name": "半導体指数",
+      "price": 393.34,
+      "prev_close": 386.6,
+      "change_pct": 1.74
+    }
+  },
+  "categories": {
+    "日経先物": [
+      {
+        "symbol": "NKD=F",
+        "name": "日経225先物",
+        "price": 57790.0,
+        "prev_close": 57390.0,
+        "change_pct": 0.7
+      }
+    ],
+    "米国指数": [
+      {
+        "symbol": "^GSPC",
+        "name": "S&P500",
+        "price": 6886.24,
+        "prev_close": 6816.89,
+        "change_pct": 1.02
+      },
+      {
+        "symbol": "^IXIC",
+        "name": "NASDAQ",
+        "price": 23183.74,
+        "prev_close": 22902.89,
+        "change_pct": 1.23
+      },
+      {
+        "symbol": "^DJI",
+        "name": "ダウ平均",
+        "price": 48218.25,
+        "prev_close": 47916.57,
+        "change_pct": 0.63
+      },
+      {
+        "symbol": "^RUT",
+        "name": "Russell2000",
+        "price": 2670.49,
+        "prev_close": 2630.59,
+        "change_pct": 1.52
+      }
+    ],
+    "恐怖指数": [
+      {
+        "symbol": "^VIX",
+        "name": "VIX",
+        "price": 19.12,
+        "prev_close": 19.23,
+        "change_pct": -0.57
+      }
+    ],
+    "為替": [
+      {
+        "symbol": "JPY=X",
+        "name": "USD/JPY",
+        "price": 159.24,
+        "prev_close": 159.68,
+        "change_pct": -0.27
+      },
+      {
+        "symbol": "EURJPY=X",
+        "name": "EUR/JPY",
+        "price": 187.34,
+        "prev_close": 186.42,
+        "change_pct": 0.49
+      },
+      {
+        "symbol": "CNYJPY=X",
+        "name": "CNY/JPY",
+        "price": 23.39,
+        "prev_close": 23.29,
+        "change_pct": 0.42
+      }
+    ],
+    "コモディティ": [
+      {
+        "symbol": "CL=F",
+        "name": "原油WTI",
+        "price": 96.83,
+        "prev_close": 96.57,
+        "change_pct": 0.27
+      },
+      {
+        "symbol": "GC=F",
+        "name": "金",
+        "price": 4781.2,
+        "prev_close": 4761.9,
+        "change_pct": 0.41
+      }
+    ],
+    "アジア": [
+      {
+        "symbol": "^HSI",
+        "name": "香港ハンセン",
+        "price": 25893.54,
+        "prev_close": 25752.4,
+        "change_pct": 0.55
+      },
+      {
+        "symbol": "000001.SS",
+        "name": "上海総合",
+        "price": 3986.23,
+        "prev_close": 3966.17,
+        "change_pct": 0.51
+      }
+    ],
+    "欧州": [
+      {
+        "symbol": "^STOXX50E",
+        "name": "ユーロSTOXX50",
+        "price": 5926.11,
+        "prev_close": 5896.29,
+        "change_pct": 0.51
+      }
+    ],
+    "米国セクター": [
+      {
+        "symbol": "XLK",
+        "name": "テクノロジー",
+        "price": 145.61,
+        "prev_close": 142.62,
+        "change_pct": 2.1
+      },
+      {
+        "symbol": "XLF",
+        "name": "金融",
+        "price": 51.66,
+        "prev_close": 50.77,
+        "change_pct": 1.75
+      },
+      {
+        "symbol": "XLE",
+        "name": "エネルギー",
+        "price": 57.11,
+        "prev_close": 56.94,
+        "change_pct": 0.3
+      },
+      {
+        "symbol": "XLV",
+        "name": "ヘルスケア",
+        "price": 147.97,
+        "prev_close": 147.31,
+        "change_pct": 0.45
+      },
+      {
+        "symbol": "XLI",
+        "name": "資本財",
+        "price": 172.73,
+        "prev_close": 171.52,
+        "change_pct": 0.71
+      },
+      {
+        "symbol": "XLY",
+        "name": "一般消費財",
+        "price": 113.92,
+        "prev_close": 112.89,
+        "change_pct": 0.91
+      },
+      {
+        "symbol": "XLP",
+        "name": "生活必需品",
+        "price": 81.55,
+        "prev_close": 82.37,
+        "change_pct": -1.0
+      },
+      {
+        "symbol": "XLRE",
+        "name": "不動産",
+        "price": 43.02,
+        "prev_close": 42.82,
+        "change_pct": 0.47
+      },
+      {
+        "symbol": "XLU",
+        "name": "公共事業",
+        "price": 46.39,
+        "prev_close": 46.96,
+        "change_pct": -1.21
+      },
+      {
+        "symbol": "XLC",
+        "name": "通信",
+        "price": 114.82,
+        "prev_close": 113.95,
+        "change_pct": 0.76
+      },
+      {
+        "symbol": "XLB",
+        "name": "素材",
+        "price": 52.19,
+        "prev_close": 51.96,
+        "change_pct": 0.44
+      }
+    ],
+    "半導体": [
+      {
+        "symbol": "SMH",
+        "name": "半導体ETF",
+        "price": 443.34,
+        "prev_close": 436.88,
+        "change_pct": 1.48
+      },
+      {
+        "symbol": "SOXX",
+        "name": "半導体指数",
+        "price": 393.34,
+        "prev_close": 386.6,
+        "change_pct": 1.74
+      }
+    ]
+  },
+  "signals": [
+    "米国大幅高 → 日本株追い風",
+    "日経先物 +0.7% → ギャップアップ期待"
+  ],
+  "summary": {
+    "sp500_chg": 1.02,
+    "vix": 19.12,
+    "nk_futures_chg": 0.7,
+    "usdjpy_chg": -0.27,
+    "smh_chg": 1.48
+  }
+}

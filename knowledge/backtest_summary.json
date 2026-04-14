@@ -1,41 +1,41 @@
 {
-  "date": "2026-04-02T15:47:09.894108",
-  "total_trades": 250,
-  "wins": 112,
-  "losses": 138,
-  "win_rate": 0.448,
-  "profit_factor": 1.03,
-  "total_pnl_cost_adjusted": 1204.0,
-  "total_pnl_raw": 7424.0,
-  "total_cost": 3113.0,
-  "avg_pnl": 5.0,
+  "date": "2026-04-14T10:10:50.588957",
+  "total_trades": 363,
+  "wins": 164,
+  "losses": 199,
+  "win_rate": 0.452,
+  "profit_factor": 0.92,
+  "total_pnl_cost_adjusted": -6052.0,
+  "total_pnl_raw": 3017.0,
+  "total_cost": 4539.0,
+  "avg_pnl": -17.0,
   "in_sample": {
-    "trades": 139,
+    "trades": 192,
     "win_rate": 0.432,
-    "pf": 0.7,
-    "pnl": -8093.0
+    "pf": 0.67,
+    "pnl": -12846.0
   },
   "out_of_sample": {
-    "trades": 111,
-    "win_rate": 0.468,
-    "pf": 1.46,
-    "pnl": 9297.0
+    "trades": 171,
+    "win_rate": 0.474,
+    "pf": 1.19,
+    "pnl": 6794.0
   },
   "strategy_regime": {
-    "spread_entry_range": {
-      "trades": 16,
-      "win_rate": 0.562,
-      "pf": 1.29
-    },
     "vwap_reclaim_range": {
-      "trades": 34,
-      "win_rate": 0.382,
-      "pf": 0.59
+      "trades": 56,
+      "win_rate": 0.357,
+      "pf": 0.53
+    },
+    "spread_entry_range": {
+      "trades": 47,
+      "win_rate": 0.468,
+      "pf": 0.78
     },
     "open_drive_range": {
       "trades": 40,
-      "win_rate": 0.475,
-      "pf": 1.27
+      "win_rate": 0.5,
+      "pf": 1.59
     },
     "vwap_bounce_range": {
       "trades": 6,
@@ -48,39 +48,44 @@
       "pf": 0.35
     },
     "vwap_reclaim_trend_down": {
-      "trades": 6,
-      "win_rate": 0.5,
-      "pf": 0.24
+      "trades": 13,
+      "win_rate": 0.462,
+      "pf": 0.45
     },
     "open_drive_trend_down": {
       "trades": 16,
-      "win_rate": 0.375,
-      "pf": 0.91
+      "win_rate": 0.438,
+      "pf": 0.93
+    },
+    "spread_entry_trend_down": {
+      "trades": 11,
+      "win_rate": 0.273,
+      "pf": 0.15
     },
     "trend_follow_trend_up": {
       "trades": 9,
-      "win_rate": 0.333,
-      "pf": 0.99
+      "win_rate": 0.444,
+      "pf": 1.34
     },
     "open_drive_trend_up": {
       "trades": 18,
       "win_rate": 0.333,
-      "pf": 0.27
+      "pf": 0.2
     },
     "vwap_reclaim_trend_up": {
-      "trades": 15,
-      "win_rate": 0.333,
-      "pf": 0.6
+      "trades": 28,
+      "win_rate": 0.536,
+      "pf": 1.06
     },
     "spread_entry_trend_up": {
-      "trades": 23,
-      "win_rate": 0.609,
-      "pf": 3.71
+      "trades": 41,
+      "win_rate": 0.585,
+      "pf": 2.46
     },
     "vwap_reclaim_low_vol": {
-      "trades": 2,
-      "win_rate": 0.5,
-      "pf": 2.49
+      "trades": 5,
+      "win_rate": 0.6,
+      "pf": 1.95
     },
     "trend_follow_low_vol": {
       "trades": 2,
@@ -90,37 +95,32 @@
     "open_drive_low_vol": {
       "trades": 9,
       "win_rate": 0.222,
-      "pf": 0.32
+      "pf": 0.19
     },
     "spread_entry_low_vol": {
-      "trades": 5,
-      "win_rate": 0.4,
-      "pf": 0.23
+      "trades": 9,
+      "win_rate": 0.333,
+      "pf": 0.27
     },
     "open_drive_volatile": {
       "trades": 9,
       "win_rate": 0.222,
-      "pf": 1.5
+      "pf": 0.84
+    },
+    "vwap_reclaim_volatile": {
+      "trades": 7,
+      "win_rate": 0.714,
+      "pf": 1.6
+    },
+    "spread_entry_volatile": {
+      "trades": 14,
+      "win_rate": 0.214,
+      "pf": 0.4
     },
     "trend_follow_volatile": {
       "trades": 5,
       "win_rate": 0.6,
-      "pf": 4.3
-    },
-    "spread_entry_volatile": {
-      "trades": 7,
-      "win_rate": 0.286,
-      "pf": 0.24
-    },
-    "vwap_reclaim_volatile": {
-      "trades": 5,
-      "win_rate": 0.8,
-      "pf": 3.37
-    },
-    "spread_entry_trend_down": {
-      "trades": 5,
-      "win_rate": 0.4,
-      "pf": 0.35
+      "pf": 3.84
     },
     "trend_follow_trend_down": {
       "trades": 6,
@@ -208,6 +208,11 @@
       "status": "active",
       "proxy_usage_rate": 1.0,
       "proxy_penalty": 0.05
+    },
+    "volume_dryup": {
+      "status": "active",
+      "proxy_usage_rate": 0.0,
+      "proxy_penalty": 0.0
     }
   },
   "strategy_status": {
@@ -225,7 +230,8 @@
       "rsi_reversal",
       "crash_rebound",
       "earnings_momentum",
-      "catalyst_initial"
+      "catalyst_initial",
+      "volume_dryup"
     ],
     "filter": [],
     "supplement": [],

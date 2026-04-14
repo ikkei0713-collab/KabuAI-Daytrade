@@ -272,7 +272,7 @@ class TrendFollowStrategy(BaseStrategy):
 
             entry_price = current_price
             stop_price = ema_21 - atr * 0.2
-            target_price = entry_price + atr * params.get("trailing_atr_multiple", 1.5) * 2
+            target_price = entry_price + atr * params.get("trailing_atr_multiple", 1.2)
             direction = "long"
 
         else:  # short_aligned
@@ -285,7 +285,7 @@ class TrendFollowStrategy(BaseStrategy):
 
             entry_price = current_price
             stop_price = ema_21 + atr * 0.2
-            target_price = entry_price - atr * params.get("trailing_atr_multiple", 1.5) * 2
+            target_price = entry_price - atr * params.get("trailing_atr_multiple", 1.2)
             direction = "short"
 
         risk = abs(entry_price - stop_price)

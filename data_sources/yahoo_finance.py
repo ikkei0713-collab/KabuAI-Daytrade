@@ -19,7 +19,7 @@ _CHART_URL = (
     "?interval=1m&range=5d"
 )
 
-_CACHE_TTL = 30  # seconds
+_CACHE_TTL = 5  # seconds (10秒スキャン間隔に合わせて短縮)
 
 
 class YahooFinanceClient:

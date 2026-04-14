@@ -42,7 +42,7 @@ class GapGoStrategy(BaseStrategy):
             parameter_set={
                 "min_gap_pct": 2.0,
                 "min_volume_ratio": 1.5,
-                "target_atr_multiple": 2.0,
+                "target_atr_multiple": 1.3,  # 手数料無料期間: TP近めで回転数UP
                 "max_gap_pct": 10.0,
                 "min_pre_market_volume": 50000,
                 "confirmation_candles": 1,

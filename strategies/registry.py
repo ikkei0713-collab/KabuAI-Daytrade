@@ -45,6 +45,7 @@ class StrategyRegistry:
         "crash_rebound":       "active",       # レジーム不問 (急落時こそ必要)
         "earnings_momentum":   "active",       # レジーム不問 (決算イベント)
         "catalyst_initial":    "active",       # レジーム不問 (カタリスト)
+        "volume_dryup":        "active",       # 出来高枯れ押し目買い: 高値更新陽線→出来高減陰線
     }
 
     @classmethod
@@ -108,6 +109,7 @@ class StrategyRegistry:
         from strategies.momentum.vwap_reclaim import VWAPReclaimStrategy
         from strategies.momentum.vwap_bounce import VWAPBounceStrategy
         from strategies.momentum.trend_follow import TrendFollowStrategy
+        from strategies.momentum.volume_dryup import VolumeDryUpStrategy
 
         # --- Reversal strategies ---
         from strategies.reversal.overextension import OverextensionStrategy
@@ -132,6 +134,7 @@ class StrategyRegistry:
             VWAPReclaimStrategy(),
             VWAPBounceStrategy(),
             TrendFollowStrategy(),
+            VolumeDryUpStrategy(),
             OverextensionStrategy(),
             RSIReversalStrategy(),
             CrashReboundStrategy(),
@@ -204,8 +207,8 @@ class StrategyRegistry:
         古いトレードは無視して直近のレジームに適応する。
 
         閾値:
-        - off: PF < 0.90 or WR < 40% or avg_pnl < 0
-        - on:  PF > 1.20 and WR > 48% (再開は15件以上)
+        - off: PF < 0.70 or WR < 30% or avg_pnl < 0
+        - on:  PF > 1.05 and WR > 38% (再開は15件以上)
         """
         from datetime import datetime, timedelta
 
@@ -236,8 +239,8 @@ class StrategyRegistry:
 
             was_active = strategy.config.is_active
 
-            # 停止条件: PF < 0.90 or WR < 40% or 平均損益マイナス
-            if pf < 0.90 or wr < 0.40 or avg_pnl < 0:
+            # 停止条件: PF < 0.70 or WR < 30% or 平均損益マイナス
+            if pf < 0.70 or wr < 0.30 or avg_pnl < 0:
                 if was_active:
                     strategy.config.is_active = False
                     toggled.append(name)
@@ -245,8 +248,8 @@ class StrategyRegistry:
                         f"[auto_toggle] {name} 停止: PF={pf:.2f} 勝率={wr:.0%} "
                         f"avg={avg_pnl:+,.0f} ({len(strades)}件)"
                     )
-            # 再開条件: PF > 1.20 and WR > 48% (厳しめ、15件以上)
-            elif not was_active and pf > 1.20 and wr > 0.48 and len(strades) >= 15:
+            # 再開条件: PF > 1.05 and WR > 38% (緩和、15件以上)
+            elif not was_active and pf > 1.05 and wr > 0.38 and len(strades) >= 15:
                 strategy.config.is_active = True
                 toggled.append(name)
                 logger.info(
